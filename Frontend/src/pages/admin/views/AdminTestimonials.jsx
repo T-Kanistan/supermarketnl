@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { FaPlus, FaEdit, FaTrash, FaCommentDots, FaStar } from 'react-icons/fa';
 import feedbackService from '../../../services/feedbackService';
+import { getImageUrl } from '../../../services/api';
 import { useToast } from '../../../context/ToastContext';
 
 export const AdminTestimonials = () => {
@@ -158,7 +159,7 @@ export const AdminTestimonials = () => {
                 <tr key={t.id}>
                   <td>
                     <img 
-                      src={t.image} 
+                      src={getImageUrl(t.image)} 
                       alt={t.customerName} 
                       className="table-image-preview" 
                       style={{ width: '44px', height: '44px', borderRadius: '50%' }}
@@ -283,7 +284,7 @@ export const AdminTestimonials = () => {
                   <div className="upload-preview-container">
                     <p style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>Preview:</p>
                     <img 
-                      src={formData.image} 
+                      src={getImageUrl(formData.image)} 
                       alt="Customer Preview" 
                       className="upload-preview-img"
                       style={{ borderRadius: '50%', width: '60px', height: '60px' }}

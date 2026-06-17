@@ -1,5 +1,5 @@
 import Testimonial from '../models/Testimonial.js';
-import { handleImageUpload } from '../middlewares/uploadMiddleware.js';
+import { handleImageUpload, handleBase64Upload } from '../middlewares/uploadMiddleware.js';
 
 /**
  * @desc    Get Active Testimonials (Public)
@@ -73,7 +73,7 @@ export const createTestimonial = async (req, res, next) => {
     if (req.file) {
       imageUrl = await handleImageUpload(req.file);
     } else if (req.body.image) {
-      imageUrl = req.body.image;
+      imageUrl = await handleBase64Upload(req.body.image);
     }
 
     const testimonial = await Testimonial.create({
@@ -122,7 +122,7 @@ export const updateTestimonial = async (req, res, next) => {
         testimonial.image = imageUrl;
       }
     } else if (req.body.image !== undefined) {
-      testimonial.image = req.body.image;
+      testimonial.image = await handleBase64Upload(req.body.image);
     }
 
     await testimonial.save();

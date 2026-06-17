@@ -21,6 +21,8 @@ const defaultSettings = {
   address: 'Amsterdam, Netherlands',
   aboutUs: 'Your premium destination for high-quality groceries and fresh daily produce. We bring the world to your shopping cart with hand-picked items from across the globe, ensuring exceptional quality and value in every aisle.',
   footerDescription: 'Your premium destination for high-quality groceries and fresh daily produce. We bring the world to your shopping cart with hand-picked items from across the globe.',
+  supermarketTimings: '8:00 AM - 10:00 PM',
+  foodCornerTimings: '11:00 AM - 11:00 PM',
   socials: {
     facebook: 'https://facebook.com',
     instagram: 'https://instagram.com',
@@ -39,6 +41,8 @@ const defaultBanners = [
     image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=1200',
     buttonText: 'EXPLORE PRODUCTS',
     buttonLink: '/products',
+    buttonText2: 'EXPLORE FOOD CORNER',
+    buttonLink2: '/food-corner',
     status: 'active',
   }
 ];

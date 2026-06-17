@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { FaPlus, FaEdit, FaTrash, FaEye } from 'react-icons/fa';
 import bannerService from '../../../services/bannerService';
+import { getImageUrl } from '../../../services/api';
 import { useToast } from '../../../context/ToastContext';
 
 export const AdminBanners = () => {
@@ -19,6 +20,8 @@ export const AdminBanners = () => {
     image: '',
     buttonText: 'EXPLORE PRODUCTS',
     buttonLink: '/products',
+    buttonText2: 'EXPLORE FOOD CORNER',
+    buttonLink2: '/food-corner',
     status: 'active',
   });
 
@@ -56,6 +59,8 @@ export const AdminBanners = () => {
       image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=1200',
       buttonText: 'EXPLORE PRODUCTS',
       buttonLink: '/products',
+      buttonText2: 'EXPLORE FOOD CORNER',
+      buttonLink2: '/food-corner',
       status: 'active',
     });
     setIsModalOpen(true);
@@ -70,6 +75,8 @@ export const AdminBanners = () => {
       image: banner.image || '',
       buttonText: banner.buttonText || 'EXPLORE PRODUCTS',
       buttonLink: banner.buttonLink || '/products',
+      buttonText2: banner.buttonText2 || 'EXPLORE FOOD CORNER',
+      buttonLink2: banner.buttonLink2 || '/food-corner',
       status: banner.status || 'active',
     });
     setIsModalOpen(true);
@@ -159,7 +166,7 @@ export const AdminBanners = () => {
                 <tr key={banner.id}>
                   <td>
                     <img 
-                      src={banner.image} 
+                      src={getImageUrl(banner.image)} 
                       alt={banner.title} 
                       className="table-image-preview" 
                       style={{ width: '80px', height: '45px' }}
@@ -270,6 +277,29 @@ export const AdminBanners = () => {
 
                 <div className="admin-form-group row-split">
                   <div>
+                    <label>Secondary Button Label</label>
+                    <input 
+                      type="text" 
+                      name="buttonText2" 
+                      value={formData.buttonText2} 
+                      onChange={handleChange} 
+                      required 
+                    />
+                  </div>
+                  <div>
+                    <label>Secondary Button Router Link</label>
+                    <input 
+                      type="text" 
+                      name="buttonLink2" 
+                      value={formData.buttonLink2} 
+                      onChange={handleChange} 
+                      required 
+                    />
+                  </div>
+                </div>
+
+                <div className="admin-form-group row-split">
+                  <div>
                     <label>Banner Image URL</label>
                     <input 
                       type="text" 
@@ -312,7 +342,7 @@ export const AdminBanners = () => {
                   <div className="banner-preview-title">Visual Live Preview</div>
                   <div 
                     className="banner-render-mock" 
-                    style={{ backgroundImage: `url('${formData.image || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=1200'}')` }}
+                    style={{ backgroundImage: `url('${getImageUrl(formData.image) || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=1200'}')` }}
                   >
                     <div className="banner-mock-content">
                       <h4 className="banner-mock-title">
@@ -320,7 +350,10 @@ export const AdminBanners = () => {
                         <span>{formData.highlightText || 'HIGHLIGHTED TEXT'}</span>
                       </h4>
                       <p className="banner-mock-sub">{formData.subtitle || 'Subtitle description content goes here.'}</p>
-                      <span className="banner-mock-btn">{formData.buttonText || 'BUTTON'}</span>
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                        <span className="banner-mock-btn">{formData.buttonText || 'BUTTON'}</span>
+                        <span className="banner-mock-btn secondary" style={{ background: 'transparent', border: '1px solid white' }}>{formData.buttonText2 || 'BUTTON 2'}</span>
+                      </div>
                     </div>
                   </div>
                 </div>

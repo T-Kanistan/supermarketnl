@@ -136,7 +136,17 @@ export const AdminProfile = () => {
             />
           </div>
 
-          <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end' }}>
+          <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+            <button 
+              type="button" 
+              className="action-btn-secondary"
+              onClick={() => {
+                setPasswordForm({ oldPassword: '', newPassword: '', confirmPassword: '' });
+                addToast('Form fields cleared', 'info');
+              }}
+            >
+              Cancel
+            </button>
             <button 
               type="submit" 
               className={`action-btn-primary ${isSubmitting ? 'disabled' : ''}`}

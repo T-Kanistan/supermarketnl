@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { FaPlus, FaEdit, FaTrash, FaTags } from 'react-icons/fa';
 import categoryService from '../../../services/categoryService';
+import { getImageUrl } from '../../../services/api';
 import { useToast } from '../../../context/ToastContext';
 
 export const AdminCategories = () => {
@@ -151,7 +152,7 @@ export const AdminCategories = () => {
                 <tr key={cat.id}>
                   <td>
                     <img 
-                      src={cat.image} 
+                      src={getImageUrl(cat.image)} 
                       alt={cat.name} 
                       className="table-image-preview" 
                       onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=800'; }}
@@ -245,7 +246,7 @@ export const AdminCategories = () => {
                   <div className="upload-preview-container">
                     <p style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>Preview:</p>
                     <img 
-                      src={formData.image} 
+                      src={getImageUrl(formData.image)} 
                       alt="Category Preview" 
                       className="upload-preview-img"
                       onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=800'; }}

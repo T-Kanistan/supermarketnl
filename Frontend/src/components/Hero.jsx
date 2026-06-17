@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaRegClock } from 'react-icons/fa';
+import { useCMS } from '../context/CMSContext';
 import bannerService from '../services/bannerService';
+import { getImageUrl } from '../services/api';
 import './Hero.css';
 
 const Hero = () => {
   const navigate = useNavigate();
+  const { cmsData } = useCMS();
   const [activeBanner, setActiveBanner] = useState(null);
 
   useEffect(() => {
@@ -26,9 +29,11 @@ const Hero = () => {
   const bannerTitle = activeBanner?.title || 'FRESH PRODUCTS';
   const highlightText = activeBanner?.highlightText || 'BETTER LIVING';
   const subtitle = activeBanner?.subtitle || 'Your one-stop supermarket for quality products and great offers.';
-  const bgImage = activeBanner?.image || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=1200';
+  const bgImage = getImageUrl(activeBanner?.image) || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=1200';
   const buttonText = activeBanner?.buttonText || 'EXPLORE PRODUCTS';
   const buttonLink = activeBanner?.buttonLink || '/products';
+  const buttonText2 = activeBanner?.buttonText2 || 'EXPLORE FOOD CORNER';
+  const buttonLink2 = activeBanner?.buttonLink2 || '/food-corner';
 
   return (
     <section 
@@ -48,14 +53,14 @@ const Hero = () => {
           </p>
           <div className="hero-buttons">
             <button className="btn-primary btn-large" onClick={() => navigate(buttonLink)}>{buttonText}</button>
-            <button className="btn-secondary btn-large" onClick={() => navigate('/food-corner')}>EXPLORE FOOD CORNER</button>
+            <button className="btn-secondary btn-large" onClick={() => navigate(buttonLink2)}>{buttonText2}</button>
           </div>
           <div className="hero-timings">
             <div className="timing-item">
               <FaRegClock className="timing-icon" />
               <div>
                 <span className="timing-label">Supermarket</span>
-                <span className="timing-value">8:00 AM - 10:00 PM</span>
+                <span className="timing-value">{cmsData?.supermarketTimings || '8:00 AM - 10:00 PM'}</span>
               </div>
             </div>
             <div className="timing-divider"></div>
@@ -63,7 +68,7 @@ const Hero = () => {
               <FaRegClock className="timing-icon" />
               <div>
                 <span className="timing-label">Food Corner</span>
-                <span className="timing-value">11:00 AM - 11:00 PM</span>
+                <span className="timing-value">{cmsData?.foodCornerTimings || '11:00 AM - 11:00 PM'}</span>
               </div>
             </div>
           </div>

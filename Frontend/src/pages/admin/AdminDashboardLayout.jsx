@@ -8,6 +8,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useCMS } from '../../context/CMSContext';
 import { useToast } from '../../context/ToastContext';
+import { getImageUrl } from '../../services/api';
 import './AdminDashboardLayout.css';
 
 export const AdminDashboardLayout = () => {
@@ -54,7 +55,7 @@ export const AdminDashboardLayout = () => {
       {/* Sidebar Drawer */}
       <aside className={`admin-sidebar ${mobileMenuOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
-          <img src={cmsData.logo || '/logo.png'} alt="Store Logo" className="sidebar-logo" onError={(e) => { e.target.src = '/logo.png'; }} />
+          <img src={getImageUrl(cmsData.logo) || '/logo.png'} alt="Store Logo" className="sidebar-logo" onError={(e) => { e.target.src = '/logo.png'; }} />
           <span className="sidebar-brand-name">{cmsData.storeName || 'Supermarket'}</span>
         </div>
 

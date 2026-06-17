@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { FiStar } from 'react-icons/fi';
 import feedbackService from '../services/feedbackService';
+import { getImageUrl } from '../services/api';
 import './Reviews.css';
 
 const Reviews = () => {
@@ -46,7 +47,7 @@ const Reviews = () => {
               <div className="review-card" key={review.id}>
                 <div className="review-header">
                   <img 
-                    src={review.image} 
+                    src={getImageUrl(review.image)} 
                     alt={review.customerName} 
                     className="reviewer-img" 
                     onError={(e) => { e.target.src = 'https://i.pravatar.cc/150?img=9'; }}

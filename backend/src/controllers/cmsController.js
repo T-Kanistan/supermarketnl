@@ -45,6 +45,8 @@ export const updateCMS = async (req, res, next) => {
       'whatsapp',
       'youtube',
       'tiktok',
+      'supermarketTimings',
+      'foodCornerTimings',
     ];
 
     fieldsToUpdate.forEach((field) => {

@@ -6,6 +6,7 @@ import {
 } from 'react-icons/fa';
 import productService from '../services/productService';
 import categoryService from '../services/categoryService';
+import { getImageUrl } from '../services/api';
 import { useCMS } from '../context/CMSContext';
 import './ProductsPage.css';
 
@@ -134,7 +135,7 @@ const ProductsPage = () => {
       <div 
         className="page-banner" 
         style={{ 
-          backgroundImage: `linear-gradient(to right, rgba(0,0,0,0.8), rgba(0,0,0,0.3)), url('${activeCategory.bannerImage}')` 
+          backgroundImage: `linear-gradient(to right, rgba(0,0,0,0.8), rgba(0,0,0,0.3)), url('${getImageUrl(activeCategory.bannerImage)}')` 
         }}
       >
         <div className="container">
@@ -216,7 +217,7 @@ const ProductsPage = () => {
                     <div className="product-img-wrapper">
                       {product.weight && <div className="product-weight-badge">{product.weight}</div>}
                       <img 
-                        src={product.image} 
+                        src={getImageUrl(product.image)} 
                         alt={product.name} 
                         className="product-img-simple"
                         onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=800'; }}

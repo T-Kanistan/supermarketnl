@@ -30,6 +30,16 @@ const bannerSchema = new mongoose.Schema(
       trim: true,
       default: '/products',
     },
+    buttonText2: {
+      type: String,
+      trim: true,
+      default: 'EXPLORE FOOD CORNER',
+    },
+    buttonLink2: {
+      type: String,
+      trim: true,
+      default: '/food-corner',
+    },
     status: {
       type: String,
       enum: ['active', 'inactive'],
