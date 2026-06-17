@@ -17,9 +17,25 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+const addIdField = (val) => {
+  if (Array.isArray(val)) {
+    val.forEach(addIdField);
+  } else if (val && typeof val === 'object') {
+    if (val._id && !val.id) {
+      val.id = val._id;
+    }
+    Object.values(val).forEach(addIdField);
+  }
+};
+
 // Response interceptor: automatically redirects to login on 401 Unauthorized
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (response.data) {
+      addIdField(response.data);
+    }
+    return response;
+  },
   (error) => {
     if (error.response && error.response.status === 401) {
       localStorage.removeItem('supermarket_token');
@@ -53,6 +69,22 @@ export const request = async (apiPromise, fallbackFn) => {
     }
     throw error;
   }
+};
+
+/**
+ * Resolves local upload image paths with backend origin.
+ * Leaves absolute URLs (http/https) and base64 URLs as-is.
+ */
+export const getImageUrl = (imagePath) => {
+  if (!imagePath) return '';
+  if (imagePath.startsWith('http://') || imagePath.startsWith('https://') || imagePath.startsWith('data:')) {
+    return imagePath;
+  }
+  if (imagePath.startsWith('/uploads')) {
+    const backendUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace('/api', '');
+    return `${backendUrl}${imagePath}`;
+  }
+  return imagePath;
 };
 
 export default api;

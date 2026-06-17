@@ -56,6 +56,14 @@ const cmsSchema = new mongoose.Schema(
       type: String,
       default: '#',
     },
+    supermarketTimings: {
+      type: String,
+      default: '8:00 AM - 10:00 PM',
+    },
+    foodCornerTimings: {
+      type: String,
+      default: '11:00 AM - 11:00 PM',
+    },
     updatedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',

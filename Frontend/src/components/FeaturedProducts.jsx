@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, Pagination, Navigation } from 'swiper/modules';
 import productService from '../services/productService';
+import { getImageUrl } from '../services/api';
 import { useCMS } from '../context/CMSContext';
 import 'swiper/css';
 import 'swiper/css/pagination';
@@ -85,7 +86,7 @@ const FeaturedProducts = () => {
                   <div className="product-card">
                     <div className="product-img-container">
                       <img 
-                        src={product.image} 
+                        src={getImageUrl(product.image)} 
                         alt={product.name} 
                         className="product-img"
                         onError={(e) => {

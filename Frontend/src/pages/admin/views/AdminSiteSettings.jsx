@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useCMS } from '../../../context/CMSContext';
 import { useToast } from '../../../context/ToastContext';
+import { getImageUrl } from '../../../services/api';
 import { FaUpload } from 'react-icons/fa';
 
 export const AdminSiteSettings = () => {
@@ -17,6 +18,8 @@ export const AdminSiteSettings = () => {
     address: '',
     aboutUs: '',
     footerDescription: '',
+    supermarketTimings: '',
+    foodCornerTimings: '',
     socials: {
       facebook: '',
       instagram: '',
@@ -39,6 +42,8 @@ export const AdminSiteSettings = () => {
           address: cmsData.address || '',
           aboutUs: cmsData.aboutUs || '',
           footerDescription: cmsData.footerDescription || '',
+          supermarketTimings: cmsData.supermarketTimings || '',
+          foodCornerTimings: cmsData.foodCornerTimings || '',
           socials: {
             facebook: cmsData.socials?.facebook || '',
             instagram: cmsData.socials?.instagram || '',
@@ -166,7 +171,7 @@ export const AdminSiteSettings = () => {
                 <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
                   {formData.logo && (
                     <img 
-                      src={formData.logo} 
+                      src={getImageUrl(formData.logo)} 
                       alt="Logo preview" 
                       style={{ height: '80px', width: 'auto', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '6px', background: 'white' }} 
                     />
@@ -196,6 +201,30 @@ export const AdminSiteSettings = () => {
                   placeholder="Amsterdam, Netherlands"
                   required
                 />
+              </div>
+              <div className="admin-form-group row-split">
+                <div>
+                  <label>Supermarket Opening Hours</label>
+                  <input 
+                    type="text" 
+                    name="supermarketTimings" 
+                    value={formData.supermarketTimings} 
+                    onChange={handleChange} 
+                    placeholder="e.g. 8:00 AM - 10:00 PM" 
+                    required 
+                  />
+                </div>
+                <div>
+                  <label>Food Corner Opening Hours</label>
+                  <input 
+                    type="text" 
+                    name="foodCornerTimings" 
+                    value={formData.foodCornerTimings} 
+                    onChange={handleChange} 
+                    placeholder="e.g. 11:00 AM - 11:00 PM" 
+                    required 
+                  />
+                </div>
               </div>
             </div>
           )}
@@ -324,7 +353,36 @@ export const AdminSiteSettings = () => {
             </div>
           )}
 
-          <div style={{ marginTop: '30px', display: 'flex', justifyContent: 'flex-end' }}>
+          <div style={{ marginTop: '30px', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+            <button 
+              type="button" 
+              className="action-btn-secondary"
+              onClick={() => {
+                if (cmsData) {
+                  setFormData({
+                    storeName: cmsData.storeName || '',
+                    logo: cmsData.logo || '',
+                    contactEmail: cmsData.contactEmail || '',
+                    contactPhone: cmsData.contactPhone || '',
+                    address: cmsData.address || '',
+                    aboutUs: cmsData.aboutUs || '',
+                    footerDescription: cmsData.footerDescription || '',
+                    supermarketTimings: cmsData.supermarketTimings || '',
+                    foodCornerTimings: cmsData.foodCornerTimings || '',
+                    socials: {
+                      facebook: cmsData.socials?.facebook || '',
+                      instagram: cmsData.socials?.instagram || '',
+                      whatsapp: cmsData.socials?.whatsapp || '',
+                      tiktok: cmsData.socials?.tiktok || '',
+                      youtube: cmsData.socials?.youtube || ''
+                    }
+                  });
+                  addToast('Form reset to saved settings', 'info');
+                }
+              }}
+            >
+              Cancel
+            </button>
             <button 
               type="submit" 
               className={`action-btn-primary ${isSaving ? 'disabled' : ''}`}

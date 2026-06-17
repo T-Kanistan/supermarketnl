@@ -1,5 +1,5 @@
 import Banner from '../models/Banner.js';
-import { handleImageUpload } from '../middlewares/uploadMiddleware.js';
+import { handleImageUpload, handleBase64Upload } from '../middlewares/uploadMiddleware.js';
 
 /**
  * @desc    Get Active Banners (Public)
@@ -67,13 +67,13 @@ export const getBannerById = async (req, res, next) => {
  */
 export const createBanner = async (req, res, next) => {
   try {
-    const { title, highlightText, subtitle, buttonText, buttonLink, status, sortOrder } = req.body;
+    const { title, highlightText, subtitle, buttonText, buttonLink, buttonText2, buttonLink2, status, sortOrder } = req.body;
 
     let imageUrl = '';
     if (req.file) {
       imageUrl = await handleImageUpload(req.file);
     } else if (req.body.image) {
-      imageUrl = req.body.image;
+      imageUrl = await handleBase64Upload(req.body.image);
     } else {
       return res.status(400).json({
         success: false,
@@ -88,6 +88,8 @@ export const createBanner = async (req, res, next) => {
       image: imageUrl,
       buttonText,
       buttonLink,
+      buttonText2,
+      buttonLink2,
       status,
       sortOrder,
     });
@@ -109,7 +111,7 @@ export const createBanner = async (req, res, next) => {
  */
 export const updateBanner = async (req, res, next) => {
   try {
-    const { title, highlightText, subtitle, buttonText, buttonLink, status, sortOrder } = req.body;
+    const { title, highlightText, subtitle, buttonText, buttonLink, buttonText2, buttonLink2, status, sortOrder } = req.body;
     const banner = await Banner.findById(req.params.id);
 
     if (!banner) {
@@ -124,6 +126,8 @@ export const updateBanner = async (req, res, next) => {
     if (subtitle !== undefined) banner.subtitle = subtitle;
     if (buttonText !== undefined) banner.buttonText = buttonText;
     if (buttonLink !== undefined) banner.buttonLink = buttonLink;
+    if (buttonText2 !== undefined) banner.buttonText2 = buttonText2;
+    if (buttonLink2 !== undefined) banner.buttonLink2 = buttonLink2;
     if (status !== undefined) banner.status = status;
     if (sortOrder !== undefined) banner.sortOrder = sortOrder;
 
@@ -133,7 +137,7 @@ export const updateBanner = async (req, res, next) => {
         banner.image = imageUrl;
       }
     } else if (req.body.image !== undefined) {
-      banner.image = req.body.image;
+      banner.image = await handleBase64Upload(req.body.image);
     }
 
     await banner.save();

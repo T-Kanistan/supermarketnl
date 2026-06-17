@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { FiChevronRight, FiShoppingBag } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 import cmsService from '../services/cmsService';
+import { getImageUrl } from '../services/api';
 import './Promotions.css';
 
 const Promotions = () => {
@@ -24,7 +25,7 @@ const Promotions = () => {
 
   const promoTitle = weeklyDeal?.title || 'WEEKLY DEALS';
   const promoDesc = weeklyDeal?.description || 'Stock up on your daily essentials with our exclusive supermarket deals. Freshness guaranteed!';
-  const promoImage = weeklyDeal?.image || 'https://images.unsplash.com/photo-1518843875459-f738682238a6?auto=format&fit=crop&w=800&q=80';
+  const promoImage = getImageUrl(weeklyDeal?.image) || 'https://images.unsplash.com/photo-1518843875459-f738682238a6?auto=format&fit=crop&w=800&q=80';
   const promoDiscount = weeklyDeal?.offerPercentage ? `${weeklyDeal.offerPercentage}%` : '30%';
 
   return (

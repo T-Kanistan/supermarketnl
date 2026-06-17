@@ -63,3 +63,52 @@ export const handleImageUpload = async (file) => {
     return `/uploads/${path.basename(file.path)}`;
   }
 };
+
+export const handleBase64Upload = async (base64Str) => {
+  if (!base64Str) return null;
+  if (!base64Str.startsWith('data:image')) {
+    return base64Str;
+  }
+
+  try {
+    const matches = base64Str.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+    if (!matches || matches.length !== 3) {
+      return base64Str;
+    }
+
+    const mimeType = matches[1];
+    const ext = mimeType.split('/')[1] || 'png';
+    const data = Buffer.from(matches[2], 'base64');
+
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const filename = `base64-${uniqueSuffix}.${ext}`;
+    const filepath = path.join(uploadDir, filename);
+
+    fs.writeFileSync(filepath, data);
+
+    const hasCloudinary = 
+      process.env.CLOUDINARY_CLOUD_NAME && 
+      process.env.CLOUDINARY_API_KEY && 
+      process.env.CLOUDINARY_API_SECRET;
+
+    if (hasCloudinary) {
+      try {
+        const result = await cloudinary.uploader.upload(filepath, {
+          folder: 'supermarket',
+        });
+        if (fs.existsSync(filepath)) {
+          fs.unlinkSync(filepath);
+        }
+        return result.secure_url;
+      } catch (error) {
+        console.error('Cloudinary base64 upload failed, falling back to local:', error.message);
+        return `/uploads/${filename}`;
+      }
+    } else {
+      return `/uploads/${filename}`;
+    }
+  } catch (error) {
+    console.error('Failed to parse base64 image:', error);
+    return base64Str;
+  }
+};

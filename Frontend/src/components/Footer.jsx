@@ -1,6 +1,7 @@
 import { useLocation, Link } from 'react-router-dom';
 import { FaFacebook, FaInstagram, FaWhatsapp, FaTiktok, FaYoutube } from 'react-icons/fa';
 import { useCMS } from '../context/CMSContext';
+import { getImageUrl } from '../services/api';
 import './Footer.css';
 
 const Footer = () => {
@@ -16,7 +17,7 @@ const Footer = () => {
         <div className="footer-main-grid">
           {/* Column 1 - Brand */}
           <div className="footer-main-col brand-col">
-            <img src={cmsData.logo || '/logo.png'} alt={cmsData.storeName || 'Store Logo'} className="footer-main-logo" onError={(e) => { e.target.src = '/logo.png'; }} />
+            <img src={getImageUrl(cmsData.logo) || '/logo.png'} alt={cmsData.storeName || 'Store Logo'} className="footer-main-logo" onError={(e) => { e.target.src = '/logo.png'; }} />
             <p style={{ color: '#cbd5e1', fontSize: '0.9rem', marginTop: '12px', lineHeight: '1.5' }}>
               {cmsData.footerDescription}
             </p>

@@ -3,6 +3,7 @@ import { FiSearch, FiX, FiMenu } from 'react-icons/fi';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useCMS } from '../context/CMSContext';
 import { useAuth } from '../context/AuthContext';
+import { getImageUrl } from '../services/api';
 import './Header.css';
 
 const Header = () => {
@@ -43,7 +44,7 @@ const Header = () => {
           {/* Logo */}
           <div className="logo-container">
             <Link to="/">
-              <img src={cmsData.logo || '/logo.png'} alt={cmsData.storeName || 'Ins Wereld Winkel'} className="logo" onError={(e) => { e.target.src = '/logo.png'; }} />
+              <img src={getImageUrl(cmsData.logo) || '/logo.png'} alt={cmsData.storeName || 'Ins Wereld Winkel'} className="logo" onError={(e) => { e.target.src = '/logo.png'; }} />
             </Link>
           </div>
 

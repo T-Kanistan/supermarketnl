@@ -16,6 +16,12 @@ export const createBannerRules = [
   body('buttonLink')
     .optional()
     .trim(),
+  body('buttonText2')
+    .optional()
+    .trim(),
+  body('buttonLink2')
+    .optional()
+    .trim(),
   body('status')
     .optional()
     .isIn(['active', 'inactive'])
@@ -41,6 +47,12 @@ export const updateBannerRules = [
     .optional()
     .trim(),
   body('buttonLink')
+    .optional()
+    .trim(),
+  body('buttonText2')
+    .optional()
+    .trim(),
+  body('buttonLink2')
     .optional()
     .trim(),
   body('status')

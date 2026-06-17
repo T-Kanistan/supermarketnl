@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { FaRegClock, FaRegCalendarAlt, FaWhatsapp, FaStar, FaSearch, FaFireAlt } from 'react-icons/fa';
 import productService from '../services/productService';
+import { getImageUrl } from '../services/api';
 import { useCMS } from '../context/CMSContext';
 import './FoodCorner.css';
 
@@ -148,7 +149,7 @@ const FoodCorner = () => {
                 <div className="menu-card" key={item.id}>
                   <div className="menu-card-image">
                     <img 
-                      src={item.image} 
+                      src={getImageUrl(item.image)} 
                       alt={item.name} 
                       onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&q=80&w=600'; }}
                     />

@@ -16,6 +16,8 @@ export const cmsService = {
           address: cms.address,
           aboutUs: cms.aboutUs,
           footerDescription: cms.footerDescription,
+          supermarketTimings: cms.supermarketTimings,
+          foodCornerTimings: cms.foodCornerTimings,
           socials: {
             facebook: cms.facebook || '#',
             instagram: cms.instagram || '#',
@@ -61,6 +63,8 @@ export const cmsService = {
           address: cms.address,
           aboutUs: cms.aboutUs,
           footerDescription: cms.footerDescription,
+          supermarketTimings: cms.supermarketTimings,
+          foodCornerTimings: cms.foodCornerTimings,
           socials: {
             facebook: cms.facebook || '#',
             instagram: cms.instagram || '#',

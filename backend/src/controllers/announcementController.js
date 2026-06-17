@@ -1,5 +1,5 @@
 import Announcement from '../models/Announcement.js';
-import { handleImageUpload } from '../middlewares/uploadMiddleware.js';
+import { handleImageUpload, handleBase64Upload } from '../middlewares/uploadMiddleware.js';
 
 /**
  * @desc    Get Active Announcements (Public with date checking)
@@ -84,7 +84,7 @@ export const createAnnouncement = async (req, res, next) => {
     if (req.file) {
       imageUrl = await handleImageUpload(req.file);
     } else if (req.body.image) {
-      imageUrl = req.body.image;
+      imageUrl = await handleBase64Upload(req.body.image);
     }
 
     const announcement = await Announcement.create({
@@ -137,7 +137,7 @@ export const updateAnnouncement = async (req, res, next) => {
         announcement.image = imageUrl;
       }
     } else if (req.body.image !== undefined) {
-      announcement.image = req.body.image;
+      announcement.image = await handleBase64Upload(req.body.image);
     }
 
     await announcement.save();

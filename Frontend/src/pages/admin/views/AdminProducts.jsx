@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { FaPlus, FaEdit, FaTrash, FaSearch, FaBoxOpen, FaStar, FaRegStar } from 'react-icons/fa';
 import productService from '../../../services/productService';
 import categoryService from '../../../services/categoryService';
+import { getImageUrl } from '../../../services/api';
 import { useToast } from '../../../context/ToastContext';
 
 export const AdminProducts = () => {
@@ -297,7 +298,7 @@ export const AdminProducts = () => {
                 <tr key={prod.id}>
                   <td>
                     <img 
-                      src={prod.image} 
+                      src={getImageUrl(prod.image)} 
                       alt={prod.name} 
                       className="table-image-preview" 
                       onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=800'; }}
@@ -559,7 +560,7 @@ export const AdminProducts = () => {
                   <div className="upload-preview-container">
                     <p style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>Preview:</p>
                     <img 
-                      src={formData.image} 
+                      src={getImageUrl(formData.image)} 
                       alt="Product Preview" 
                       className="upload-preview-img"
                       onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=800'; }}

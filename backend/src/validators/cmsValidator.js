@@ -46,4 +46,10 @@ export const updateCmsRules = [
   body('tiktok')
     .optional()
     .trim(),
+  body('supermarketTimings')
+    .optional()
+    .trim(),
+  body('foodCornerTimings')
+    .optional()
+    .trim(),
 ];
