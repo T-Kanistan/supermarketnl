@@ -1,0 +1,124 @@
+.about-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  align-items: center;
+}
+
+.about-title {
+  font-size: 2.8rem;
+  font-weight: 800;
+  margin-bottom: 20px;
+  color: var(--dark-blue);
+  line-height: 1.2;
+}
+
+.about-title span {
+  color: var(--primary-green);
+}
+
+.about-desc {
+  font-size: 1.15rem;
+  color: var(--text-light);
+  margin-bottom: 30px;
+  line-height: 1.7;
+  max-width: 90%;
+}
+
+.about-features-modern {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 40px;
+}
+
+.about-features-modern li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 600;
+  color: var(--dark-blue);
+  font-size: 1.1rem;
+}
+
+.check-icon-modern {
+  color: var(--primary-green);
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+
+.about-gradient-btn {
+  background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-green-dark) 100%);
+  color: var(--white);
+  padding: 14px 32px;
+  border-radius: 8px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  border: none;
+  box-shadow: 0 4px 14px rgba(46, 204, 113, 0.4);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  display: inline-block;
+}
+
+.about-gradient-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(46, 204, 113, 0.6);
+}
+
+.about-image-container-modern {
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  height: 500px;
+  width: 100%;
+  position: relative;
+  /* Entrance animation */
+  animation: fadeUp 0.8s ease-out forwards;
+}
+
+.about-image-modern {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.about-image-container-modern:hover .about-image-modern {
+  transform: scale(1.08);
+}
+
+@keyframes fadeUp {
+  0% {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 1024px) {
+  .about-grid {
+    gap: 40px;
+  }
+  .about-title {
+    font-size: 2.2rem;
+  }
+  .about-image-container-modern {
+    height: 400px;
+  }
+}
+
+@media (max-width: 768px) {
+  .about-grid {
+    grid-template-columns: 1fr;
+  }
+  .about-desc {
+    max-width: 100%;
+  }
+  .about-image-container-modern {
+    height: 350px;
+  }
+}

@@ -1,0 +1,73 @@
+.terms-page {
+  padding-top: 90px; /* Account for fixed header */
+  background-color: var(--bg-light);
+  min-height: 100vh;
+  padding-bottom: 60px;
+}
+
+.terms-header {
+  background-color: var(--dark-blue);
+  color: var(--white);
+  padding: 60px 0;
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.terms-header h1 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--white);
+  margin-bottom: 10px;
+}
+
+.terms-header p {
+  font-size: 1.1rem;
+  opacity: 0.8;
+}
+
+.terms-content {
+  background: var(--white);
+  padding: 40px 50px;
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.terms-section {
+  margin-bottom: 35px;
+}
+
+.terms-section:last-child {
+  margin-bottom: 0;
+}
+
+.terms-section h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--dark-blue);
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.terms-section p {
+  color: var(--text-light);
+  font-size: 1.05rem;
+  line-height: 1.8;
+}
+
+@media (max-width: 768px) {
+  .terms-header {
+    padding: 40px 0;
+  }
+  .terms-header h1 {
+    font-size: 2rem;
+  }
+  .terms-content {
+    padding: 30px 20px;
+  }
+  .terms-section h2 {
+    font-size: 1.3rem;
+  }
+}
