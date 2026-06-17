@@ -24,8 +24,8 @@ api.interceptors.response.use(
     if (error.response && error.response.status === 401) {
       localStorage.removeItem('supermarket_token');
       localStorage.removeItem('supermarket_user');
-      // Redirect to admin login if not already there
-      if (!window.location.pathname.startsWith('/admin/login')) {
+      // Redirect to admin login if attempting to access a protected admin page and not already there
+      if (window.location.pathname.startsWith('/admin') && !window.location.pathname.startsWith('/admin/login')) {
         window.location.href = '/admin/login';
       }
     }
