@@ -9,7 +9,7 @@ export const CMSProvider = ({ children }) => {
     storeName: 'Ins Wereld Winkel',
     logo: '/logo.png',
     contactEmail: 'info@winswereldwinkel.nl',
-    contactPhone: '+31 6 12345678',
+    contactPhone: '+31659046526',
     address: 'Amsterdam, Netherlands',
     aboutUs: 'Your premium destination for high-quality groceries and fresh daily produce. We bring the world to your shopping cart with hand-picked items from across the globe, ensuring exceptional quality and value in every aisle.',
     footerDescription: 'Your premium destination for high-quality groceries and fresh daily produce. We bring the world to your shopping cart with hand-picked items from across the globe.',
@@ -18,7 +18,7 @@ export const CMSProvider = ({ children }) => {
     socials: {
       facebook: '#',
       instagram: '#',
-      whatsapp: 'https://wa.me/31612345678',
+      whatsapp: 'https://wa.me/31659046526',
       tiktok: '#',
       youtube: '#',
     }

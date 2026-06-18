@@ -3,17 +3,22 @@ import { localDb } from './localDb';
 
 export const authService = {
   login: async (email, password) => {
-    return request(
-      async () => {
-        const response = await api.post('/auth/login', { email, password });
-        const data = response.data;
-        if (data && data.token) {
-          localStorage.setItem('supermarket_token', data.token);
-          localStorage.setItem('supermarket_user', JSON.stringify(data.user));
-        }
-        return { data: data.user };
-      },
-      () => {
+    await new Promise((resolve) => setTimeout(resolve, 350));
+
+    try {
+      const response = await api.post('/auth/login', { email, password });
+      const data = response.data;
+      if (data?.token) {
+        localStorage.setItem('supermarket_token', data.token);
+        localStorage.setItem('supermarket_user', JSON.stringify(data.user));
+      }
+      return data.user;
+    } catch (error) {
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+
+      if (!error.response || error.code === 'ERR_NETWORK' || error.response.status >= 500 || error.response.status === 404) {
         const managers = localDb.getManagers();
         const user = managers.find((m) => m.email === email && m.password === password);
         if (!user) {
@@ -24,7 +29,9 @@ export const authService = {
         localStorage.setItem('supermarket_user', JSON.stringify(user));
         return user;
       }
-    );
+
+      throw error;
+    }
   },
 
   logout: async () => {
@@ -39,20 +46,34 @@ export const authService = {
   },
 
   getCurrentUser: async () => {
-    return request(
-      async () => {
-        const response = await api.get('/auth/me');
-        const data = response.data;
-        if (data && data.user) {
-          localStorage.setItem('supermarket_user', JSON.stringify(data.user));
-        }
-        return { data: data.user };
-      },
-      () => {
+    const token = localStorage.getItem('supermarket_token');
+    if (!token) {
+      return null;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 350));
+
+    try {
+      const response = await api.get('/auth/me');
+      const data = response.data;
+      if (data?.user) {
+        localStorage.setItem('supermarket_user', JSON.stringify(data.user));
+      }
+      return data.user ?? null;
+    } catch (error) {
+      if (error.response?.status === 401) {
+        localStorage.removeItem('supermarket_token');
+        localStorage.removeItem('supermarket_user');
+        return null;
+      }
+
+      if (!error.response || error.code === 'ERR_NETWORK' || error.response.status >= 500 || error.response.status === 404) {
         const userJson = localStorage.getItem('supermarket_user');
         return userJson ? JSON.parse(userJson) : null;
       }
-    );
+
+      throw error;
+    }
   },
 
   changePassword: async (oldPassword, newPassword) => {

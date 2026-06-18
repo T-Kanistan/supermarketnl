@@ -16,6 +16,7 @@ export const AuthProvider = ({ children }) => {
         setUser(currentUser);
       } catch (err) {
         console.error('Auth verification failed:', err);
+        setUser(null);
       } finally {
         setLoading(false);
       }

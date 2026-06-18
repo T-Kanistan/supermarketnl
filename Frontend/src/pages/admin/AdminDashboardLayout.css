@@ -4,7 +4,8 @@
   --admin-sidebar-bg: #0f172a;
   --admin-sidebar-hover: #1e293b;
   --admin-sidebar-active: #3b82f6;
-  --admin-sidebar-text: #94a3b8;
+  --admin-sidebar-text: #e2e8f0;
+  --admin-sidebar-text-muted: #94a3b8;
   --admin-sidebar-text-active: #ffffff;
   --admin-header-bg: #ffffff;
   --admin-body-bg: #f8fafc;
@@ -68,7 +69,7 @@
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 1.5px;
-  color: #475569;
+  color: var(--admin-sidebar-text-muted);
   margin: 24px 0 8px 8px;
   font-weight: 700;
 }
@@ -89,6 +90,7 @@
   margin-bottom: 4px;
   transition: all 0.2s ease;
   cursor: pointer;
+  text-decoration: none;
 }
 
 .sidebar-link:hover {
@@ -105,6 +107,8 @@
 
 .sidebar-link-icon {
   font-size: 1.2rem;
+  color: currentColor;
+  flex-shrink: 0;
 }
 
 /* Sidebar Footer */
@@ -149,7 +153,7 @@
 
 .user-role {
   font-size: 0.75rem;
-  color: #64748b;
+  color: var(--admin-sidebar-text-muted);
   text-transform: capitalize;
 }
 
@@ -689,6 +693,105 @@
 .btn-action-cell.delete:hover {
   background: #ef4444;
   color: white;
+}
+
+.btn-action-cell.view {
+  color: #6366f1;
+  background: rgba(99, 102, 241, 0.05);
+}
+
+.btn-action-cell.view:hover {
+  background: #6366f1;
+  color: white;
+}
+
+.btn-action-cell.reply {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.btn-action-cell.reply:hover {
+  background: #10b981;
+  color: white;
+}
+
+.status-badge-admin.unread {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.status-badge-admin.read {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+
+.message-row-unread {
+  background: rgba(59, 130, 246, 0.03);
+}
+
+.message-row-unread td:first-child {
+  border-left: 3px solid var(--admin-sidebar-active);
+}
+
+.admin-filter-select {
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--admin-border);
+  background: white;
+  color: #0f172a;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  min-width: 160px;
+}
+
+.admin-filter-select:focus {
+  outline: none;
+  border-color: var(--admin-sidebar-active);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.messages-unread-count {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.message-view-modal {
+  max-width: 640px;
+}
+
+.message-view-body {
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.message-view-meta {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 20px;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  color: var(--admin-text-sub);
+}
+
+.message-view-meta strong {
+  color: #0f172a;
+  margin-right: 6px;
+}
+
+.message-view-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.message-view-content p {
+  margin: 0;
+  white-space: pre-line;
+  line-height: 1.6;
+  color: #334155;
 }
 
 /* Empty State / Loading State */

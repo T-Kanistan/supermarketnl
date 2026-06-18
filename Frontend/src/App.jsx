@@ -10,7 +10,9 @@ import AboutPage from './pages/AboutPage';
 import FAQPage from './pages/FAQPage';
 import OffersPage from './pages/OffersPage';
 import TermsPage from './pages/TermsPage';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import Footer from './components/Footer';
+import ScrollToTop from './components/ScrollToTop';
 
 // Admin components & pages
 import AdminLogin from './pages/admin/AdminLogin';
@@ -34,13 +36,16 @@ import AdminProfile from './pages/admin/views/AdminProfile';
 import { ToastProvider } from './context/ToastContext';
 import { AuthProvider } from './context/AuthContext';
 import { CMSProvider } from './context/CMSContext';
+import { EnquiryProvider } from './context/EnquiryContext';
 
 function App() {
   return (
     <ToastProvider>
       <AuthProvider>
         <CMSProvider>
+          <EnquiryProvider>
           <Router>
+            <ScrollToTop />
             <div className="app">
               <Header />
               <main>
@@ -54,12 +59,15 @@ function App() {
                   <Route path="/faq" element={<FAQPage />} />
                   <Route path="/offers" element={<OffersPage />} />
                   <Route path="/terms" element={<TermsPage />} />
+                  <Route path="/privacy" element={<PrivacyPolicyPage />} />
                   
                   {/* Legacy client logins redirects to admin login */}
                   <Route path="/login" element={<Navigate to="/admin/login" replace />} />
                   <Route path="/register" element={<Navigate to="/admin/login" replace />} />
 
                   {/* Admin routes */}
+                  <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
+                  <Route path="/admin/" element={<Navigate to="/admin/login" replace />} />
                   <Route path="/admin/login" element={<AdminLogin />} />
                   <Route 
                     path="/admin/dashboard" 
@@ -93,6 +101,7 @@ function App() {
               <Footer />
             </div>
           </Router>
+          </EnquiryProvider>
         </CMSProvider>
       </AuthProvider>
     </ToastProvider>

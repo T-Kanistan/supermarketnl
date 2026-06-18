@@ -1,4 +1,5 @@
 import { useLocation, Link } from 'react-router-dom';
+import { FiMapPin, FiPhone, FiMail, FiClock } from 'react-icons/fi';
 import { FaFacebook, FaInstagram, FaWhatsapp, FaTiktok, FaYoutube } from 'react-icons/fa';
 import { useCMS } from '../context/CMSContext';
 import { getImageUrl } from '../services/api';
@@ -8,49 +9,27 @@ const Footer = () => {
   const location = useLocation();
   const { cmsData } = useCMS();
 
-  // Hide footer on all admin portal pages
   if (location.pathname.startsWith('/admin')) return null;
+
+  const address = cmsData.address || 'Hilversum, Netherlands';
+  const phone = cmsData.contactPhone || '+31659046526';
+  const email = cmsData.contactEmail || 'info@winswereldwinkel.nl';
+  const phoneHref = `tel:${phone.replace(/[^\d+]/g, '')}`;
+  const emailHref = `mailto:${email}`;
+  const mapsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
 
   return (
     <footer className="footer-main" id="footer">
       <div className="container" style={{ maxWidth: '1400px' }}>
         <div className="footer-main-grid">
-          {/* Column 1 - Brand */}
           <div className="footer-main-col brand-col">
-            <img src={getImageUrl(cmsData.logo) || '/logo.png'} alt={cmsData.storeName || 'Store Logo'} className="footer-main-logo" onError={(e) => { e.target.src = '/logo.png'; }} />
-            <p style={{ color: '#cbd5e1', fontSize: '0.9rem', marginTop: '12px', lineHeight: '1.5' }}>
-              {cmsData.footerDescription}
-            </p>
-          </div>
-
-          {/* Column 2 - Quick Links */}
-          <div className="footer-main-col">
-            <h4 className="footer-main-title">QUICK LINKS</h4>
-            <div className="footer-main-links">
-              <Link to="/">Home</Link>
-              <Link to="/about">About Us</Link>
-              <Link to="/products">Products</Link>
-              <Link to="/food-corner">Food Corner</Link>
-              <Link to="/offers">Offers</Link>
-              <Link to="/terms">Terms & Conditions</Link>
-            </div>
-          </div>
-
-          {/* Column 3 - Categories */}
-          <div className="footer-main-col">
-            <h4 className="footer-main-title">CATEGORIES</h4>
-            <div className="footer-main-links">
-              <Link to="/products?category=grocery">Grocery Items</Link>
-              <Link to="/products?category=masala">Masala Items</Link>
-              <Link to="/products?category=vegetables">Vegetables</Link>
-              <Link to="/products?category=sweets">Sweets</Link>
-              <Link to="/products?category=frozen">Frozen Items</Link>
-            </div>
-          </div>
-
-          {/* Column 4 - Follow Us */}
-          <div className="footer-main-col">
-            <h4 className="footer-main-title">FOLLOW US</h4>
+            <img
+              src={getImageUrl(cmsData.logo) || '/logo.png'}
+              alt={cmsData.storeName || 'Store Logo'}
+              className="footer-main-logo"
+              onError={(e) => { e.target.src = '/logo.png'; }}
+            />
+            <p className="footer-brand-desc">{cmsData.footerDescription}</p>
             <div className="social-row">
               {cmsData.socials?.facebook && (
                 <a href={cmsData.socials.facebook} target="_blank" rel="noreferrer" aria-label="Facebook" className="social-icon facebook"><FaFacebook /></a>
@@ -69,14 +48,64 @@ const Footer = () => {
               )}
             </div>
           </div>
+
+          <div className="footer-main-col">
+            <h4 className="footer-main-title">QUICK LINKS</h4>
+            <div className="footer-main-links">
+              <Link to="/">Home</Link>
+              <Link to="/about">About Us</Link>
+              <Link to="/products">Products</Link>
+              <Link to="/food-corner">Food Corner</Link>
+              <Link to="/offers">Offers</Link>
+              <Link to="/faq">FAQ</Link>
+              <Link to="/contact">Contact Us</Link>
+            </div>
+          </div>
+
+          <div className="footer-main-col">
+            <h4 className="footer-main-title">CATEGORIES</h4>
+            <div className="footer-main-links">
+              <Link to="/products?category=grocery">Grocery Items</Link>
+              <Link to="/products?category=masala">Masala Items</Link>
+              <Link to="/products?category=vegetables">Vegetables &amp; Fruits</Link>
+              <Link to="/products?category=sweets">Sweets</Link>
+              <Link to="/products?category=frozen">Frozen Items</Link>
+            </div>
+          </div>
+
+          <div className="footer-main-col">
+            <h4 className="footer-main-title">BUSINESS HOURS</h4>
+            <div className="footer-contact-list">
+              <p><FiClock /> Supermarket</p>
+              <p className="footer-hours-sub">{cmsData.supermarketTimings || 'Mon–Sat: 9:00 AM - 9:00 PM'}</p>
+              <p><FiClock /> Food Corner</p>
+              <p className="footer-hours-sub">{cmsData.foodCornerTimings || '11:00 AM - 11:00 PM'}</p>
+              <p className="footer-hours-sub">Sunday: 12:00 PM - 7:00 PM</p>
+            </div>
+          </div>
+
+          <div className="footer-main-col footer-contact-col">
+            <h4 className="footer-main-title">CONTACT</h4>
+            <div className="footer-contact-list">
+              <a href={mapsHref} target="_blank" rel="noreferrer" className="footer-contact-link">
+                <FiMapPin /> {address}
+              </a>
+              <a href={phoneHref} className="footer-contact-link">
+                <FiPhone /> {phone}
+              </a>
+              <a href={emailHref} className="footer-contact-link">
+                <FiMail /> {email}
+              </a>
+            </div>
+          </div>
         </div>
 
-        {/* Bottom Section */}
         <div className="footer-main-bottom">
-          <div className="footer-legal-links" style={{ marginBottom: '15px' }}>
-            <Link to="/terms" style={{ color: '#cbd5e1', textDecoration: 'none', margin: '0 15px', fontSize: '0.9rem' }}>Terms & Conditions</Link>
+          <div className="footer-legal-links">
+            <Link to="/terms">Terms &amp; Conditions</Link>
+            <Link to="/privacy">Privacy Policy</Link>
           </div>
-          &copy; {new Date().getFullYear()} {cmsData.storeName || 'Supermarket'}. All Rights Reserved.
+          <p>&copy; {new Date().getFullYear()} {cmsData.storeName || 'Wins Wereld Winkel'}. All Rights Reserved.</p>
         </div>
       </div>
     </footer>

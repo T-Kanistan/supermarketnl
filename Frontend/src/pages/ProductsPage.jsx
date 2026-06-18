@@ -7,7 +7,7 @@ import {
 import productService from '../services/productService';
 import categoryService from '../services/categoryService';
 import { getImageUrl } from '../services/api';
-import { useCMS } from '../context/CMSContext';
+import { useEnquiry } from '../context/EnquiryContext';
 import './ProductsPage.css';
 
 // Reusable icon mapper for database categories
@@ -23,7 +23,7 @@ const categoryIcons = {
 const ProductsPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { cmsData } = useCMS();
+  const { openEnquiry } = useEnquiry();
   const searchParams = new URLSearchParams(location.search);
   const categoryParam = searchParams.get('category') || 'all';
   const searchQuery = searchParams.get('search') || '';
@@ -116,17 +116,13 @@ const ProductsPage = () => {
   };
 
   const handleEnquiry = (product) => {
-    const phoneNumber = '31612345678';
-    
-    const categoryObj = categories.find(c => c.id === product.categoryId);
-    const categoryName = categoryObj ? categoryObj.name : 'Unknown Category';
-    const weight = product.weight || 'N/A';
-    const price = product.price || '€12.99'; // Note: update this if products get real prices
-    
-    const message = `Hello 👋\n\nI would like to enquire about the following product:\n\n🛒 Product Name: ${product.name}\n📦 Category: ${categoryName}\n⚖️ Weight/Size: ${weight}\n💰 Price: ${price}\n\nPlease provide more details regarding availability and ordering.\n\nThank you.`;
-    
-    const encodedMessage = encodeURIComponent(message);
-    window.open(`https://wa.me/${phoneNumber}?text=${encodedMessage}`, '_blank');
+    const categoryObj = categories.find((c) => c.id === product.categoryId);
+    openEnquiry({
+      name: product.name,
+      category: categoryObj?.name || product.categoryId || '',
+      sku: product.id,
+      id: product.id,
+    });
   };
 
   return (
@@ -234,7 +230,7 @@ const ProductsPage = () => {
                         className={`enquiry-btn-simple ${product.stock === 0 ? 'disabled' : ''}`} 
                         aria-label="Enquire about product"
                         disabled={product.stock === 0}
-                        title={product.stock === 0 ? "Enquiry is unavailable because this product is currently out of stock." : "Enquire via WhatsApp"}
+                        title={product.stock === 0 ? "Enquiry is unavailable because this product is currently out of stock." : "Open product enquiry form"}
                         onClick={() => handleEnquiry(product)}
                       >
                         <FaWhatsapp className="whatsapp-icon" /> {product.stock > 0 ? 'Enquiry' : 'Currently Unavailable'}
@@ -250,11 +246,13 @@ const ProductsPage = () => {
                 <button 
                   className="auth-nav-btn" 
                   style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginTop: '15px' }}
-                  onClick={() => {
-                    const number = cmsData.socials?.whatsapp || 'https://wa.me/31612345678';
-                    const cleanNum = number.replace(/[^0-9]/g, '') || '31612345678';
-                    window.open(`https://wa.me/${cleanNum}?text=${encodeURIComponent(searchQuery ? `Hello, I searched for "${searchQuery}" on your website but couldn't find it. Can you help me order it?` : 'Hello, I am looking for a product that is not listed on your website. Can you help me?')}`, '_blank');
-                  }}
+                  onClick={() => openEnquiry({
+                    name: searchQuery || '',
+                    category: '',
+                    initialMessage: searchQuery
+                      ? `I searched for "${searchQuery}" on your website but could not find it. Can you help me order it?`
+                      : 'I am looking for a product that is not listed on your website. Can you help me?',
+                  })}
                 >
                   <FaWhatsapp /> Request Product
                 </button>

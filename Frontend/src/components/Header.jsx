@@ -3,6 +3,7 @@ import { FiSearch, FiX, FiMenu } from 'react-icons/fi';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useCMS } from '../context/CMSContext';
 import { useAuth } from '../context/AuthContext';
+import { useEnquiry } from '../context/EnquiryContext';
 import { getImageUrl } from '../services/api';
 import './Header.css';
 
@@ -12,7 +13,7 @@ const Header = () => {
   const path = location.pathname;
   
   const { cmsData } = useCMS();
-  const { user } = useAuth();
+  const { openEnquiry } = useEnquiry();
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -21,7 +22,15 @@ const Header = () => {
   // Hide public header on all admin console routes
   if (path.startsWith('/admin')) return null;
 
+  const { user } = useAuth();
+
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
+
+  const handleEnquiryClick = (e) => {
+    e.preventDefault();
+    closeMobileMenu();
+    openEnquiry();
+  };
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -58,7 +67,7 @@ const Header = () => {
               <li><Link to="/about" onClick={closeMobileMenu} className={`nav-link ${path === '/about' ? 'active' : ''}`}>About Us</Link></li>
               <li><Link to="/faq" onClick={closeMobileMenu} className={`nav-link ${path === '/faq' ? 'active' : ''}`}>FAQ</Link></li>
               <li><Link to="/contact" onClick={closeMobileMenu} className={`nav-link ${path === '/contact' ? 'active' : ''}`}>Contact Us</Link></li>
-              <li className="mobile-only-link"><a href={cmsData.socials?.whatsapp || 'https://wa.me/31612345678'} target="_blank" rel="noreferrer" onClick={closeMobileMenu} className="nav-link">Enquiry</a></li>
+              <li className="mobile-only-link"><button type="button" onClick={handleEnquiryClick} className="nav-link nav-link-btn">Enquiry</button></li>
             </ul>
           </nav>
 
@@ -87,7 +96,7 @@ const Header = () => {
               {user ? (
                 <Link to="/admin/dashboard" className="auth-nav-btn" style={{ background: 'var(--dark-blue)', color: 'white', marginRight: '8px' }}>Dashboard</Link>
               ) : null}
-              <a href={cmsData.socials?.whatsapp || 'https://wa.me/31612345678'} target="_blank" rel="noreferrer" className="auth-nav-btn">Enquiry</a>
+              <button type="button" onClick={handleEnquiryClick} className="auth-nav-btn">Enquiry</button>
             </div>
             
             <button className="mobile-menu-btn" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} aria-label="Toggle Menu">

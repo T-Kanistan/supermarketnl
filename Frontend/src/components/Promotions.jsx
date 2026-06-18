@@ -26,7 +26,6 @@ const Promotions = () => {
   const promoTitle = weeklyDeal?.title || 'WEEKLY DEALS';
   const promoDesc = weeklyDeal?.description || 'Stock up on your daily essentials with our exclusive supermarket deals. Freshness guaranteed!';
   const promoImage = getImageUrl(weeklyDeal?.image) || 'https://images.unsplash.com/photo-1518843875459-f738682238a6?auto=format&fit=crop&w=800&q=80';
-  const promoDiscount = weeklyDeal?.offerPercentage ? `${weeklyDeal.offerPercentage}%` : '30%';
 
   return (
     <section className="promotions pt-10 pb-20" id="offers">
@@ -51,12 +50,6 @@ const Promotions = () => {
               </Link>
             </div>
             <div className="modern-promo-image-wrapper">
-              {promoDiscount && (
-                <div className="floating-discount-badge">
-                  <strong>{promoDiscount}</strong>
-                  <span>OFF</span>
-                </div>
-              )}
               <img 
                 src={promoImage} 
                 alt="Grocery Basket" 

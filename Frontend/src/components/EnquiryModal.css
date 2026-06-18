@@ -1,0 +1,319 @@
+.enquiry-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: enquiryFadeIn 0.25s ease;
+}
+
+@keyframes enquiryFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.enquiry-modal {
+  position: relative;
+  width: min(100%, 720px);
+  max-height: 92vh;
+  overflow-y: auto;
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.25);
+  padding: 28px 28px 24px;
+  animation: enquirySlideUp 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+@keyframes enquirySlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.enquiry-modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 1.25rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 2;
+}
+
+.enquiry-modal-close:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+  transform: rotate(90deg);
+}
+
+.enquiry-modal-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 22px;
+  padding-right: 40px;
+}
+
+.enquiry-modal-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  flex-shrink: 0;
+  box-shadow: 0 8px 20px rgba(34, 197, 94, 0.35);
+}
+
+.enquiry-modal-header h2 {
+  margin: 0 0 6px;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.enquiry-modal-header p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.enquiry-section {
+  margin-bottom: 20px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.enquiry-section:last-of-type {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.enquiry-section h3 {
+  margin: 0 0 14px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #16a34a;
+}
+
+.enquiry-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.enquiry-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.enquiry-field.full-width {
+  grid-column: 1 / -1;
+}
+
+.enquiry-field label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.enquiry-input-wrap,
+.enquiry-textarea-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.enquiry-input-wrap svg,
+.enquiry-textarea-wrap svg {
+  position: absolute;
+  left: 14px;
+  color: #22c55e;
+  font-size: 1rem;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.enquiry-textarea-wrap svg {
+  top: 14px;
+  align-self: flex-start;
+}
+
+.enquiry-input-wrap input,
+.enquiry-input-wrap select,
+.enquiry-textarea-wrap textarea {
+  width: 100%;
+  padding: 12px 14px 12px 42px;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  color: #0f172a;
+  background: #f8fafc;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  outline: none;
+}
+
+.enquiry-textarea-wrap textarea {
+  resize: vertical;
+  min-height: 100px;
+  line-height: 1.5;
+}
+
+.enquiry-input-wrap input:focus,
+.enquiry-input-wrap select:focus,
+.enquiry-textarea-wrap textarea:focus {
+  border-color: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
+  background: #ffffff;
+}
+
+.enquiry-field.has-error input,
+.enquiry-field.has-error select,
+.enquiry-field.has-error textarea {
+  border-color: #ef4444;
+}
+
+.enquiry-error {
+  font-size: 0.78rem;
+  color: #ef4444;
+  font-weight: 500;
+}
+
+.enquiry-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.enquiry-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 20px;
+  border-radius: 12px;
+  border: none;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.enquiry-btn-submit {
+  background: linear-gradient(135deg, #004e89 0%, #0066b3 100%);
+  color: white;
+  box-shadow: 0 6px 18px rgba(0, 78, 137, 0.3);
+}
+
+.enquiry-btn-submit:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(0, 78, 137, 0.35);
+}
+
+.enquiry-btn-submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.enquiry-btn-whatsapp {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  color: white;
+  box-shadow: 0 6px 18px rgba(34, 197, 94, 0.35);
+}
+
+.enquiry-btn-whatsapp:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(34, 197, 94, 0.4);
+}
+
+.enquiry-btn-whatsapp svg {
+  font-size: 1.2rem;
+}
+
+.enquiry-success {
+  text-align: center;
+  padding: 48px 24px;
+  animation: enquiryFadeIn 0.4s ease;
+}
+
+.enquiry-success-icon {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  color: white;
+  font-size: 2rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 12px 30px rgba(34, 197, 94, 0.35);
+}
+
+.enquiry-success h3 {
+  margin: 0 0 8px;
+  font-size: 1.4rem;
+  color: #0f172a;
+}
+
+.enquiry-success p {
+  margin: 0;
+  color: #64748b;
+}
+
+@media (max-width: 640px) {
+  .enquiry-modal-overlay {
+    padding: 12px;
+    align-items: flex-end;
+  }
+
+  .enquiry-modal {
+    border-radius: 20px 20px 0 0;
+    max-height: 94vh;
+    padding: 22px 18px 18px;
+  }
+
+  .enquiry-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .enquiry-actions {
+    flex-direction: column;
+  }
+
+  .enquiry-modal-header h2 {
+    font-size: 1.25rem;
+  }
+}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaRegClock } from 'react-icons/fa';
+import { FaShoppingBasket, FaUtensils } from 'react-icons/fa';
 import { useCMS } from '../context/CMSContext';
 import bannerService from '../services/bannerService';
 import { getImageUrl } from '../services/api';
@@ -39,25 +39,31 @@ const Hero = () => {
     <section 
       className="hero" 
       id="home"
-      style={{ backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.6), rgba(0,0,0,0.4)), url('${bgImage}')` }}
+      style={{ backgroundImage: `url('${bgImage}')` }}
     >
       <div className="hero-overlay"></div>
       <div className="hero-content container">
-        <div className="hero-text">
-          <h1 className="hero-title">
-            {bannerTitle} <br />
-            <span>{highlightText}</span>
-          </h1>
-          <p className="hero-subtitle">
-            {subtitle}
-          </p>
-          <div className="hero-buttons">
-            <button className="btn-primary btn-large" onClick={() => navigate(buttonLink)}>{buttonText}</button>
-            <button className="btn-secondary btn-large" onClick={() => navigate(buttonLink2)}>{buttonText2}</button>
+        <div className="hero-layout">
+          <div className="hero-text">
+            <h1 className="hero-title">
+              {bannerTitle} <br />
+              <span>{highlightText}</span>
+            </h1>
+            <p className="hero-subtitle">
+              {subtitle}
+            </p>
+            <div className="hero-buttons">
+              <button className="btn-primary btn-large" onClick={() => navigate(buttonLink)}>{buttonText}</button>
+              <button className="btn-secondary btn-large" onClick={() => navigate(buttonLink2)}>{buttonText2}</button>
+            </div>
           </div>
-          <div className="hero-timings">
+
+          <div className="hero-timings-card">
+            <h3 className="hero-timings-title">Open Time</h3>
             <div className="timing-item">
-              <FaRegClock className="timing-icon" />
+              <div className="timing-icon-wrap supermarket">
+                <FaShoppingBasket />
+              </div>
               <div>
                 <span className="timing-label">Supermarket</span>
                 <span className="timing-value">{cmsData?.supermarketTimings || '8:00 AM - 10:00 PM'}</span>
@@ -65,7 +71,9 @@ const Hero = () => {
             </div>
             <div className="timing-divider"></div>
             <div className="timing-item">
-              <FaRegClock className="timing-icon" />
+              <div className="timing-icon-wrap food-corner">
+                <FaUtensils />
+              </div>
               <div>
                 <span className="timing-label">Food Corner</span>
                 <span className="timing-value">{cmsData?.foodCornerTimings || '11:00 AM - 11:00 PM'}</span>

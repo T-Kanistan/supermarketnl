@@ -24,7 +24,7 @@ const StoreInfo = () => {
           <div className="info-card">
             <div className="info-icon"><FiPhoneCall /></div>
             <h3 className="info-title">Contact Us</h3>
-            <p className="info-text">Phone: +1 234 567 890</p>
+            <p className="info-text">Phone: +31659046526</p>
             <p className="info-text">Email: info@inswereldwinkel.com</p>
           </div>
         </div>

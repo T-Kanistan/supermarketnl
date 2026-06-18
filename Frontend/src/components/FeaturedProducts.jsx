@@ -6,7 +6,7 @@ import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, Pagination, Navigation } from 'swiper/modules';
 import productService from '../services/productService';
 import { getImageUrl } from '../services/api';
-import { useCMS } from '../context/CMSContext';
+import { useEnquiry } from '../context/EnquiryContext';
 import 'swiper/css';
 import 'swiper/css/pagination';
 import 'swiper/css/navigation';
@@ -15,7 +15,7 @@ import './FeaturedProducts.css';
 const FeaturedProducts = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { cmsData } = useCMS();
+  const { openEnquiry } = useEnquiry();
 
   useEffect(() => {
     const fetchFeaturedProducts = async () => {
@@ -31,15 +31,13 @@ const FeaturedProducts = () => {
     fetchFeaturedProducts();
   }, []);
 
-  const handleEnquiry = (productName) => {
-    // Extract WhatsApp number or use fallback
-    const phoneUrl = cmsData.socials?.whatsapp || 'https://wa.me/31612345678';
-    const cleanNumber = phoneUrl.replace(/[^0-9]/g, '');
-    const number = cleanNumber || '31612345678';
-
-    const message = `Hello, I would like to know more about this product.\n\nProduct Name: ${productName}\n\nIs this product currently available?\nCould you please provide more details regarding price, stock availability, and delivery options?\n\nThank you.`;
-    const encodedMessage = encodeURIComponent(message);
-    window.open(`https://wa.me/${number}?text=${encodedMessage}`, '_blank');
+  const handleEnquiry = (product) => {
+    openEnquiry({
+      name: product.name,
+      category: product.categoryId || '',
+      sku: product.id,
+      id: product.id,
+    });
   };
 
   return (
@@ -114,8 +112,8 @@ const FeaturedProducts = () => {
                           className={`enquiry-btn ${product.stock === 0 ? 'disabled' : ''}`} 
                           aria-label="Enquire about product"
                           disabled={product.stock === 0}
-                          title={product.stock === 0 ? "Enquiry is unavailable because this product is currently out of stock." : "Enquire via WhatsApp"}
-                          onClick={() => handleEnquiry(product.name)}
+                          title={product.stock === 0 ? "Enquiry is unavailable because this product is currently out of stock." : "Open product enquiry form"}
+                          onClick={() => handleEnquiry(product)}
                         >
                           <FaWhatsapp className="whatsapp-icon" /> Enquiry
                         </button>

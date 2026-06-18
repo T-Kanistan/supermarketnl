@@ -251,7 +251,7 @@ export const AdminSiteSettings = () => {
                     name="contactPhone" 
                     value={formData.contactPhone} 
                     onChange={handleChange} 
-                    placeholder="+31 6 12345678" 
+                    placeholder="+31659046526" 
                     required 
                   />
                 </div>
@@ -326,7 +326,7 @@ export const AdminSiteSettings = () => {
                     name="whatsapp" 
                     value={formData.socials.whatsapp} 
                     onChange={handleSocialChange} 
-                    placeholder="https://wa.me/..." 
+                    placeholder="https://wa.me/31659046526" 
                   />
                 </div>
                 <div>

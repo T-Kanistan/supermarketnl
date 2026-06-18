@@ -37,10 +37,12 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    if (error.response && error.response.status === 401) {
+    const requestUrl = error.config?.url || '';
+    const isAuthCheck = requestUrl.includes('/auth/me') || requestUrl.includes('/auth/login');
+
+    if (error.response?.status === 401 && !isAuthCheck) {
       localStorage.removeItem('supermarket_token');
       localStorage.removeItem('supermarket_user');
-      // Redirect to admin login if attempting to access a protected admin page and not already there
       if (window.location.pathname.startsWith('/admin') && !window.location.pathname.startsWith('/admin/login')) {
         window.location.href = '/admin/login';
       }

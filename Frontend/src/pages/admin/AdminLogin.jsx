@@ -80,7 +80,7 @@ export const AdminLogin = () => {
                   <input 
                     type="email" 
                     id="email" 
-                    placeholder="admin@supermarket.com" 
+                    placeholder="admin@store.com" 
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required 

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { FaRegClock, FaRegCalendarAlt, FaWhatsapp, FaStar, FaSearch, FaFireAlt } from 'react-icons/fa';
 import productService from '../services/productService';
 import { getImageUrl } from '../services/api';
-import { useCMS } from '../context/CMSContext';
+import { useEnquiry } from '../context/EnquiryContext';
 import './FoodCorner.css';
 
 const categories = ["All", "Breakfast", "Lunch", "Dinner", "Snacks", "Beverages", "Desserts"];
@@ -14,7 +14,7 @@ const FoodCorner = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentTime, setCurrentTime] = useState(new Date());
   
-  const { cmsData } = useCMS();
+  const { openEnquiry } = useEnquiry();
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -61,17 +61,12 @@ const FoodCorner = () => {
   });
 
   const handleEnquiry = (item) => {
-    const phoneUrl = cmsData.socials?.whatsapp || 'https://wa.me/31612345678';
-    const cleanNumber = phoneUrl.replace(/[^0-9]/g, '') || '31612345678';
-
-    const categoryName = item.categoryId || 'Food Corner';
-    const weight = item.weight || 'N/A';
-    const price = item.price ? `€${item.price.toFixed(2)}` : '€0.00'; 
-    
-    const message = `Hello 👋\n\nI would like to order the following ready-to-eat item:\n\n🍔 Item Name: ${item.name}\n📦 Category: ${categoryName}\n⚖️ Size/Portion: ${weight}\n💰 Price: ${price}\n\nPlease prepare it for delivery/pickup.\n\nThank you.`;
-    
-    const encodedMessage = encodeURIComponent(message);
-    window.open(`https://wa.me/${cleanNumber}?text=${encodedMessage}`, '_blank');
+    openEnquiry({
+      name: item.name,
+      category: item.categoryId || 'Food Corner',
+      sku: item.id,
+      id: item.id,
+    });
   };
 
   return (

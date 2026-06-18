@@ -82,24 +82,48 @@ export const cmsService = {
   // Contact Messages
   getContactMessages: async () => {
     return request(
-      () => api.get('/cms/messages'),
+      async () => {
+        const response = await api.get('/cms/messages');
+        return { data: response.data.data || [] };
+      },
       () => localDb.getMessages()
     );
   },
 
   submitContactMessage: async (messageData) => {
     return request(
-      () => api.post('/cms/messages', messageData),
+      async () => {
+        const response = await api.post('/cms/messages', messageData);
+        return { data: response.data.data };
+      },
       () => {
         const messages = localDb.getMessages();
         const newMessage = {
           id: Date.now().toString(),
           ...messageData,
+          isRead: false,
           date: new Date().toISOString(),
         };
         messages.push(newMessage);
         localDb.saveMessages(messages);
         return newMessage;
+      }
+    );
+  },
+
+  markContactMessageRead: async (id, isRead) => {
+    return request(
+      async () => {
+        const response = await api.put(`/cms/messages/${id}/read`, { isRead });
+        return { data: response.data.data };
+      },
+      () => {
+        const messages = localDb.getMessages();
+        const idx = messages.findIndex((m) => m.id === id);
+        if (idx === -1) throw new Error('Message not found');
+        messages[idx].isRead = isRead;
+        localDb.saveMessages(messages);
+        return messages[idx];
       }
     );
   },

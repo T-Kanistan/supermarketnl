@@ -19,8 +19,20 @@
   position: absolute;
   inset: 0;
   background: linear-gradient(to right, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 100%);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+}
+
+.contact-hero .container {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+}
+
+.contact-hero-layout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 40px;
+  width: 100%;
 }
 
 .contact-hero-content {
@@ -28,6 +40,12 @@
   z-index: 1;
   color: white;
   max-width: 600px;
+  flex: 1;
+  padding: 32px 36px;
+  border-radius: 14px;
+  background: rgba(26, 37, 47, 0.25);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
 }
 
 .hero-pill-badge {
@@ -55,7 +73,7 @@
   font-size: 1.2rem;
   font-weight: 500;
   margin-bottom: 30px;
-  color: #F5EE9E;
+  color: #ffffff;
 }
 
 .hero-features {
@@ -75,6 +93,122 @@
   color: #64748b;
 }
 
+.hero-quick-info {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 24px;
+  font-size: 0.92rem;
+  font-weight: 500;
+}
+
+.hero-quick-info span {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.hero-quick-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.92);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.hero-quick-link:hover {
+  color: var(--primary-green);
+}
+
+.hero-quick-info svg,
+.hero-quick-link svg {
+  color: var(--primary-green);
+  flex-shrink: 0;
+}
+
+.contact-phone-link {
+  color: #475569;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.contact-phone-link:hover {
+  color: var(--primary-green);
+}
+
+.contact-timings-card {
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 20px 36px 8px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
+  min-width: 340px;
+  flex-shrink: 0;
+}
+
+.contact-timings-title {
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: #1e3a5f;
+  font-weight: 800;
+  margin: 0 0 8px;
+  text-align: center;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.contact-timings-card .timing-item {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 20px 0;
+}
+
+.contact-timings-card .timing-icon-wrap {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #ffffff;
+  font-size: 1.2rem;
+}
+
+.contact-timings-card .timing-icon-wrap.supermarket {
+  background: #1e3a5f;
+}
+
+.contact-timings-card .timing-icon-wrap.food-corner {
+  background: #FF6B35;
+}
+
+.contact-timings-card .timing-label {
+  display: block;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #64748b;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.contact-timings-card .timing-value {
+  display: block;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.contact-timings-card .timing-divider {
+  width: 100%;
+  height: 1px;
+  background-color: #e2e8f0;
+}
+
 .overlap-container {
   margin-top: -120px;
   position: relative;
@@ -88,6 +222,7 @@
   grid-template-columns: 1.2fr 1fr;
   gap: 30px;
   margin-bottom: 40px;
+  align-items: start;
 }
 
 .contact-card {
@@ -98,15 +233,18 @@
 }
 
 .card-header {
-  display: flex;
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: 16px;
   align-items: center;
-  gap: 15px;
-  margin-bottom: 30px;
+  margin-bottom: 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .header-icon-wrapper {
-  width: 50px;
-  height: 50px;
+  width: 48px;
+  height: 48px;
   background-color: #f0fdf4;
   color: var(--primary-green);
   border-radius: 50%;
@@ -120,12 +258,13 @@
   font-size: 1.2rem;
   font-weight: 800;
   color: #1e293b;
-  margin-bottom: 4px;
+  margin: 0;
 }
 
 .header-text p {
   color: #64748b;
   font-size: 0.9rem;
+  margin: 0;
 }
 
 /* Form Styles */
@@ -222,22 +361,28 @@
 }
 
 /* Info Card Styles */
+.info-card {
+  text-align: left;
+  padding: 28px 32px 24px;
+}
+
 .info-list {
   display: flex;
   flex-direction: column;
-  gap: 30px;
-  margin-bottom: 40px;
+  gap: 18px;
+  margin-bottom: 0;
 }
 
 .info-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 20px;
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: 16px;
+  align-items: start;
 }
 
 .info-icon-circle {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   background-color: #f0fdf4;
   color: var(--primary-green);
   border-radius: 50%;
@@ -248,25 +393,37 @@
   flex-shrink: 0;
 }
 
+.info-content {
+  text-align: left;
+  min-width: 0;
+}
+
 .info-content label {
   font-size: 0.85rem;
   font-weight: 700;
   color: #1e293b;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
   display: block;
 }
 
 .info-content p {
   color: #475569;
   font-weight: 500;
-  margin-bottom: 6px;
-  line-height: 1.4;
+  margin: 0 0 4px;
+  line-height: 1.5;
+}
+
+.info-content p:last-child {
+  margin-bottom: 0;
 }
 
 .info-subtext {
   font-size: 0.8rem;
   color: var(--primary-green);
   font-weight: 500;
+  display: block;
+  margin-top: 4px;
+  line-height: 1.4;
 }
 
 .info-subtext.link {
@@ -276,19 +433,23 @@
 
 .social-section {
   border-top: 1px solid #e2e8f0;
-  padding-top: 30px;
+  padding-top: 18px;
+  margin-top: 18px;
+  text-align: left;
 }
 
 .social-section h4 {
   font-size: 1rem;
   font-weight: 800;
-  margin-bottom: 15px;
+  margin: 0 0 12px;
   color: #1e293b;
 }
 
 .social-icons {
   display: flex;
-  gap: 15px;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-start;
 }
 
 .social-icon {
@@ -308,6 +469,8 @@
 .social-icon.facebook { background-color: #1877f2; }
 .social-icon.instagram { background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%); }
 .social-icon.whatsapp { background-color: #25d366; }
+.social-icon.tiktok { background-color: #000000; }
+.social-icon.youtube { background-color: #ff0000; }
 .social-icon.linkedin { background-color: #0077b5; }
 
 /* Map Section */
@@ -407,6 +570,18 @@
 }
 
 @media (max-width: 992px) {
+  .contact-hero-layout {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 28px;
+  }
+
+  .contact-timings-card {
+    width: 100%;
+    min-width: 0;
+    padding: 18px 24px 6px;
+  }
+
   .contact-grid {
     grid-template-columns: 1fr;
   }

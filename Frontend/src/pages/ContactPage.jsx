@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { FiPhone, FiMail, FiMapPin, FiClock, FiUser, FiTag, FiSend, FiLock, FiHeadphones, FiCheckCircle } from 'react-icons/fi';
-import { FaFacebook, FaInstagram, FaWhatsapp, FaTiktok, FaYoutube } from 'react-icons/fa';
+import { FaFacebook, FaInstagram, FaWhatsapp, FaTiktok, FaYoutube, FaShoppingBasket, FaUtensils } from 'react-icons/fa';
 import { useCMS } from '../context/CMSContext';
 import { useToast } from '../context/ToastContext';
 import cmsService from '../services/cmsService';
@@ -45,23 +45,60 @@ const ContactPage = () => {
     }
   };
 
+  const phone = cmsData.contactPhone || '+31659046526';
+  const email = cmsData.contactEmail || 'info@winswereldwinkel.nl';
+  const address = cmsData.address || 'Hilversum, Netherlands';
+  const phoneHref = `tel:${phone.replace(/[^\d+]/g, '')}`;
+  const emailHref = `mailto:${email}`;
+  const mapsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+
   return (
     <div className="contact-page">
       {/* Hero Section */}
       <div className="contact-hero">
         <div className="container">
-          <div className="contact-hero-content">
-            <div className="hero-pill-badge">
-              <FiPhone /> GET IN TOUCH
+          <div className="contact-hero-layout">
+            <div className="contact-hero-content">
+              <div className="hero-pill-badge">
+                <FiPhone /> GET IN TOUCH
+              </div>
+              <h1>CONTACT US</h1>
+              <p className="hero-subtitle">We're here to help. Reach out to us anytime.</p>
+              <div className="hero-features">
+                <span><FiCheckCircle className="feature-icon"/> Quick Support</span>
+                <span className="dot">•</span>
+                <span><FiCheckCircle className="feature-icon"/> Fast Response</span>
+                <span className="dot">•</span>
+                <span><FiCheckCircle className="feature-icon"/> We Care</span>
+              </div>
+              <div className="hero-quick-info">
+                <a href={phoneHref} className="hero-quick-link"><FiPhone /> {phone}</a>
+                <a href={emailHref} className="hero-quick-link"><FiMail /> {email}</a>
+                <a href={mapsHref} target="_blank" rel="noreferrer" className="hero-quick-link"><FiMapPin /> {address}</a>
+              </div>
             </div>
-            <h1>CONTACT US</h1>
-            <p className="hero-subtitle">We're here to help. Reach out to us anytime.</p>
-            <div className="hero-features">
-              <span><FiCheckCircle className="feature-icon"/> Quick Support</span>
-              <span className="dot">•</span>
-              <span><FiCheckCircle className="feature-icon"/> Fast Response</span>
-              <span className="dot">•</span>
-              <span><FiCheckCircle className="feature-icon"/> We Care</span>
+
+            <div className="contact-timings-card">
+              <h3 className="contact-timings-title">Open Time</h3>
+              <div className="timing-item">
+                <div className="timing-icon-wrap supermarket">
+                  <FaShoppingBasket />
+                </div>
+                <div>
+                  <span className="timing-label">Supermarket</span>
+                  <span className="timing-value">{cmsData.supermarketTimings || '8:00 AM - 10:00 PM'}</span>
+                </div>
+              </div>
+              <div className="timing-divider"></div>
+              <div className="timing-item">
+                <div className="timing-icon-wrap food-corner">
+                  <FaUtensils />
+                </div>
+                <div>
+                  <span className="timing-label">Food Corner</span>
+                  <span className="timing-value">{cmsData.foodCornerTimings || '11:00 AM - 11:00 PM'}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -145,8 +182,8 @@ const ContactPage = () => {
                 <div className="info-icon-circle"><FiPhone /></div>
                 <div className="info-content">
                   <label>Phone Number</label>
-                  <p>{cmsData.contactPhone}</p>
-                  <span className="info-subtext">Mon - Sat: 08:00 AM - 10:00 PM</span>
+                  <p><a href={phoneHref} className="contact-phone-link">{phone}</a></p>
+                  <span className="info-subtext">Supermarket: {cmsData.supermarketTimings || '8:00 AM - 10:00 PM'}</span>
                 </div>
               </div>
 
@@ -154,7 +191,7 @@ const ContactPage = () => {
                 <div className="info-icon-circle"><FiMail /></div>
                 <div className="info-content">
                   <label>Email Address</label>
-                  <p>{cmsData.contactEmail}</p>
+                  <p><a href={emailHref} className="contact-phone-link">{email}</a></p>
                   <span className="info-subtext">We reply within 24 hours</span>
                 </div>
               </div>
@@ -171,7 +208,10 @@ const ContactPage = () => {
                 <div className="info-icon-circle"><FiClock /></div>
                 <div className="info-content">
                   <label>Opening Hours</label>
-                  <p>Mon - Sat: 08:00 AM - 10:00 PM<br/>Sunday: 09:00 AM - 08:00 PM</p>
+                  <p>
+                    Supermarket: {cmsData.supermarketTimings || '8:00 AM - 10:00 PM'}<br />
+                    Food Corner: {cmsData.foodCornerTimings || '11:00 AM - 11:00 PM'}
+                  </p>
                 </div>
               </div>
             </div>
@@ -221,8 +261,8 @@ const ContactPage = () => {
               <h3>BUSINESS HOURS</h3>
             </div>
             <ul className="timings-list">
-              <li><span>Monday - Saturday</span><span>08:00 AM - 10:00 PM</span></li>
-              <li><span>Sunday</span><span>09:00 AM - 08:00 PM</span></li>
+              <li><span>Supermarket</span><span>{cmsData.supermarketTimings || '8:00 AM - 10:00 PM'}</span></li>
+              <li><span>Food Corner</span><span>{cmsData.foodCornerTimings || '11:00 AM - 11:00 PM'}</span></li>
               <li><span>Holiday</span><span>Opens as Announced</span></li>
             </ul>
             <div className="help-box">
@@ -230,7 +270,7 @@ const ContactPage = () => {
               <div className="help-text">
                 <p>Need help?</p>
                 <span>Call us anytime</span>
-                <strong>{cmsData.contactPhone}</strong>
+                <strong><a href={phoneHref} className="contact-phone-link">{phone}</a></strong>
               </div>
             </div>
           </div>
