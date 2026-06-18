@@ -13,23 +13,27 @@ const seedAdmin = async () => {
     await mongoose.connect(mongoUri);
     console.log('Database connected successfully for seeding.');
 
-    // Check if any admin already exists
+    const defaultAdmin = {
+      name: 'System Administrator',
+      email: 'admin@store.com',
+      password: 'Admin@123',
+      role: 'admin',
+      mustChangePassword: true,
+      isActive: true,
+    };
+
     const adminExists = await User.findOne({ role: 'admin' });
 
     if (adminExists) {
       console.log(`An admin account already exists: ${adminExists.email}`);
-      console.log('Skipping admin seeding.');
+      adminExists.email = defaultAdmin.email;
+      adminExists.password = defaultAdmin.password;
+      await adminExists.save();
+      console.log('Synced admin credentials to application defaults.');
     } else {
       console.log('No admin user found. Seeding default admin...');
-      
-      const admin = await User.create({
-        name: 'System Administrator',
-        email: 'admin@store.com',
-        password: 'Admin@123',
-        role: 'admin',
-        mustChangePassword: true,
-        isActive: true,
-      });
+
+      const admin = await User.create(defaultAdmin);
 
       console.log('Default admin account seeded successfully:');
       console.log(`Email: ${admin.email}`);

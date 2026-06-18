@@ -20,7 +20,7 @@ const cmsSchema = new mongoose.Schema(
     contactPhone: {
       type: String,
       trim: true,
-      default: '+31 6 12345678',
+      default: '+31659046526',
     },
     address: {
       type: String,
@@ -46,7 +46,7 @@ const cmsSchema = new mongoose.Schema(
     },
     whatsapp: {
       type: String,
-      default: 'https://wa.me/31612345678',
+      default: 'https://wa.me/31659046526',
     },
     youtube: {
       type: String,
