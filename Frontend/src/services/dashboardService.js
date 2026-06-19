@@ -11,18 +11,18 @@ export const dashboardService = {
         
         return {
           data: {
-            totalProducts: 0, // Fallback since Products module is not part of this phase
-            totalCategories: 0, // Fallback since Categories module is not part of this phase
+            totalProducts: stats.products?.total || 0,
+            totalCategories: stats.categories?.total || 0,
             totalTestimonials: stats.testimonials?.total || 0,
             totalFaqs: stats.faqs?.total || 0,
-            totalMessages: 0, // Fallback since Contact messages module is not part of this phase
+            totalMessages: stats.messages?.total || 0,
             activeBanners: stats.banners?.active || 0,
             recentActivities: [
-              { id: 'act1', type: 'testimonial', text: `Review board has ${stats.testimonials?.total || 0} customer reviews`, time: 'Updated' },
-              { id: 'act2', type: 'faq', text: `FAQ system initialized with ${stats.faqs?.total || 0} entries`, time: 'Updated' },
-              { id: 'act3', type: 'banner', text: `Banners listing updated with ${stats.banners?.total || 0} slides`, time: 'Updated' }
-            ]
-          }
+              { id: 'act1', type: 'product', text: `Catalog has ${stats.products?.total || 0} products`, time: 'Updated' },
+              { id: 'act2', type: 'category', text: `${stats.categories?.total || 0} categories configured`, time: 'Updated' },
+              { id: 'act3', type: 'message', text: `${stats.messages?.unread || 0} unread contact messages`, time: 'Updated' },
+            ],
+          },
         };
       },
       () => {

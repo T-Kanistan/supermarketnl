@@ -12,6 +12,10 @@ const STORAGE_KEYS = {
   MANAGERS: 'supermarket_managers',
 };
 
+import { defaultAboutPage } from '../constants/aboutPageDefaults';
+import { defaultContactPage } from '../constants/contactPageDefaults';
+import { defaultFooterPage } from '../constants/footerPageDefaults';
+
 // Seed data based on existing static UI structures
 const defaultSettings = {
   storeName: 'Ins Wereld Winkel',
@@ -23,6 +27,9 @@ const defaultSettings = {
   footerDescription: 'Your premium destination for high-quality groceries and fresh daily produce. We bring the world to your shopping cart with hand-picked items from across the globe.',
   supermarketTimings: '8:00 AM - 10:00 PM',
   foodCornerTimings: '11:00 AM - 11:00 PM',
+  aboutPage: defaultAboutPage,
+  contactPage: defaultContactPage,
+  footerPage: defaultFooterPage,
   socials: {
     facebook: 'https://facebook.com',
     instagram: 'https://instagram.com',
@@ -48,37 +55,37 @@ const defaultBanners = [
 ];
 
 const defaultCategories = [
-  { id: 'grocery', name: 'Grocery Items', image: 'https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&q=80&w=400', status: 'active' },
-  { id: 'masala', name: 'Masala Items', image: 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&q=80&w=400', status: 'active' },
-  { id: 'vegetables', name: 'Vegetables', image: 'https://images.unsplash.com/photo-1566385101042-1a0aa0c1268c?auto=format&fit=crop&q=80&w=400', status: 'active' },
-  { id: 'sweets', name: 'Sweets', image: 'https://images.unsplash.com/photo-1551024601-bec78aea704b?auto=format&fit=crop&q=80&w=400', status: 'active' },
-  { id: 'frozen', name: 'Frozen Items', image: 'https://images.unsplash.com/photo-1588964895597-cfccd6e2a09c?auto=format&fit=crop&q=80&w=400', status: 'active' },
+  { id: 'beverages-tea', name: 'Beverages & Tea', image: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?auto=format&fit=crop&q=80&w=400', status: 'active' },
+  { id: 'frozen-ready-to-eat', name: 'Frozen Ready to Eat', image: 'https://images.unsplash.com/photo-1588964895597-cfccd6e2a09c?auto=format&fit=crop&q=80&w=400', status: 'active' },
+  { id: 'meat-seafoods', name: 'Meat & Seafoods', image: 'https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?auto=format&fit=crop&q=80&w=400', status: 'active' },
+  { id: 'spices-masalas', name: 'Spices & Masalas', image: 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&q=80&w=400', status: 'active' },
+  { id: 'vegetables-fruits', name: 'Vegetables & Fruits', image: 'https://images.unsplash.com/photo-1566385101042-1a0aa0c1268c?auto=format&fit=crop&q=80&w=400', status: 'active' },
 ];
 
 const defaultProducts = [
   // Grocery
-  { id: '1', categoryId: 'grocery', name: 'Premium Basmati Rice', weight: '5KG', price: 12.99, oldPrice: 15.99, image: '/images/basmati_rice.png', stock: 50, status: 'active', isFeatured: true, type: 'grocery' },
-  { id: '2', categoryId: 'grocery', name: 'Organic Cooking Oil', weight: '1L', price: 8.49, oldPrice: null, image: '/images/sunflower_oil.png', stock: 0, status: 'active', isFeatured: true, type: 'grocery' },
-  { id: '3', categoryId: 'grocery', name: 'Fresh Yellow Lentils', weight: '1KG', price: 4.99, oldPrice: 5.99, image: '/images/toor_dal.png', stock: 20, status: 'active', isFeatured: true, type: 'grocery' },
-  { id: '4', categoryId: 'grocery', name: 'Red Lentils', weight: '1KG', price: 5.49, oldPrice: null, image: '/images/red_lentils.png', stock: 30, status: 'active', isFeatured: false, type: 'grocery' },
-  { id: '5', categoryId: 'grocery', name: 'Wheat Flour', weight: '5KG', price: 6.99, oldPrice: 7.99, image: '/images/wheat_flour.png', stock: 15, status: 'active', isFeatured: false, type: 'grocery' },
-  { id: '6', categoryId: 'grocery', name: 'White Sugar', weight: '1KG', price: 2.49, oldPrice: null, image: '/images/white_sugar.png', stock: 0, status: 'active', isFeatured: false, type: 'grocery' },
+  { id: '1', categoryId: 'vegetables-fruits', name: 'Premium Basmati Rice', weight: '5KG', price: 12.99, oldPrice: 15.99, image: '/images/basmati_rice.png', stock: 50, status: 'active', isFeatured: true, type: 'grocery' },
+  { id: '2', categoryId: 'vegetables-fruits', name: 'Organic Cooking Oil', weight: '1L', price: 8.49, oldPrice: null, image: '/images/sunflower_oil.png', stock: 0, status: 'active', isFeatured: true, type: 'grocery' },
+  { id: '3', categoryId: 'vegetables-fruits', name: 'Fresh Yellow Lentils', weight: '1KG', price: 4.99, oldPrice: 5.99, image: '/images/toor_dal.png', stock: 20, status: 'active', isFeatured: true, type: 'grocery' },
+  { id: '4', categoryId: 'vegetables-fruits', name: 'Red Lentils', weight: '1KG', price: 5.49, oldPrice: null, image: '/images/red_lentils.png', stock: 30, status: 'active', isFeatured: false, type: 'grocery' },
+  { id: '5', categoryId: 'vegetables-fruits', name: 'Wheat Flour', weight: '5KG', price: 6.99, oldPrice: 7.99, image: '/images/wheat_flour.png', stock: 15, status: 'active', isFeatured: false, type: 'grocery' },
+  { id: '6', categoryId: 'vegetables-fruits', name: 'White Sugar', weight: '1KG', price: 2.49, oldPrice: null, image: '/images/white_sugar.png', stock: 0, status: 'active', isFeatured: false, type: 'grocery' },
   
   // Masala
-  { id: '7', categoryId: 'masala', name: 'Curry Powder', weight: '500G', price: 3.99, oldPrice: 4.99, image: '/images/curry_powder.png', stock: 40, status: 'active', isFeatured: false, type: 'grocery' },
-  { id: '8', categoryId: 'masala', name: 'Chili Powder', weight: '500G', price: 3.49, oldPrice: null, image: '/images/chili_powder.png', stock: 25, status: 'active', isFeatured: false, type: 'grocery' },
-  { id: '9', categoryId: 'masala', name: 'Turmeric Powder', weight: '500G', price: 2.99, oldPrice: null, image: '/images/turmeric_powder.png', stock: 60, status: 'active', isFeatured: false, type: 'grocery' },
+  { id: '7', categoryId: 'spices-masalas', name: 'Curry Powder', weight: '500G', price: 3.99, oldPrice: 4.99, image: '/images/curry_powder.png', stock: 40, status: 'active', isFeatured: false, type: 'grocery' },
+  { id: '8', categoryId: 'spices-masalas', name: 'Chili Powder', weight: '500G', price: 3.49, oldPrice: null, image: '/images/chili_powder.png', stock: 25, status: 'active', isFeatured: false, type: 'grocery' },
+  { id: '9', categoryId: 'spices-masalas', name: 'Turmeric Powder', weight: '500G', price: 2.99, oldPrice: null, image: '/images/turmeric_powder.png', stock: 60, status: 'active', isFeatured: false, type: 'grocery' },
 
   // Vegetables
-  { id: '10', categoryId: 'vegetables', name: 'Fresh Tomatoes', weight: '1KG', price: 1.99, oldPrice: 2.49, image: '/images/fresh_tomatoes.png', stock: 15, status: 'active', isFeatured: true, type: 'grocery' },
-  { id: '11', categoryId: 'vegetables', name: 'Fresh Potatoes', weight: '1KG', price: 1.49, oldPrice: null, image: '/images/fresh_potatoes.png', stock: 20, status: 'active', isFeatured: false, type: 'grocery' },
-  { id: '12', categoryId: 'vegetables', name: 'Fresh Onions', weight: '1KG', price: 1.79, oldPrice: null, image: '/images/fresh_onions.png', stock: 30, status: 'active', isFeatured: false, type: 'grocery' },
+  { id: '10', categoryId: 'vegetables-fruits', name: 'Fresh Tomatoes', weight: '1KG', price: 1.99, oldPrice: 2.49, image: '/images/fresh_tomatoes.png', stock: 15, status: 'active', isFeatured: true, type: 'grocery' },
+  { id: '11', categoryId: 'vegetables-fruits', name: 'Fresh Potatoes', weight: '1KG', price: 1.49, oldPrice: null, image: '/images/fresh_potatoes.png', stock: 20, status: 'active', isFeatured: false, type: 'grocery' },
+  { id: '12', categoryId: 'vegetables-fruits', name: 'Fresh Onions', weight: '1KG', price: 1.79, oldPrice: null, image: '/images/fresh_onions.png', stock: 30, status: 'active', isFeatured: false, type: 'grocery' },
 
   // Sweets
-  { id: '13', categoryId: 'sweets', name: 'Premium Laddoos', weight: '500G', price: 7.99, oldPrice: 9.99, image: 'https://images.unsplash.com/photo-1551024601-bec78aea704b?auto=format&fit=crop&q=80&w=400', stock: 20, status: 'active', isFeatured: true, type: 'grocery' },
+  { id: '13', categoryId: 'beverages-tea', name: 'Premium Laddoos', weight: '500G', price: 7.99, oldPrice: 9.99, image: 'https://images.unsplash.com/photo-1551024601-bec78aea704b?auto=format&fit=crop&q=80&w=400', stock: 20, status: 'active', isFeatured: true, type: 'grocery' },
 
   // Frozen
-  { id: '14', categoryId: 'frozen', name: 'Fresh Seer Fish', weight: '1KG', price: 14.99, oldPrice: 17.99, image: '/images/fresh_potatoes.png', stock: 10, status: 'active', isFeatured: true, type: 'grocery' },
+  { id: '14', categoryId: 'frozen-ready-to-eat', name: 'Fresh Seer Fish', weight: '1KG', price: 14.99, oldPrice: 17.99, image: '/images/fresh_potatoes.png', stock: 10, status: 'active', isFeatured: true, type: 'grocery' },
 
   // Food Corner Items (mapped to food type)
   { 

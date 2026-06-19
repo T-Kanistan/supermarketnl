@@ -1,0 +1,17 @@
+{
+  "name": "supermarket",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "Frontend"
+  ],
+  "scripts": {
+    "install:all": "npm install --workspaces",
+    "dev:backend": "npm run dev --workspace supermarket-backend",
+    "dev:frontend": "npm run dev --workspace wins-wereld-winkel",
+    "build": "npm run build --workspace wins-wereld-winkel",
+    "lint": "npm run lint --workspace wins-wereld-winkel",
+    "start": "npm run start --workspace supermarket-backend"
+  }
+}

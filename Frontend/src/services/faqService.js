@@ -1,65 +1,17 @@
-import api, { request } from './api';
-import { localDb } from './localDb';
+import api, { apiRequest } from './api';
 
 export const faqService = {
-  getFaqs: async () => {
-    return request(
-      async () => {
-        const response = await api.get('/faqs');
-        return { data: response.data.data };
-      },
-      () => localDb.getFaqs()
-    );
-  },
+  getFaqs: async () => apiRequest(() => api.get('/faqs')),
 
-  createFaq: async (faqData) => {
-    return request(
-      async () => {
-        const response = await api.post('/faqs', faqData);
-        return { data: response.data.data };
-      },
-      () => {
-        const faqs = localDb.getFaqs();
-        const newFaq = {
-          id: Date.now().toString(),
-          ...faqData,
-        };
-        faqs.push(newFaq);
-        localDb.saveFaqs(faqs);
-        return newFaq;
-      }
-    );
-  },
+  getAllFaqs: async () => apiRequest(() => api.get('/faqs/all')),
 
-  updateFaq: async (id, faqData) => {
-    return request(
-      async () => {
-        const response = await api.put(`/faqs/${id}`, faqData);
-        return { data: response.data.data };
-      },
-      () => {
-        const faqs = localDb.getFaqs();
-        const idx = faqs.findIndex((f) => f.id === id);
-        if (idx === -1) throw new Error('FAQ not found');
-        
-        faqs[idx] = { ...faqs[idx], ...faqData };
-        localDb.saveFaqs(faqs);
-        return faqs[idx];
-      }
-    );
-  },
+  createFaq: async (faqData) => apiRequest(() => api.post('/faqs', faqData)),
 
-  deleteFaq: async (id) => {
-    return request(
-      () => api.delete(`/faqs/${id}`),
-      () => {
-        const faqs = localDb.getFaqs();
-        const filtered = faqs.filter((f) => f.id !== id);
-        localDb.saveFaqs(filtered);
-        return { success: true };
-      }
-    );
-  },
+  updateFaq: async (id, faqData) => apiRequest(() => api.put(`/faqs/${id}`, faqData)),
+
+  deleteFaq: async (id) => apiRequest(() => api.delete(`/faqs/${id}`)),
+
+  reorderFaqs: async (orders) => apiRequest(() => api.put('/faqs/reorder', orders)),
 };
 
 export default faqService;

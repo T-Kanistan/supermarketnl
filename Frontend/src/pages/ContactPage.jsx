@@ -1,24 +1,90 @@
-import { useState } from 'react';
-import { FiPhone, FiMail, FiMapPin, FiClock, FiUser, FiTag, FiSend, FiLock, FiHeadphones, FiCheckCircle } from 'react-icons/fi';
-import { FaFacebook, FaInstagram, FaWhatsapp, FaTiktok, FaYoutube, FaShoppingBasket, FaUtensils } from 'react-icons/fa';
-import { useCMS } from '../context/CMSContext';
+import { useState, useEffect } from 'react';
+import {
+  FiPhone,
+  FiMail,
+  FiMapPin,
+  FiClock,
+  FiUser,
+  FiTag,
+  FiSend,
+  FiLock,
+  FiHeadphones,
+  FiExternalLink,
+  FiMessageCircle,
+} from 'react-icons/fi';
+import { FaFacebook, FaInstagram, FaWhatsapp, FaTiktok, FaYoutube } from 'react-icons/fa';
 import { useToast } from '../context/ToastContext';
+import { mergeContactPage } from '../constants/contactPageDefaults';
+import contactSettingsService from '../services/contactSettingsService';
 import cmsService from '../services/cmsService';
 import './ContactPage.css';
 
 const ContactPage = () => {
-  const { cmsData } = useCMS();
   const { addToast } = useToast();
+  const [contactData, setContactData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
 
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
     subject: '',
-    message: ''
+    message: '',
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    let active = true;
+    contactSettingsService
+      .getContactSettings()
+      .then((data) => {
+        if (active) setContactData(data);
+      })
+      .catch((err) => {
+        if (active) setLoadError(err.message || 'Failed to load contact page content.');
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="contact-page contact-page-loading">
+        <p>Loading contact information...</p>
+      </div>
+    );
+  }
+
+  if (loadError || !contactData) {
+    return (
+      <div className="contact-page contact-page-error">
+        <p>{loadError || 'Contact page content is unavailable.'}</p>
+      </div>
+    );
+  }
+
+  const contact = mergeContactPage(contactData.contactPage);
+  const phone = contactData.contactPhone || '';
+  const email = contactData.contactEmail || '';
+  const address = contactData.address || '';
+  const storeName = contactData.storeName || '';
+  const supermarketHours = contactData.supermarketTimings || '';
+  const foodCornerHours = contactData.foodCornerTimings || '';
+  const socials = contactData.socials || {};
+
+  const phoneHref = phone ? `tel:${phone.replace(/[^\d+]/g, '')}` : '#';
+  const emailHref = email ? `mailto:${email}` : '#';
+  const mapsHref = address
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
+    : '#';
+  const whatsappHref = socials.whatsapp || '';
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -30,13 +96,7 @@ const ContactPage = () => {
     try {
       await cmsService.submitContactMessage(formData);
       addToast('Thank you! Your message has been sent successfully.', 'success');
-      setFormData({
-        name: '',
-        email: '',
-        phone: '',
-        subject: '',
-        message: ''
-      });
+      setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
     } catch (err) {
       console.error('Submit contact message failed', err);
       addToast('Failed to send message. Please try again.', 'error');
@@ -45,235 +105,318 @@ const ContactPage = () => {
     }
   };
 
-  const phone = cmsData.contactPhone || '+31659046526';
-  const email = cmsData.contactEmail || 'info@winswereldwinkel.nl';
-  const address = cmsData.address || 'Hilversum, Netherlands';
-  const phoneHref = `tel:${phone.replace(/[^\d+]/g, '')}`;
-  const emailHref = `mailto:${email}`;
-  const mapsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
-
   return (
     <div className="contact-page">
-      {/* Hero Section */}
-      <div className="contact-hero">
-        <div className="container">
-          <div className="contact-hero-layout">
-            <div className="contact-hero-content">
-              <div className="hero-pill-badge">
-                <FiPhone /> GET IN TOUCH
-              </div>
-              <h1>CONTACT US</h1>
-              <p className="hero-subtitle">We're here to help. Reach out to us anytime.</p>
-              <div className="hero-features">
-                <span><FiCheckCircle className="feature-icon"/> Quick Support</span>
-                <span className="dot">•</span>
-                <span><FiCheckCircle className="feature-icon"/> Fast Response</span>
-                <span className="dot">•</span>
-                <span><FiCheckCircle className="feature-icon"/> We Care</span>
-              </div>
-              <div className="hero-quick-info">
-                <a href={phoneHref} className="hero-quick-link"><FiPhone /> {phone}</a>
-                <a href={emailHref} className="hero-quick-link"><FiMail /> {email}</a>
-                <a href={mapsHref} target="_blank" rel="noreferrer" className="hero-quick-link"><FiMapPin /> {address}</a>
-              </div>
-            </div>
-
-            <div className="contact-timings-card">
-              <h3 className="contact-timings-title">Open Time</h3>
-              <div className="timing-item">
-                <div className="timing-icon-wrap supermarket">
-                  <FaShoppingBasket />
-                </div>
-                <div>
-                  <span className="timing-label">Supermarket</span>
-                  <span className="timing-value">{cmsData.supermarketTimings || '8:00 AM - 10:00 PM'}</span>
-                </div>
-              </div>
-              <div className="timing-divider"></div>
-              <div className="timing-item">
-                <div className="timing-icon-wrap food-corner">
-                  <FaUtensils />
-                </div>
-                <div>
-                  <span className="timing-label">Food Corner</span>
-                  <span className="timing-value">{cmsData.foodCornerTimings || '11:00 AM - 11:00 PM'}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="container overlap-container">
-        <div className="contact-grid">
-          
-          {/* Left: Form Card */}
-          <div className="contact-card form-card">
-            <div className="card-header">
-              <div className="header-icon-wrapper">
-                <FiMail />
-              </div>
-              <div className="header-text">
-                <h2>SEND US A MESSAGE</h2>
-                <p>Fill in the form below and we will get back to you.</p>
-              </div>
-            </div>
-
-            <form className="contact-form" onSubmit={handleSubmit}>
-              <div className="form-group">
-                <label>Full Name <span className="required">*</span></label>
-                <div className="input-wrapper">
-                  <FiUser className="input-icon" />
-                  <input type="text" name="name" value={formData.name} onChange={handleChange} placeholder="Enter your full name" required />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label>Email Address <span className="required">*</span></label>
-                <div className="input-wrapper">
-                  <FiMail className="input-icon" />
-                  <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="Enter your email address" required />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label>Phone Number</label>
-                <div className="input-wrapper">
-                  <FiPhone className="input-icon" />
-                  <input type="tel" name="phone" value={formData.phone} onChange={handleChange} placeholder="Enter your phone number" />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label>Subject <span className="required">*</span></label>
-                <div className="input-wrapper">
-                  <FiTag className="input-icon" />
-                  <input type="text" name="subject" value={formData.subject} onChange={handleChange} placeholder="Enter the subject" required />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label>Message <span className="required">*</span></label>
-                <textarea name="message" value={formData.message} onChange={handleChange} placeholder="Write your message here..." rows="5" required></textarea>
-              </div>
-
-              <button type="submit" className="send-btn" disabled={isSubmitting}>
-                <FiSend /> {isSubmitting ? 'SENDING...' : 'SEND MESSAGE'}
-              </button>
-              <div className="form-footer-note">
-                <FiLock /> Your information is safe with us. We never share your details.
-              </div>
-            </form>
-          </div>
-
-          {/* Right: Info Card */}
-          <div className="contact-card info-card">
-            <div className="card-header">
-              <div className="header-icon-wrapper">
-                <FiUser />
-              </div>
-              <div className="header-text">
-                <h2>CONTACT INFORMATION</h2>
-              </div>
-            </div>
-
-            <div className="info-list">
-              <div className="info-item">
-                <div className="info-icon-circle"><FiPhone /></div>
-                <div className="info-content">
-                  <label>Phone Number</label>
-                  <p><a href={phoneHref} className="contact-phone-link">{phone}</a></p>
-                  <span className="info-subtext">Supermarket: {cmsData.supermarketTimings || '8:00 AM - 10:00 PM'}</span>
-                </div>
-              </div>
-
-              <div className="info-item">
-                <div className="info-icon-circle"><FiMail /></div>
-                <div className="info-content">
-                  <label>Email Address</label>
-                  <p><a href={emailHref} className="contact-phone-link">{email}</a></p>
-                  <span className="info-subtext">We reply within 24 hours</span>
-                </div>
-              </div>
-
-              <div className="info-item">
-                <div className="info-icon-circle"><FiMapPin /></div>
-                <div className="info-content">
-                  <label>Store Location</label>
-                  <p>{cmsData.storeName}<br/>{cmsData.address}</p>
-                </div>
-              </div>
-
-              <div className="info-item">
-                <div className="info-icon-circle"><FiClock /></div>
-                <div className="info-content">
-                  <label>Opening Hours</label>
-                  <p>
-                    Supermarket: {cmsData.supermarketTimings || '8:00 AM - 10:00 PM'}<br />
-                    Food Corner: {cmsData.foodCornerTimings || '11:00 AM - 11:00 PM'}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="social-section">
-              <h4>FOLLOW US</h4>
-              <div className="social-icons">
-                {cmsData.socials?.facebook && (
-                  <a href={cmsData.socials.facebook} target="_blank" rel="noreferrer" className="social-icon facebook"><FaFacebook /></a>
-                )}
-                {cmsData.socials?.instagram && (
-                  <a href={cmsData.socials.instagram} target="_blank" rel="noreferrer" className="social-icon instagram"><FaInstagram /></a>
-                )}
-                {cmsData.socials?.whatsapp && (
-                  <a href={cmsData.socials.whatsapp} target="_blank" rel="noreferrer" className="social-icon whatsapp"><FaWhatsapp /></a>
-                )}
-                {cmsData.socials?.tiktok && (
-                  <a href={cmsData.socials.tiktok} target="_blank" rel="noreferrer" className="social-icon tiktok"><FaTiktok /></a>
-                )}
-                {cmsData.socials?.youtube && (
-                  <a href={cmsData.socials.youtube} target="_blank" rel="noreferrer" className="social-icon youtube"><FaYoutube /></a>
-                )}
-              </div>
-            </div>
-          </div>
-
-        </div>
-
-        {/* Bottom Map Section */}
-        <div className="location-section">
-          <div className="map-container">
-            <iframe 
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2436.4673891781285!2d4.8951679!3d52.3702157!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x47c609c0c20c4333%3A0x8bb8f01c23f2f0!2sAmsterdam%2C%20Netherlands!5e0!3m2!1sen!2sus!4v1700000000000!5m2!1sen!2sus" 
-              width="100%" 
-              height="100%" 
-              style={{border:0}} 
-              allowFullScreen="" 
-              loading="lazy" 
-              referrerPolicy="no-referrer-when-downgrade"
-              title="Location Map"
-            ></iframe>
-          </div>
-          
-          <div className="timings-card">
-            <div className="timings-header">
-              <FiClock className="timings-icon" />
-              <h3>BUSINESS HOURS</h3>
-            </div>
-            <ul className="timings-list">
-              <li><span>Supermarket</span><span>{cmsData.supermarketTimings || '8:00 AM - 10:00 PM'}</span></li>
-              <li><span>Food Corner</span><span>{cmsData.foodCornerTimings || '11:00 AM - 11:00 PM'}</span></li>
-              <li><span>Holiday</span><span>Opens as Announced</span></li>
+      {/* ─── Hero ─── */}
+      <section className="contact-hero">
+        <div className="contact-hero-bg" aria-hidden="true" />
+        <div className="contact-hero-overlay" />
+        <div className="contact-page-shell contact-hero-inner">
+          <div className="contact-hero-content">
+            <span className="contact-hero-badge">{contact.heroBadge}</span>
+            <h1>{contact.heroTitle}</h1>
+            <p className="contact-hero-subtitle">{contact.heroSubtitle}</p>
+            <ul className="contact-hero-quick">
+              <li>
+                <FiPhone aria-hidden="true" />
+                <a href={phoneHref}>{phone}</a>
+              </li>
+              <li>
+                <FiMail aria-hidden="true" />
+                <a href={emailHref}>{email}</a>
+              </li>
+              <li>
+                <FiMapPin aria-hidden="true" />
+                <span>{address}</span>
+              </li>
             </ul>
-            <div className="help-box">
-              <FiHeadphones className="help-icon" />
-              <div className="help-text">
-                <p>Need help?</p>
-                <span>Call us anytime</span>
-                <strong><a href={phoneHref} className="contact-phone-link">{phone}</a></strong>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Main two-column cards ─── */}
+      <div className="contact-main">
+        <div className="contact-page-shell">
+          <div className="contact-align-grid">
+            {/* Left — Form */}
+            <div className="contact-card form-card">
+              <div className="card-header">
+                <div className="header-icon-wrapper">
+                  <FiMail />
+                </div>
+                <div className="header-text">
+                  <h2>{contact.formTitle}</h2>
+                  <p>{contact.formSubtitle}</p>
+                </div>
+              </div>
+
+              <form className="contact-form" onSubmit={handleSubmit}>
+                <div className="form-group">
+                  <label>
+                    {contact.nameLabel} <span className="required">*</span>
+                  </label>
+                  <div className="input-wrapper">
+                    <FiUser className="input-icon" />
+                    <input
+                      type="text"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      placeholder={contact.namePlaceholder}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>
+                    {contact.emailLabel} <span className="required">*</span>
+                  </label>
+                  <div className="input-wrapper">
+                    <FiMail className="input-icon" />
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      placeholder={contact.emailPlaceholder}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>{contact.phoneLabel}</label>
+                  <div className="input-wrapper">
+                    <FiPhone className="input-icon" />
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      placeholder={contact.phonePlaceholder}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>
+                    {contact.subjectLabel} <span className="required">*</span>
+                  </label>
+                  <div className="input-wrapper">
+                    <FiTag className="input-icon" />
+                    <input
+                      type="text"
+                      name="subject"
+                      value={formData.subject}
+                      onChange={handleChange}
+                      placeholder={contact.subjectPlaceholder}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>
+                    {contact.messageLabel} <span className="required">*</span>
+                  </label>
+                  <textarea
+                    name="message"
+                    value={formData.message}
+                    onChange={handleChange}
+                    placeholder={contact.messagePlaceholder}
+                    rows="5"
+                    required
+                  />
+                </div>
+
+                <button type="submit" className="send-btn" disabled={isSubmitting}>
+                  <FiSend /> {isSubmitting ? 'Sending...' : contact.submitButtonText}
+                </button>
+                <div className="form-footer-note">
+                  <FiLock /> {contact.privacyNote}
+                </div>
+              </form>
+            </div>
+
+            {/* Right — Info */}
+            <div className="contact-card info-card">
+              <div className="card-header">
+                <div className="header-icon-wrapper">
+                  <FiMessageCircle />
+                </div>
+                <div className="header-text">
+                  <h2>{contact.infoCardTitle}</h2>
+                  <p>{contact.infoCardSubtitle}</p>
+                </div>
+              </div>
+
+              <div className="info-list">
+                <div className="info-item">
+                  <div className="info-icon-circle">
+                    <FiPhone />
+                  </div>
+                  <div className="info-content">
+                    <span className="info-label">Phone Number</span>
+                    <p className="info-value">
+                      <a href={phoneHref} className="contact-link">
+                        {phone}
+                      </a>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="info-item">
+                  <div className="info-icon-circle">
+                    <FiMail />
+                  </div>
+                  <div className="info-content">
+                    <span className="info-label">Email Address</span>
+                    <p className="info-value">
+                      <a href={emailHref} className="contact-link">
+                        {email}
+                      </a>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="info-item">
+                  <div className="info-icon-circle">
+                    <FiMapPin />
+                  </div>
+                  <div className="info-content">
+                    <span className="info-label">Store Address</span>
+                    <p className="info-value">
+                      {storeName && <>{storeName}<br /></>}
+                      {address}
+                    </p>
+                  </div>
+                </div>
+
+                {whatsappHref && (
+                  <div className="info-item">
+                    <div className="info-icon-circle whatsapp">
+                      <FaWhatsapp />
+                    </div>
+                    <div className="info-content">
+                      <span className="info-label">WhatsApp</span>
+                      <p className="info-value">
+                        <a href={whatsappHref} target="_blank" rel="noreferrer" className="contact-link">
+                          Chat with us on WhatsApp
+                        </a>
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="social-section">
+                <h4>Follow Us</h4>
+                <div className="social-icons">
+                  {socials.facebook && (
+                    <a href={socials.facebook} target="_blank" rel="noreferrer" className="social-icon facebook" aria-label="Facebook">
+                      <FaFacebook />
+                    </a>
+                  )}
+                  {socials.instagram && (
+                    <a href={socials.instagram} target="_blank" rel="noreferrer" className="social-icon instagram" aria-label="Instagram">
+                      <FaInstagram />
+                    </a>
+                  )}
+                  {socials.whatsapp && (
+                    <a href={socials.whatsapp} target="_blank" rel="noreferrer" className="social-icon whatsapp" aria-label="WhatsApp">
+                      <FaWhatsapp />
+                    </a>
+                  )}
+                  {socials.tiktok && (
+                    <a href={socials.tiktok} target="_blank" rel="noreferrer" className="social-icon tiktok" aria-label="TikTok">
+                      <FaTiktok />
+                    </a>
+                  )}
+                  {socials.youtube && (
+                    <a href={socials.youtube} target="_blank" rel="noreferrer" className="social-icon youtube" aria-label="YouTube">
+                      <FaYoutube />
+                    </a>
+                  )}
+                </div>
               </div>
             </div>
           </div>
+
+          {/* ─── Location / Map section ─── */}
+          <section className="contact-location-section">
+            <div className="contact-location-grid">
+              <div className="contact-location-map-col">
+                <div className="contact-map-header">
+                  <div className="contact-map-title">
+                    <FiMapPin />
+                    <h2>Our Store Location</h2>
+                  </div>
+                  <a href={mapsHref} target="_blank" rel="noreferrer" className="contact-map-btn">
+                    View on Google Maps <FiExternalLink />
+                  </a>
+                </div>
+                <div className="map-container">
+                  {contact.mapEmbedUrl ? (
+                    <iframe
+                      src={contact.mapEmbedUrl}
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      allowFullScreen=""
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                      title="Store location map"
+                    />
+                  ) : (
+                    <div className="map-placeholder">
+                      <FiMapPin />
+                      <p>Map unavailable</p>
+                      <a href={mapsHref} target="_blank" rel="noreferrer">
+                        Open in Google Maps
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="contact-location-side-col">
+                <div className="side-card timings-card">
+                  <div className="side-card-header">
+                    <FiClock className="side-card-icon" />
+                    <h3>Business Hours</h3>
+                  </div>
+                  <ul className="timings-list">
+                    <li>
+                      <span>Supermarket</span>
+                      <span>{supermarketHours}</span>
+                    </li>
+                    <li>
+                      <span>Food Corner</span>
+                      <span>{foodCornerHours}</span>
+                    </li>
+                    <li>
+                      <span>Holiday</span>
+                      <span>{contact.holidayHours}</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="side-card help-box">
+                  <FiHeadphones className="help-icon" aria-hidden="true" />
+                  <div className="help-text">
+                    <p>{contact.helpBoxText}</p>
+                    <span>{contact.helpBoxSubtext}</span>
+                    <strong>
+                      <a href={phoneHref} className="contact-link contact-link-strong">
+                        {phone}
+                      </a>
+                    </strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
     </div>

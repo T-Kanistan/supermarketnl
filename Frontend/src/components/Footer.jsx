@@ -3,13 +3,26 @@ import { FiMapPin, FiPhone, FiMail, FiClock } from 'react-icons/fi';
 import { FaFacebook, FaInstagram, FaWhatsapp, FaTiktok, FaYoutube } from 'react-icons/fa';
 import { useCMS } from '../context/CMSContext';
 import { getImageUrl } from '../services/api';
+import { mergeFooterPage } from '../constants/footerPageDefaults';
 import './Footer.css';
 
 const Footer = () => {
   const location = useLocation();
-  const { cmsData } = useCMS();
+  const { cmsData, loading, error } = useCMS();
 
   if (location.pathname.startsWith('/admin')) return null;
+  if (loading) return null;
+  if (error || !cmsData) {
+    return (
+      <footer className="footer-main">
+        <div className="container" style={{ padding: '24px', textAlign: 'center', color: '#64748b' }}>
+          {error || 'Footer content unavailable.'}
+        </div>
+      </footer>
+    );
+  }
+
+  const footer = cmsData.footerPage || mergeFooterPage();
 
   const address = cmsData.address || 'Hilversum, Netherlands';
   const phone = cmsData.contactPhone || '+31659046526';
@@ -17,6 +30,11 @@ const Footer = () => {
   const phoneHref = `tel:${phone.replace(/[^\d+]/g, '')}`;
   const emailHref = `mailto:${email}`;
   const mapsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+
+  const quickLinks = footer.quickLinks.filter((link) => link.enabled && link.label);
+  const categoryLinks = footer.categoryLinks.filter((link) => link.enabled && link.label);
+  const legalLinks = footer.legalLinks.filter((link) => link.enabled && link.label);
+  const copyrightName = footer.copyrightText || cmsData.storeName || 'Wins Wereld Winkel';
 
   return (
     <footer className="footer-main" id="footer">
@@ -50,42 +68,38 @@ const Footer = () => {
           </div>
 
           <div className="footer-main-col">
-            <h4 className="footer-main-title">QUICK LINKS</h4>
+            <h4 className="footer-main-title">{footer.quickLinksTitle}</h4>
             <div className="footer-main-links">
-              <Link to="/">Home</Link>
-              <Link to="/about">About Us</Link>
-              <Link to="/products">Products</Link>
-              <Link to="/food-corner">Food Corner</Link>
-              <Link to="/offers">Offers</Link>
-              <Link to="/faq">FAQ</Link>
-              <Link to="/contact">Contact Us</Link>
+              {quickLinks.map((link) => (
+                <Link key={link.id} to={link.path}>{link.label}</Link>
+              ))}
             </div>
           </div>
 
           <div className="footer-main-col">
-            <h4 className="footer-main-title">CATEGORIES</h4>
+            <h4 className="footer-main-title">{footer.categoriesTitle}</h4>
             <div className="footer-main-links">
-              <Link to="/products?category=grocery">Grocery Items</Link>
-              <Link to="/products?category=masala">Masala Items</Link>
-              <Link to="/products?category=vegetables">Vegetables &amp; Fruits</Link>
-              <Link to="/products?category=sweets">Sweets</Link>
-              <Link to="/products?category=frozen">Frozen Items</Link>
+              {categoryLinks.map((link) => (
+                <Link key={link.id} to={link.path}>{link.label}</Link>
+              ))}
             </div>
           </div>
 
           <div className="footer-main-col">
-            <h4 className="footer-main-title">BUSINESS HOURS</h4>
+            <h4 className="footer-main-title">{footer.businessHoursTitle}</h4>
             <div className="footer-contact-list">
-              <p><FiClock /> Supermarket</p>
-              <p className="footer-hours-sub">{cmsData.supermarketTimings || 'Mon–Sat: 9:00 AM - 9:00 PM'}</p>
-              <p><FiClock /> Food Corner</p>
+              <p><FiClock /> {footer.supermarketLabel}</p>
+              <p className="footer-hours-sub">{cmsData.supermarketTimings || '8:00 AM - 10:00 PM'}</p>
+              <p><FiClock /> {footer.foodCornerLabel}</p>
               <p className="footer-hours-sub">{cmsData.foodCornerTimings || '11:00 AM - 11:00 PM'}</p>
-              <p className="footer-hours-sub">Sunday: 12:00 PM - 7:00 PM</p>
+              {footer.sundayHours && (
+                <p className="footer-hours-sub">{footer.sundayHours}</p>
+              )}
             </div>
           </div>
 
           <div className="footer-main-col footer-contact-col">
-            <h4 className="footer-main-title">CONTACT</h4>
+            <h4 className="footer-main-title">{footer.contactTitle}</h4>
             <div className="footer-contact-list">
               <a href={mapsHref} target="_blank" rel="noreferrer" className="footer-contact-link">
                 <FiMapPin /> {address}
@@ -102,10 +116,11 @@ const Footer = () => {
 
         <div className="footer-main-bottom">
           <div className="footer-legal-links">
-            <Link to="/terms">Terms &amp; Conditions</Link>
-            <Link to="/privacy">Privacy Policy</Link>
+            {legalLinks.map((link) => (
+              <Link key={link.id} to={link.path}>{link.label}</Link>
+            ))}
           </div>
-          <p>&copy; {new Date().getFullYear()} {cmsData.storeName || 'Wins Wereld Winkel'}. All Rights Reserved.</p>
+          <p>&copy; {new Date().getFullYear()} {copyrightName}. All Rights Reserved.</p>
         </div>
       </div>
     </footer>

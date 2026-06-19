@@ -1,85 +1,108 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaShoppingBasket, FaUtensils } from 'react-icons/fa';
-import { useCMS } from '../context/CMSContext';
 import bannerService from '../services/bannerService';
 import { getImageUrl } from '../services/api';
 import './Hero.css';
 
 const Hero = () => {
   const navigate = useNavigate();
-  const { cmsData } = useCMS();
-  const [activeBanner, setActiveBanner] = useState(null);
+  const [banner, setBanner] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchBanner = async () => {
       try {
         const banners = await bannerService.getBanners();
-        const active = banners.find(b => b.status === 'active');
-        if (active) {
-          setActiveBanner(active);
-        }
+        const active = banners.find((b) => b.status === 'active') || banners[0];
+        setBanner(active || null);
       } catch (err) {
-        console.error('Failed to fetch Hero banner, using static fallback', err);
+        console.error('Failed to fetch home banner', err);
+      } finally {
+        setLoading(false);
       }
     };
     fetchBanner();
   }, []);
 
-  const bannerTitle = activeBanner?.title || 'FRESH PRODUCTS';
-  const highlightText = activeBanner?.highlightText || 'BETTER LIVING';
-  const subtitle = activeBanner?.subtitle || 'Your one-stop supermarket for quality products and great offers.';
-  const bgImage = getImageUrl(activeBanner?.image) || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=1200';
-  const buttonText = activeBanner?.buttonText || 'EXPLORE PRODUCTS';
-  const buttonLink = activeBanner?.buttonLink || '/products';
-  const buttonText2 = activeBanner?.buttonText2 || 'EXPLORE FOOD CORNER';
-  const buttonLink2 = activeBanner?.buttonLink2 || '/food-corner';
+  if (loading) {
+    return <section className="hero hero-loading" aria-hidden="true" />;
+  }
+
+  if (!banner) {
+    return null;
+  }
+
+  const bgImage = getImageUrl(banner.image);
 
   return (
-    <section 
-      className="hero" 
+    <section
+      className="hero"
       id="home"
-      style={{ backgroundImage: `url('${bgImage}')` }}
+      style={bgImage ? { backgroundImage: `url('${bgImage}')` } : undefined}
     >
-      <div className="hero-overlay"></div>
+      <div className="hero-overlay" />
       <div className="hero-content container">
         <div className="hero-layout">
           <div className="hero-text">
             <h1 className="hero-title">
-              {bannerTitle} <br />
-              <span>{highlightText}</span>
+              {banner.title}
+              <br />
+              <span className="hero-highlight">{banner.highlightText}</span>
+              {banner.titleLine2 ? (
+                <>
+                  <br />
+                  <span>{banner.titleLine2}</span>
+                </>
+              ) : null}
             </h1>
-            <p className="hero-subtitle">
-              {subtitle}
-            </p>
+            {banner.subtitle ? <p className="hero-subtitle">{banner.subtitle}</p> : null}
             <div className="hero-buttons">
-              <button className="btn-primary btn-large" onClick={() => navigate(buttonLink)}>{buttonText}</button>
-              <button className="btn-secondary btn-large" onClick={() => navigate(buttonLink2)}>{buttonText2}</button>
+              {banner.buttonText ? (
+                <button
+                  type="button"
+                  className="btn-primary btn-large"
+                  onClick={() => navigate(banner.buttonLink || '/products')}
+                >
+                  {banner.buttonText}
+                </button>
+              ) : null}
+              {banner.buttonText2 ? (
+                <button
+                  type="button"
+                  className="btn-secondary btn-large"
+                  onClick={() => navigate(banner.buttonLink2 || '/food-corner')}
+                >
+                  {banner.buttonText2}
+                </button>
+              ) : null}
             </div>
           </div>
 
-          <div className="hero-timings-card">
-            <h3 className="hero-timings-title">Open Time</h3>
-            <div className="timing-item">
-              <div className="timing-icon-wrap supermarket">
-                <FaShoppingBasket />
+          {banner.showOpenTime !== false ? (
+            <div className="hero-timings-card">
+              <h3 className="hero-timings-title">{banner.openTimeTitle || 'Open Time'}</h3>
+              <div className="timing-item">
+                <div className="timing-icon-wrap supermarket">
+                  <FaShoppingBasket />
+                </div>
+                <div>
+                  <span className="timing-label">{banner.supermarketLabel || 'Supermarket'}</span>
+                  <span className="timing-value">{banner.supermarketTimings || '8:00 AM - 10:00 PM'}</span>
+                </div>
               </div>
-              <div>
-                <span className="timing-label">Supermarket</span>
-                <span className="timing-value">{cmsData?.supermarketTimings || '8:00 AM - 10:00 PM'}</span>
+              <div className="timing-divider" />
+              <div className="timing-item">
+                <div className="timing-icon-wrap food-corner">
+                  <FaUtensils />
+                </div>
+                <div>
+                  <span className="timing-label">{banner.foodCornerLabel || 'Food Corner'}</span>
+                  <span className="timing-value">{banner.foodCornerTimings || '11:00 AM - 11:00 PM'}</span>
+                </div>
               </div>
             </div>
-            <div className="timing-divider"></div>
-            <div className="timing-item">
-              <div className="timing-icon-wrap food-corner">
-                <FaUtensils />
-              </div>
-              <div>
-                <span className="timing-label">Food Corner</span>
-                <span className="timing-value">{cmsData?.foodCornerTimings || '11:00 AM - 11:00 PM'}</span>
-              </div>
-            </div>
-          </div>
+          ) : null}
         </div>
       </div>
     </section>

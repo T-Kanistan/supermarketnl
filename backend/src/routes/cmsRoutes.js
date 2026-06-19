@@ -11,6 +11,8 @@ import { upload } from '../middlewares/uploadMiddleware.js';
 import { validateRequest } from '../middlewares/validationMiddleware.js';
 import { updateCmsRules } from '../validators/cmsValidator.js';
 import { submitMessageRules, markMessageReadRules } from '../validators/messageValidator.js';
+import { enquiryRateLimit } from '../middleware/enquiryRateLimit.js';
+import announcementRoutes from './announcementRoutes.js';
 
 const router = express.Router();
 
@@ -36,7 +38,7 @@ router.put(
 );
 
 router.get('/messages', protect, restrictTo('admin', 'manager'), getMessages);
-router.post('/messages', submitMessageRules, validateRequest, submitMessage);
+router.post('/messages', enquiryRateLimit, submitMessageRules, validateRequest, submitMessage);
 router.put(
   '/messages/:id/read',
   protect,
@@ -46,5 +48,7 @@ router.put(
   markMessageRead
 );
 router.delete('/messages/:id', protect, restrictTo('admin', 'manager'), deleteMessage);
+
+router.use('/announcements', announcementRoutes);
 
 export default router;

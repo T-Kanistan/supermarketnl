@@ -1,16 +1,17 @@
 import { useState, useEffect } from 'react';
 import { FaRegClock, FaRegCalendarAlt, FaWhatsapp, FaStar, FaSearch, FaFireAlt } from 'react-icons/fa';
 import productService from '../services/productService';
+import categoryService from '../services/categoryService';
 import { getImageUrl } from '../services/api';
 import { useEnquiry } from '../context/EnquiryContext';
 import './FoodCorner.css';
 
-const categories = ["All", "Breakfast", "Lunch", "Dinner", "Snacks", "Beverages", "Desserts"];
-
 const FoodCorner = () => {
   const [foodItems, setFoodItems] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeCat, setActiveCat] = useState("All");
+  const [loadError, setLoadError] = useState(null);
+  const [activeCat, setActiveCat] = useState('all');
   const [searchQuery, setSearchQuery] = useState("");
   const [currentTime, setCurrentTime] = useState(new Date());
   
@@ -20,19 +21,25 @@ const FoodCorner = () => {
     window.scrollTo(0, 0);
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
 
-    const fetchFoodItems = async () => {
+    const fetchData = async () => {
       setLoading(true);
+      setLoadError(null);
       try {
-        const list = await productService.getFoodCornerItems();
-        setFoodItems(list.filter(item => item.status === 'active'));
+        const [list, cats] = await Promise.all([
+          productService.getFoodCornerItems(),
+          categoryService.getCategories(),
+        ]);
+        setFoodItems(list.filter((item) => item.status === 'active'));
+        setCategories(cats.filter((c) => c.status === 'active'));
       } catch (err) {
         console.error('Failed to load menu items', err);
+        setLoadError('Failed to load Food Corner menu. Please try again later.');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchFoodItems();
+    fetchData();
     return () => clearInterval(timer);
   }, []);
 
@@ -54,8 +61,8 @@ const FoodCorner = () => {
     }
   };
 
-  const filteredItems = foodItems.filter(item => {
-    const matchCat = activeCat === "All" || item.categoryId === activeCat;
+  const filteredItems = foodItems.filter((item) => {
+    const matchCat = activeCat === 'all' || item.categoryId === activeCat;
     const matchSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
     return matchCat && matchSearch;
   });
@@ -114,13 +121,21 @@ const FoodCorner = () => {
           </div>
           
           <div className="category-filters">
-            {categories.map(cat => (
-              <button 
-                key={cat}
-                className={`category-pill ${activeCat === cat ? 'active' : ''}`}
-                onClick={() => setActiveCat(cat)}
+            <button
+              type="button"
+              className={`category-pill ${activeCat === 'all' ? 'active' : ''}`}
+              onClick={() => setActiveCat('all')}
+            >
+              All
+            </button>
+            {categories.map((cat) => (
+              <button
+                type="button"
+                key={cat.id || cat.slug}
+                className={`category-pill ${activeCat === cat.slug ? 'active' : ''}`}
+                onClick={() => setActiveCat(cat.slug)}
               >
-                {cat}
+                {cat.name}
               </button>
             ))}
           </div>
@@ -155,6 +170,7 @@ const FoodCorner = () => {
                   <div className="menu-card-body">
                     <div className="menu-header">
                       <h3>{item.name}</h3>
+                      <span className="menu-price">€{Number(item.price || 0).toFixed(2)}</span>
                     </div>
                     
                     <div className="menu-meta">

@@ -1,20 +1,25 @@
-import CMS from '../models/CMS.js';
-import { handleImageUpload } from '../middlewares/uploadMiddleware.js';
+import HomeCMS, { getDefaultHomeCMS } from '../models/HomeCMS.js';
+import { handleImageUpload, handleBase64Upload } from '../middlewares/uploadMiddleware.js';
+
+const uploadIfBase64 = async (value) => {
+  if (!value || typeof value !== 'string' || !value.startsWith('data:image')) return value;
+  return (await handleBase64Upload(value)) || value;
+};
 
 /**
- * @desc    Get Central CMS Settings (Singleton)
- * @route   GET /api/cms
+ * @desc    Get Home CMS Settings (Singleton)
+ * @route   GET /api/cms/settings
  * @access  Public
  */
 export const getCMS = async (req, res, next) => {
   try {
-    let cms = await CMS.findOne();
-    if (!cms) {
-      cms = await CMS.create({});
+    let home = await HomeCMS.findOne();
+    if (!home) {
+      home = await HomeCMS.create(getDefaultHomeCMS());
     }
     res.status(200).json({
       success: true,
-      data: cms,
+      data: home,
     });
   } catch (error) {
     next(error);
@@ -22,57 +27,84 @@ export const getCMS = async (req, res, next) => {
 };
 
 /**
- * @desc    Update CMS Settings
- * @route   PUT /api/cms
+ * @desc    Update Home CMS Settings
+ * @route   PUT /api/cms/settings
  * @access  Private (Admin / Manager)
  */
 export const updateCMS = async (req, res, next) => {
   try {
-    let cms = await CMS.findOne();
-    if (!cms) {
-      cms = new CMS();
+    let home = await HomeCMS.findOne();
+    if (!home) {
+      home = new HomeCMS(getDefaultHomeCMS());
     }
 
-    const fieldsToUpdate = [
-      'storeName',
-      'contactEmail',
-      'contactPhone',
-      'address',
-      'aboutUs',
-      'footerDescription',
-      'facebook',
-      'instagram',
-      'whatsapp',
-      'youtube',
-      'tiktok',
-      'supermarketTimings',
-      'foodCornerTimings',
-    ];
+    const fieldsToUpdate = ['storeName', 'supermarketTimings', 'foodCornerTimings'];
 
     fieldsToUpdate.forEach((field) => {
       if (req.body[field] !== undefined) {
-        cms[field] = req.body[field];
+        home[field] = req.body[field];
       }
     });
 
-    // Handle logo image upload if present
     if (req.file) {
       const logoUrl = await handleImageUpload(req.file);
-      if (logoUrl) {
-        cms.logo = logoUrl;
-      }
+      if (logoUrl) home.logo = logoUrl;
     } else if (req.body.logo !== undefined) {
-      // Allow manually setting the string path if needed
-      cms.logo = req.body.logo;
+      home.logo = await uploadIfBase64(req.body.logo);
     }
 
-    cms.updatedBy = req.user._id;
-    await cms.save();
+    if (req.body.featuresSection !== undefined) {
+      let featuresSection = req.body.featuresSection;
+      if (typeof featuresSection === 'string') {
+        try {
+          featuresSection = JSON.parse(featuresSection);
+        } catch {
+          return res.status(400).json({ success: false, message: 'Invalid featuresSection JSON payload' });
+        }
+      }
+      home.featuresSection = featuresSection;
+      home.markModified('featuresSection');
+    }
+
+    if (req.body.aboutSection !== undefined) {
+      let aboutSection = req.body.aboutSection;
+      if (typeof aboutSection === 'string') {
+        try {
+          aboutSection = JSON.parse(aboutSection);
+        } catch {
+          return res.status(400).json({ success: false, message: 'Invalid aboutSection JSON payload' });
+        }
+      }
+      if (aboutSection.image?.startsWith?.('data:image')) {
+        aboutSection.image = await uploadIfBase64(aboutSection.image);
+      }
+      home.aboutSection = aboutSection;
+      home.markModified('aboutSection');
+    }
+
+    if (req.body.foodCornerPromo !== undefined) {
+      let foodCornerPromo = req.body.foodCornerPromo;
+      if (typeof foodCornerPromo === 'string') {
+        try {
+          foodCornerPromo = JSON.parse(foodCornerPromo);
+        } catch {
+          return res.status(400).json({ success: false, message: 'Invalid foodCornerPromo JSON payload' });
+        }
+      }
+      if (foodCornerPromo.image?.startsWith?.('data:image')) {
+        foodCornerPromo.image = await uploadIfBase64(foodCornerPromo.image);
+      }
+      home.foodCornerPromo = foodCornerPromo;
+      home.markModified('foodCornerPromo');
+    }
+
+    home.updatedBy = req.user._id;
+    await home.save();
 
     res.status(200).json({
       success: true,
-      message: 'CMS settings updated successfully',
-      data: cms,
+      message: 'Home CMS settings updated successfully',
+      data: home,
     });
   } catch (error) {
     next(error);

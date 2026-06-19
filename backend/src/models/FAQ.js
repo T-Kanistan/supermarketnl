@@ -17,11 +17,17 @@ const faqSchema = new mongoose.Schema(
       enum: ['active', 'inactive'],
       default: 'active',
     },
+    order: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: true,
   }
 );
+
+faqSchema.index({ order: 1 });
 
 const FAQ = mongoose.model('FAQ', faqSchema);
 

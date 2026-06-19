@@ -8,6 +8,8 @@ import productService from '../services/productService';
 import categoryService from '../services/categoryService';
 import { getImageUrl } from '../services/api';
 import { useEnquiry } from '../context/EnquiryContext';
+import ProductCard from '../components/ProductCard';
+import '../components/ProductCard.css';
 import './ProductsPage.css';
 
 // Reusable icon mapper for database categories
@@ -40,7 +42,7 @@ const ProductsPage = () => {
     const fetchCategories = async () => {
       try {
         const list = await categoryService.getCategories();
-        const activeOnly = list.filter(c => c.status === 'active');
+        const activeOnly = (Array.isArray(list) ? list : []).filter(c => c.status === 'active');
         setCategories([
           { id: 'all', name: 'All Items', image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=1600' },
           ...activeOnly
@@ -64,8 +66,8 @@ const ProductsPage = () => {
           type: 'grocery' // only show supermarket items on this page
         });
 
-        // Apply client sorting if needed
-        let sorted = [...list];
+        const safeList = Array.isArray(list) ? list : [];
+        let sorted = [...safeList];
         if (sortType === 'name-asc') {
           sorted.sort((a, b) => a.name.localeCompare(b.name));
         } else if (sortType === 'name-desc') {
@@ -197,46 +199,15 @@ const ProductsPage = () => {
 
             {/* Product Grid */}
             {loading ? (
-              <div className="products-page-grid">
-                {[...Array(6)].map((_, i) => (
-                  <div key={i} className="product-card-simple skeleton-card" style={{ height: '300px', background: 'white', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <div style={{ height: '150px', background: '#f1f5f9', borderRadius: '8px', animation: 'pulse 1.5s infinite ease-in-out' }}></div>
-                    <div style={{ height: '18px', width: '80%', background: '#f1f5f9', borderRadius: '4px', animation: 'pulse 1.5s infinite ease-in-out' }}></div>
-                    <div style={{ height: '32px', background: '#f1f5f9', borderRadius: '8px', animation: 'pulse 1.5s infinite ease-in-out', marginTop: 'auto' }}></div>
-                  </div>
+              <div className="store-product-grid products-page-grid">
+                {[...Array(8)].map((_, i) => (
+                  <div key={i} className="store-product-skeleton" />
                 ))}
               </div>
             ) : products.length > 0 ? (
-              <div className="products-page-grid">
-                {products.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(product => (
-                  <div className="product-card-simple" key={product.id}>
-                    <div className="product-img-wrapper">
-                      {product.weight && <div className="product-weight-badge">{product.weight}</div>}
-                      <img 
-                        src={getImageUrl(product.image)} 
-                        alt={product.name} 
-                        className="product-img-simple"
-                        onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=800'; }}
-                      />
-                    </div>
-                    
-                    <div className="product-details">
-                      <h3 className="product-name-simple">{product.name}</h3>
-                      <div className={`product-availability ${product.stock > 0 ? 'available' : 'unavailable'}`}>
-                        <span className={`status-dot ${product.stock > 0 ? 'green' : 'red'}`}></span>
-                        {product.stock > 0 ? 'Available' : 'Currently Unavailable'}
-                      </div>
-                      <button 
-                        className={`enquiry-btn-simple ${product.stock === 0 ? 'disabled' : ''}`} 
-                        aria-label="Enquire about product"
-                        disabled={product.stock === 0}
-                        title={product.stock === 0 ? "Enquiry is unavailable because this product is currently out of stock." : "Open product enquiry form"}
-                        onClick={() => handleEnquiry(product)}
-                      >
-                        <FaWhatsapp className="whatsapp-icon" /> {product.stock > 0 ? 'Enquiry' : 'Currently Unavailable'}
-                      </button>
-                    </div>
-                  </div>
+              <div className="store-product-grid products-page-grid">
+                {products.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((product) => (
+                  <ProductCard key={product.id} product={product} onEnquiry={handleEnquiry} />
                 ))}
               </div>
             ) : (

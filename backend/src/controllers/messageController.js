@@ -1,4 +1,5 @@
 import ContactMessage from '../models/ContactMessage.js';
+import { sanitizeContactMessage } from '../utils/sanitize.js';
 
 const formatMessage = (message) => ({
   id: message._id,
@@ -13,7 +14,7 @@ const formatMessage = (message) => ({
 
 /**
  * @desc    Get all contact messages
- * @route   GET /api/cms/messages
+ * @route   GET /api/cms/messages | GET /api/enquiries
  * @access  Private (Admin / Manager)
  */
 export const getMessages = async (req, res, next) => {
@@ -30,20 +31,20 @@ export const getMessages = async (req, res, next) => {
 };
 
 /**
- * @desc    Submit a contact message
- * @route   POST /api/cms/messages
+ * @desc    Submit a contact message / enquiry
+ * @route   POST /api/cms/messages | POST /api/enquiries
  * @access  Public
  */
 export const submitMessage = async (req, res, next) => {
   try {
-    const { name, email, phone, subject, message } = req.body;
+    const sanitized = sanitizeContactMessage(req.body);
 
     const contactMessage = await ContactMessage.create({
-      name,
-      email,
-      phone: phone || '',
-      subject,
-      message,
+      name: sanitized.name,
+      email: sanitized.email,
+      phone: sanitized.phone || '',
+      subject: sanitized.subject,
+      message: sanitized.message,
       isRead: false,
     });
 
@@ -59,7 +60,7 @@ export const submitMessage = async (req, res, next) => {
 
 /**
  * @desc    Mark message as read or unread
- * @route   PUT /api/cms/messages/:id/read
+ * @route   PUT /api/cms/messages/:id/read | PUT /api/enquiries/:id/read
  * @access  Private (Admin / Manager)
  */
 export const markMessageRead = async (req, res, next) => {
@@ -88,7 +89,7 @@ export const markMessageRead = async (req, res, next) => {
 
 /**
  * @desc    Delete a contact message
- * @route   DELETE /api/cms/messages/:id
+ * @route   DELETE /api/cms/messages/:id | DELETE /api/enquiries/:id
  * @access  Private (Admin / Manager)
  */
 export const deleteMessage = async (req, res, next) => {

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { FaPlus, FaEdit, FaTrash, FaQuestionCircle } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaQuestionCircle, FaArrowUp, FaArrowDown, FaSave } from 'react-icons/fa';
 import faqService from '../../../services/faqService';
 import { useToast } from '../../../context/ToastContext';
 
@@ -8,7 +8,9 @@ export const AdminFaqs = () => {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSavingOrder, setIsSavingOrder] = useState(false);
   const [editingFaq, setEditingFaq] = useState(null);
+  const [dragIndex, setDragIndex] = useState(null);
 
   const { addToast } = useToast();
 
@@ -21,8 +23,14 @@ export const AdminFaqs = () => {
   const fetchFaqs = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await faqService.getFaqs();
-      setFaqs(data);
+      const data = await faqService.getAllFaqs();
+      setFaqs(
+        [...data].sort((a, b) => {
+          const orderDiff = (a.order || 0) - (b.order || 0);
+          if (orderDiff !== 0) return orderDiff;
+          return new Date(a.createdAt) - new Date(b.createdAt);
+        })
+      );
     } catch (err) {
       console.error('Failed to load FAQs', err);
       addToast('Failed to load FAQs board', 'error');
@@ -32,24 +40,50 @@ export const AdminFaqs = () => {
   }, [addToast]);
 
   useEffect(() => {
-    let isMounted = true;
-    const initFaqs = async () => {
-      await Promise.resolve();
-      if (isMounted) {
-        fetchFaqs();
-      }
-    };
-    initFaqs();
-    return () => { isMounted = false; };
+    fetchFaqs();
   }, [fetchFaqs]);
+
+  const moveFaq = (index, direction) => {
+    setFaqs((prev) => {
+      const next = [...prev];
+      const target = index + direction;
+      if (target < 0 || target >= next.length) return prev;
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+  };
+
+  const handleDragStart = (index) => setDragIndex(index);
+
+  const handleDrop = (index) => {
+    if (dragIndex === null || dragIndex === index) return;
+    setFaqs((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(dragIndex, 1);
+      next.splice(index, 0, moved);
+      return next;
+    });
+    setDragIndex(null);
+  };
+
+  const saveOrder = async () => {
+    setIsSavingOrder(true);
+    try {
+      const orders = faqs.map((faq, index) => ({ id: faq.id, order: index + 1 }));
+      await faqService.reorderFaqs(orders);
+      addToast('FAQ order saved successfully', 'success');
+      fetchFaqs();
+    } catch (err) {
+      console.error('Failed to save FAQ order', err);
+      addToast('Failed to save FAQ order', 'error');
+    } finally {
+      setIsSavingOrder(false);
+    }
+  };
 
   const openAddModal = () => {
     setEditingFaq(null);
-    setFormData({
-      question: '',
-      answer: '',
-      status: 'active',
-    });
+    setFormData({ question: '', answer: '', status: 'active' });
     setIsModalOpen(true);
   };
 
@@ -113,9 +147,14 @@ export const AdminFaqs = () => {
           <h2>FAQs Board</h2>
           <p>Create and update Frequently Asked Questions displayed on the store help page.</p>
         </div>
-        <button className="action-btn-primary" onClick={openAddModal}>
-          <FaPlus /> Add FAQ
-        </button>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button type="button" className="action-btn-secondary" onClick={saveOrder} disabled={isSavingOrder || !faqs.length}>
+            <FaSave /> {isSavingOrder ? 'Saving...' : 'Save Order'}
+          </button>
+          <button type="button" className="action-btn-primary" onClick={openAddModal}>
+            <FaPlus /> Add FAQ
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -128,28 +167,43 @@ export const AdminFaqs = () => {
           <table className="admin-table">
             <thead>
               <tr>
-                <th style={{ width: '30%' }}>Question</th>
-                <th style={{ width: '45%' }}>Answer</th>
+                <th style={{ width: '8%' }}>Order</th>
+                <th style={{ width: '28%' }}>Question</th>
+                <th style={{ width: '42%' }}>Answer</th>
                 <th style={{ width: '10%' }}>Status</th>
-                <th style={{ width: '15%' }}>Actions</th>
+                <th style={{ width: '12%' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {faqs.map((faq) => (
-                <tr key={faq.id}>
+              {faqs.map((faq, index) => (
+                <tr
+                  key={faq.id}
+                  draggable
+                  onDragStart={() => handleDragStart(index)}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={() => handleDrop(index)}
+                >
+                  <td>
+                    <div className="cell-actions">
+                      <button type="button" className="btn-action-cell" onClick={() => moveFaq(index, -1)} title="Move up">
+                        <FaArrowUp />
+                      </button>
+                      <button type="button" className="btn-action-cell" onClick={() => moveFaq(index, 1)} title="Move down">
+                        <FaArrowDown />
+                      </button>
+                    </div>
+                  </td>
                   <td style={{ fontWeight: 600 }}>{faq.question}</td>
                   <td style={{ color: 'var(--admin-text-sub)' }}>{faq.answer}</td>
                   <td>
-                    <span className={`status-badge-admin ${faq.status}`}>
-                      {faq.status}
-                    </span>
+                    <span className={`status-badge-admin ${faq.status}`}>{faq.status}</span>
                   </td>
                   <td>
                     <div className="cell-actions">
-                      <button className="btn-action-cell edit" onClick={() => openEditModal(faq)} title="Edit FAQ">
+                      <button type="button" className="btn-action-cell edit" onClick={() => openEditModal(faq)} title="Edit FAQ">
                         <FaEdit />
                       </button>
-                      <button className="btn-action-cell delete" onClick={() => handleDelete(faq.id)} title="Delete FAQ">
+                      <button type="button" className="btn-action-cell delete" onClick={() => handleDelete(faq.id)} title="Delete FAQ">
                         <FaTrash />
                       </button>
                     </div>
@@ -163,45 +217,28 @@ export const AdminFaqs = () => {
         <div className="dashboard-panel admin-empty-state">
           <FaQuestionCircle className="admin-empty-icon" />
           <h3>No FAQs found!</h3>
-          <p>Click "Add FAQ" above to create one.</p>
+          <p>Click &quot;Add FAQ&quot; above to create one.</p>
         </div>
       )}
 
-      {/* Add / Edit FAQ Modal */}
       {isModalOpen && (
         <div className="admin-modal-overlay">
           <div className="admin-modal-container" style={{ maxWidth: '600px' }}>
             <div className="modal-header">
               <h3>{editingFaq ? 'Edit FAQ' : 'Add New FAQ'}</h3>
-              <button className="modal-close-btn" onClick={() => setIsModalOpen(false)}>&times;</button>
+              <button type="button" className="modal-close-btn" onClick={() => setIsModalOpen(false)}>&times;</button>
             </div>
-            
+
             <form onSubmit={handleSubmit}>
               <div className="modal-body">
                 <div className="admin-form-group">
                   <label>Question text</label>
-                  <input 
-                    type="text" 
-                    name="question" 
-                    value={formData.question} 
-                    onChange={handleChange} 
-                    placeholder="e.g. 1. What are your opening hours?" 
-                    required 
-                  />
+                  <input type="text" name="question" value={formData.question} onChange={handleChange} required />
                 </div>
-
                 <div className="admin-form-group">
                   <label>Answer text</label>
-                  <textarea 
-                    name="answer" 
-                    value={formData.answer} 
-                    onChange={handleChange} 
-                    rows="4"
-                    placeholder="Provide details answer here..." 
-                    required 
-                  />
+                  <textarea name="answer" value={formData.answer} onChange={handleChange} rows="4" required />
                 </div>
-
                 <div className="admin-form-group">
                   <label>Status</label>
                   <select name="status" value={formData.status} onChange={handleChange}>
@@ -210,7 +247,6 @@ export const AdminFaqs = () => {
                   </select>
                 </div>
               </div>
-
               <div className="modal-footer">
                 <button type="button" className="action-btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
                 <button type="submit" className="action-btn-primary" disabled={isSubmitting}>

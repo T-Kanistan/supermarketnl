@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { 
   FaChartBar, FaGlobe, FaImages, FaTags, FaBoxOpen, FaQuestionCircle, 
   FaCommentDots, FaBullhorn, FaEnvelopeOpenText, FaUsers, FaUser, 
-  FaSignOutAlt, FaBars, FaTimes, FaExternalLinkAlt
+  FaSignOutAlt, FaBars, FaTimes, FaExternalLinkAlt, FaHome
 } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
 import { useCMS } from '../../context/CMSContext';
@@ -38,7 +38,8 @@ export const AdminDashboardLayout = () => {
     const path = location.pathname;
     if (path.endsWith('/dashboard')) return 'Overview Dashboard';
     if (path.includes('/site-settings')) return 'CMS Settings';
-    if (path.includes('/banners')) return 'Home Banners';
+    if (path.includes('/homepage-about')) return 'Homepage About Section';
+    if (path.includes('/banners')) return 'Home Banner';
     if (path.includes('/categories')) return 'Catalog Categories';
     if (path.includes('/products')) return 'Catalog Products';
     if (path.includes('/faqs')) return 'FAQs Board';
@@ -73,6 +74,10 @@ export const AdminDashboardLayout = () => {
           <NavLink to="/admin/dashboard/banners" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
             <FaImages className="sidebar-link-icon" />
             <span>Home Banner</span>
+          </NavLink>
+          <NavLink to="/admin/dashboard/homepage-about" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+            <FaHome className="sidebar-link-icon" />
+            <span>Homepage About Section</span>
           </NavLink>
 
           <div className="menu-section-title">Catalog</div>

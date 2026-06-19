@@ -22,8 +22,8 @@ export const AdminCategories = () => {
   const fetchCategories = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await categoryService.getCategories();
-      setCategories(data);
+      const data = await categoryService.getCategories({ admin: true });
+      setCategories(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Failed to load categories', err);
       addToast('Failed to load categories', 'error');
@@ -135,7 +135,7 @@ export const AdminCategories = () => {
           <div style={{ height: '30px', width: '200px', background: '#cbd5e1', marginBottom: '20px' }}></div>
           <div style={{ height: '150px', background: '#cbd5e1' }}></div>
         </div>
-      ) : categories.length > 0 ? (
+      ) : (categories?.length ?? 0) > 0 ? (
         <div className="table-responsive-wrapper">
           <table className="admin-table">
             <thead>

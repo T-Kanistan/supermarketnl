@@ -25,7 +25,7 @@ export const AdminAnnouncements = () => {
   const fetchAnnouncements = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await cmsService.getAnnouncements();
+      const data = await cmsService.getAllAnnouncements();
       setAnnouncements(data);
     } catch (err) {
       console.error('Failed to load announcements', err);

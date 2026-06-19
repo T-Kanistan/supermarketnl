@@ -7,6 +7,9 @@ export const createBannerRules = [
   body('highlightText')
     .optional()
     .trim(),
+  body('titleLine2')
+    .optional()
+    .trim(),
   body('subtitle')
     .optional()
     .trim(),
@@ -20,6 +23,25 @@ export const createBannerRules = [
     .optional()
     .trim(),
   body('buttonLink2')
+    .optional()
+    .trim(),
+  body('showOpenTime')
+    .optional()
+    .isBoolean()
+    .withMessage('showOpenTime must be a boolean'),
+  body('openTimeTitle')
+    .optional()
+    .trim(),
+  body('supermarketLabel')
+    .optional()
+    .trim(),
+  body('supermarketTimings')
+    .optional()
+    .trim(),
+  body('foodCornerLabel')
+    .optional()
+    .trim(),
+  body('foodCornerTimings')
     .optional()
     .trim(),
   body('status')
@@ -40,6 +62,9 @@ export const updateBannerRules = [
   body('highlightText')
     .optional()
     .trim(),
+  body('titleLine2')
+    .optional()
+    .trim(),
   body('subtitle')
     .optional()
     .trim(),
@@ -53,6 +78,25 @@ export const updateBannerRules = [
     .optional()
     .trim(),
   body('buttonLink2')
+    .optional()
+    .trim(),
+  body('showOpenTime')
+    .optional()
+    .isBoolean()
+    .withMessage('showOpenTime must be a boolean'),
+  body('openTimeTitle')
+    .optional()
+    .trim(),
+  body('supermarketLabel')
+    .optional()
+    .trim(),
+  body('supermarketTimings')
+    .optional()
+    .trim(),
+  body('foodCornerLabel')
+    .optional()
+    .trim(),
+  body('foodCornerTimings')
     .optional()
     .trim(),
   body('status')

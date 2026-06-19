@@ -36,3 +36,12 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+
+# Test artifacts
+test-results/
+playwright-report/
+Frontend/test-results/
+Frontend/playwright-report/
+
+# Local scratch notes
+backend/database/Untitled

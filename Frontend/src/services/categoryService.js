@@ -2,16 +2,24 @@ import api, { request } from './api';
 import { localDb } from './localDb';
 
 export const categoryService = {
-  getCategories: async () => {
+  getCategories: async (params = {}) => {
+    const endpoint = params.admin ? '/categories/all' : '/categories';
+
     return request(
-      () => api.get('/categories'),
+      async () => {
+        const response = await api.get(endpoint);
+        return response.data.data ?? response.data;
+      },
       () => localDb.getCategories()
     );
   },
 
   createCategory: async (categoryData) => {
     return request(
-      () => api.post('/categories', categoryData),
+      async () => {
+        const response = await api.post('/categories', categoryData);
+        return response.data.data ?? response.data;
+      },
       () => {
         const categories = localDb.getCategories();
         const newCat = {
@@ -27,7 +35,10 @@ export const categoryService = {
 
   updateCategory: async (id, categoryData) => {
     return request(
-      () => api.put(`/categories/${id}`, categoryData),
+      async () => {
+        const response = await api.put(`/categories/${id}`, categoryData);
+        return response.data.data ?? response.data;
+      },
       () => {
         const categories = localDb.getCategories();
         const idx = categories.findIndex((c) => c.id === id);

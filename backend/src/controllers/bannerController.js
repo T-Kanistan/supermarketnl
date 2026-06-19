@@ -67,7 +67,24 @@ export const getBannerById = async (req, res, next) => {
  */
 export const createBanner = async (req, res, next) => {
   try {
-    const { title, highlightText, subtitle, buttonText, buttonLink, buttonText2, buttonLink2, status, sortOrder } = req.body;
+    const {
+      title,
+      highlightText,
+      titleLine2,
+      subtitle,
+      buttonText,
+      buttonLink,
+      buttonText2,
+      buttonLink2,
+      showOpenTime,
+      openTimeTitle,
+      supermarketLabel,
+      supermarketTimings,
+      foodCornerLabel,
+      foodCornerTimings,
+      status,
+      sortOrder,
+    } = req.body;
 
     let imageUrl = '';
     if (req.file) {
@@ -84,12 +101,19 @@ export const createBanner = async (req, res, next) => {
     const banner = await Banner.create({
       title,
       highlightText,
+      titleLine2,
       subtitle,
       image: imageUrl,
       buttonText,
       buttonLink,
       buttonText2,
       buttonLink2,
+      showOpenTime: showOpenTime !== false && showOpenTime !== 'false',
+      openTimeTitle,
+      supermarketLabel,
+      supermarketTimings,
+      foodCornerLabel,
+      foodCornerTimings,
       status,
       sortOrder,
     });
@@ -111,7 +135,24 @@ export const createBanner = async (req, res, next) => {
  */
 export const updateBanner = async (req, res, next) => {
   try {
-    const { title, highlightText, subtitle, buttonText, buttonLink, buttonText2, buttonLink2, status, sortOrder } = req.body;
+    const {
+      title,
+      highlightText,
+      titleLine2,
+      subtitle,
+      buttonText,
+      buttonLink,
+      buttonText2,
+      buttonLink2,
+      showOpenTime,
+      openTimeTitle,
+      supermarketLabel,
+      supermarketTimings,
+      foodCornerLabel,
+      foodCornerTimings,
+      status,
+      sortOrder,
+    } = req.body;
     const banner = await Banner.findById(req.params.id);
 
     if (!banner) {
@@ -123,11 +164,20 @@ export const updateBanner = async (req, res, next) => {
 
     if (title !== undefined) banner.title = title;
     if (highlightText !== undefined) banner.highlightText = highlightText;
+    if (titleLine2 !== undefined) banner.titleLine2 = titleLine2;
     if (subtitle !== undefined) banner.subtitle = subtitle;
     if (buttonText !== undefined) banner.buttonText = buttonText;
     if (buttonLink !== undefined) banner.buttonLink = buttonLink;
     if (buttonText2 !== undefined) banner.buttonText2 = buttonText2;
     if (buttonLink2 !== undefined) banner.buttonLink2 = buttonLink2;
+    if (showOpenTime !== undefined) {
+      banner.showOpenTime = showOpenTime !== false && showOpenTime !== 'false';
+    }
+    if (openTimeTitle !== undefined) banner.openTimeTitle = openTimeTitle;
+    if (supermarketLabel !== undefined) banner.supermarketLabel = supermarketLabel;
+    if (supermarketTimings !== undefined) banner.supermarketTimings = supermarketTimings;
+    if (foodCornerLabel !== undefined) banner.foodCornerLabel = foodCornerLabel;
+    if (foodCornerTimings !== undefined) banner.foodCornerTimings = foodCornerTimings;
     if (status !== undefined) banner.status = status;
     if (sortOrder !== undefined) banner.sortOrder = sortOrder;
 

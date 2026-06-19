@@ -5,9 +5,14 @@ const bannerSchema = new mongoose.Schema(
     title: {
       type: String,
       trim: true,
-      default: 'FRESH PRODUCTS',
+      default: 'FRESH',
     },
     highlightText: {
+      type: String,
+      trim: true,
+      default: 'PRODUCTS',
+    },
+    titleLine2: {
       type: String,
       trim: true,
       default: 'BETTER LIVING',
@@ -39,6 +44,35 @@ const bannerSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: '/food-corner',
+    },
+    showOpenTime: {
+      type: Boolean,
+      default: true,
+    },
+    openTimeTitle: {
+      type: String,
+      trim: true,
+      default: 'Open Time',
+    },
+    supermarketLabel: {
+      type: String,
+      trim: true,
+      default: 'Supermarket',
+    },
+    supermarketTimings: {
+      type: String,
+      trim: true,
+      default: '8:00 AM - 10:00 PM',
+    },
+    foodCornerLabel: {
+      type: String,
+      trim: true,
+      default: 'Food Corner',
+    },
+    foodCornerTimings: {
+      type: String,
+      trim: true,
+      default: '11:00 AM - 11:00 PM',
     },
     status: {
       type: String,

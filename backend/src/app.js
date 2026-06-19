@@ -8,16 +8,22 @@ import faqRoutes from './routes/faqRoutes.js';
 import testimonialRoutes from './routes/testimonialRoutes.js';
 import announcementRoutes from './routes/announcementRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
+import contactSettingsRoutes from './routes/contactSettingsRoutes.js';
+import aboutUsRoutes from './routes/aboutUsRoutes.js';
+import productRoutes from './routes/productRoutes.js';
+import categoryRoutes from './routes/categoryRoutes.js';
+import footerRoutes from './routes/footerRoutes.js';
+import homepageAboutRoutes from './routes/homepageAboutRoutes.js';
+import enquiryRoutes from './routes/enquiryRoutes.js';
 import { errorHandler } from './middlewares/errorMiddleware.js';
 
 const app = express();
 
-// Enable Cross-Origin Resource Sharing
-app.use(cors());
+const corsOrigins = (process.env.CORS_ORIGINS || 'http://localhost:5173').split(',').map((o) => o.trim());
+app.use(cors({ origin: corsOrigins }));
 
-// Parse requests of content-type - application/json and application/x-www-form-urlencoded
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // Simple logger middleware
 app.use((req, res, next) => {
@@ -36,6 +42,13 @@ app.use('/api/faqs', faqRoutes);
 app.use('/api/testimonials', testimonialRoutes);
 app.use('/api/announcements', announcementRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/contact-settings', contactSettingsRoutes);
+app.use('/api/about-us', aboutUsRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/footer', footerRoutes);
+app.use('/api/homepage-about', homepageAboutRoutes);
+app.use('/api/enquiries', enquiryRoutes);
 
 // Base health-check route
 app.get('/', (req, res) => {

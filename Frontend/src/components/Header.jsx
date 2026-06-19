@@ -13,16 +13,15 @@ const Header = () => {
   const path = location.pathname;
   
   const { cmsData } = useCMS();
+  const { user } = useAuth();
   const { openEnquiry } = useEnquiry();
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Hide public header on all admin console routes
   if (path.startsWith('/admin')) return null;
-
-  const { user } = useAuth();
+  if (!cmsData) return null;
 
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
 

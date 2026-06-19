@@ -1,35 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
-  FiPackage, FiShield, FiSmile, FiTruck, FiTarget, FiEye, FiPhone, FiMapPin
+  FiArrowRight, FiEye, FiHeart, FiMapPin, FiPhone, FiShoppingBag, FiSmile, FiTarget, FiUsers
 } from 'react-icons/fi';
 import { useCMS } from '../context/CMSContext';
-import {
-  FaAppleAlt, FaDrumstickBite, FaGlobeAmericas, FaPepperHot, FaSnowflake, FaUtensils
-} from 'react-icons/fa';
+import aboutUsService from '../services/aboutUsService';
+import { getImageUrl } from '../services/api';
 import './AboutPage.css';
 
-const offerings = [
-  { icon: <FaAppleAlt />, title: 'Fresh Vegetables & Fruits', desc: 'Daily fresh produce for every meal.', tone: 'green' },
-  { icon: <FaDrumstickBite />, title: 'Fresh Meat', desc: 'Quality cuts you can trust.', tone: 'red' },
-  { icon: <FaGlobeAmericas />, title: 'International Groceries', desc: 'Products from cultures worldwide.', tone: 'blue' },
-  { icon: <FaPepperHot />, title: 'Masala Items', desc: 'Authentic spices and blends.', tone: 'orange' },
-  { icon: <FaSnowflake />, title: 'Frozen Foods', desc: 'Frozen essentials, always fresh.', tone: 'cyan' },
-  { icon: <FaUtensils />, title: 'Food Corner', desc: 'Homemade takeaway meals daily.', tone: 'amber' },
-];
-
-const statsConfig = [
-  { end: 15, suffix: 'K+', label: 'Happy Customers' },
-  { end: 500, suffix: '+', label: 'Products' },
-  { end: 50, suffix: '+', label: 'Categories' },
-  { end: 99, suffix: '%', label: 'Customer Satisfaction' },
-];
-
-const features = [
-  { icon: <FiTruck />, title: 'Fresh Daily Stock' },
-  { icon: <FiPackage />, title: 'Affordable Prices' },
-  { icon: <FiShield />, title: 'Quality Guaranteed' },
-  { icon: <FiSmile />, title: 'Friendly Service' },
-];
+const statIcons = [FiUsers, FiShoppingBag, FiTarget, FiSmile];
 
 const useCountUp = (end, suffix, duration = 1600) => {
   const [count, setCount] = useState(0);
@@ -50,7 +29,7 @@ const useCountUp = (end, suffix, duration = 1600) => {
   useEffect(() => {
     if (!started) return;
     let current = 0;
-    const step = Math.ceil(end / (duration / 16));
+    const step = Math.max(1, Math.ceil(end / (duration / 16)));
     const timer = setInterval(() => {
       current += step;
       if (current >= end) { setCount(end); clearInterval(timer); }
@@ -62,10 +41,11 @@ const useCountUp = (end, suffix, duration = 1600) => {
   return { display: `${count}${suffix}`, ref };
 };
 
-const StatCounter = ({ end, suffix, label }) => {
-  const { display, ref } = useCountUp(end, suffix);
+const StatCounter = ({ value, suffix, label, icon: Icon }) => {
+  const { display, ref } = useCountUp(Number(value) || 0, suffix || '');
   return (
     <div className="about-stat" ref={ref}>
+      <span className="about-stat-icon">{Icon ? <Icon /> : null}</span>
       <span className="about-stat-value">{display}</span>
       <span className="about-stat-label">{label}</span>
     </div>
@@ -74,50 +54,68 @@ const StatCounter = ({ end, suffix, label }) => {
 
 const AboutPage = () => {
   const { cmsData } = useCMS();
+  const [aboutData, setAboutData] = useState(null);
+  const [loadError, setLoadError] = useState(null);
+
+  useEffect(() => {
+    let active = true;
+    aboutUsService.getAboutUs()
+      .then((data) => { if (active && data) setAboutData(data); })
+      .catch((err) => { if (active) setLoadError(err.message || 'Failed to load About Us content.'); });
+    return () => { active = false; };
+  }, []);
+
+  const about = aboutData?.aboutPage;
+
+  const storyParagraphs = (about?.storyDescription || '')
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter(Boolean);
 
   useEffect(() => { window.scrollTo(0, 0); }, []);
 
-  const phone = cmsData.contactPhone || '+31659046526';
-  const address = cmsData.address || 'Leeuwenstraat 36, 1211ev, Hilversum';
-  const phoneHref = `tel:${phone.replace(/[^\d+]/g, '')}`;
-  const mapsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+  const phone = about?.owner?.phone || cmsData?.contactPhone || '';
+  const address = about?.owner?.location || cmsData?.address || '';
+  const phoneHref = phone ? `tel:${phone.replace(/[^\d+]/g, '')}` : '#';
+  const mapsHref = address
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
+    : '#';
+  const activeOfferings = (about?.offerings || []).filter((item) => item.isActive !== false);
+
+  if (!about && !loadError) {
+    return <div className="about-page about-page-loading">Loading About Us content...</div>;
+  }
+
+  if (loadError || !about) {
+    return (
+      <div className="about-page about-page-error">
+        {loadError}
+      </div>
+    );
+  }
 
   return (
     <div className="about-page">
       <section className="about-hero">
         <div className="container about-hero-grid">
           <div className="about-hero-text">
-            <h1>Your Trusted Supermarket in Hilversum</h1>
-            <p>
-              Founded in July 2022, Wins Wereld Winkel World Supermarket has become a trusted destination
-              for quality groceries, fresh produce, and delicious takeaway food in Hilversum. We welcome
-              families, students, and professionals from all backgrounds who are looking for a reliable
-              place to shop for everyday essentials and specialty items.
-            </p>
-            <p>
-              We are committed to providing customers with a diverse selection of products from different
-              cultures and communities while maintaining the highest standards of quality, freshness, and
-              customer service. From fresh vegetables and fruits to masala items, frozen foods, and our
-              popular Food Corner meals, we work hard to bring everything you need under one roof.
-            </p>
-            <p>
-              Our supermarket is designed to be more than just a store — it is a community hub where
-              customers can discover international groceries, enjoy affordable prices, and receive friendly,
-              helpful service every time they visit. Whether you are shopping for your weekly groceries,
-              planning a special meal, or looking for hard-to-find products from home, Wins Wereld Winkel
-              is here to serve you with care and dedication.
-            </p>
-            <p>
-              Located in Hilversum, we continue to grow with our customers and remain focused on freshness,
-              variety, and value. Visit us today and experience a welcoming supermarket built on trust,
-              quality, and a passion for serving our community.
-            </p>
+            <span className="about-hero-eyebrow">{about.heroEyebrow}</span>
+            <h1>
+              {about.heroHeading}{' '}
+              <span className="about-hero-highlight">{about.heroHighlight}</span>
+            </h1>
+            <p className="about-hero-lead">{about.heroDescription}</p>
+            <div className="about-hero-actions">
+              <Link to="/products" className="about-btn about-btn-primary">
+                Explore Products <FiArrowRight />
+              </Link>
+              <Link to="/contact" className="about-btn about-btn-outline">
+                Contact Us
+              </Link>
+            </div>
           </div>
           <div className="about-hero-visual">
-            <img
-              src="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=1400"
-              alt="Fresh groceries at Wins Wereld Winkel"
-            />
+            <img src={getImageUrl(about.heroImage)} alt={about.heroHighlight} />
           </div>
         </div>
       </section>
@@ -125,49 +123,55 @@ const AboutPage = () => {
       <section className="about-story-block">
         <div className="container about-story-layout">
           <div className="about-story-image">
-            <img
-              src="https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&q=80&w=800"
-              alt="Inside Wins Wereld Winkel"
-            />
+            <img src={getImageUrl(about.storyImage)} alt={about.storyTitle} />
           </div>
-          <div className="about-story-cards">
-            <article className="story-card">
-              <h2>Our Story</h2>
-              <p>
-                Established on 01 July 2022 with a vision of creating a supermarket where customers find
-                everything under one roof — from everyday groceries to specialty products from Asia, Africa,
-                and Arabic countries.
-              </p>
-            </article>
-            <div className="mission-vision-row">
-              <article className="story-card story-card-sm">
-                <div className="story-card-icon"><FiTarget /></div>
-                <h3>Our Mission</h3>
-                <p>High-quality products at affordable prices, exceptional service, and a welcoming environment for everyone.</p>
-              </article>
-              <article className="story-card story-card-sm">
-                <div className="story-card-icon accent"><FiEye /></div>
-                <h3>Our Vision</h3>
-                <p>To become the most trusted multicultural supermarket in the Netherlands through freshness, variety, and value.</p>
-              </article>
-            </div>
+          <div className="about-story-content">
+            <h2 className="about-section-title left">{about.storyTitle}</h2>
+            {storyParagraphs.map((para) => (
+              <p key={para.slice(0, 48)}>{para}</p>
+            ))}
           </div>
+        </div>
+      </section>
+
+      <section className="about-mvp">
+        <div className="container about-mvp-grid">
+          <article className="mvp-card">
+            <div className="mvp-icon"><FiTarget /></div>
+            <h3>{about.missionTitle}</h3>
+            <p>{about.missionDescription}</p>
+          </article>
+          <article className="mvp-card">
+            <div className="mvp-icon"><FiEye /></div>
+            <h3>{about.visionTitle}</h3>
+            <p>{about.visionDescription}</p>
+          </article>
+          <article className="mvp-card">
+            <div className="mvp-icon"><FiHeart /></div>
+            <h3>{about.promiseTitle}</h3>
+            <p>{about.promiseDescription}</p>
+          </article>
         </div>
       </section>
 
       <section className="about-offer">
         <div className="container">
           <div className="about-section-head">
-            <span className="about-section-eyebrow">Our Range</span>
             <h2 className="about-section-title">What We Offer</h2>
-            <p className="about-section-sub">Quality products for every taste, culture, and occasion.</p>
+            <div className="about-title-line" />
           </div>
           <div className="about-offer-grid">
-            {offerings.map((item) => (
-              <article className="offer-card" key={item.title}>
-                <div className={`offer-icon-wrap tone-${item.tone}`}>{item.icon}</div>
+            {activeOfferings.map((item) => (
+              <article className="offer-card" key={item.id || item.title}>
+                <div className="offer-image-wrap">
+                  <img
+                    src={getImageUrl(item.image)}
+                    alt={item.title}
+                    onError={(e) => { e.target.style.display = 'none'; }}
+                  />
+                </div>
                 <h3>{item.title}</h3>
-                <p>{item.desc}</p>
+                <p>{item.description}</p>
               </article>
             ))}
           </div>
@@ -176,53 +180,41 @@ const AboutPage = () => {
 
       <section className="about-stats">
         <div className="container about-stats-grid">
-          {statsConfig.map((s) => (
-            <StatCounter key={s.label} end={s.end} suffix={s.suffix} label={s.label} />
+          {about.stats.map((stat, index) => (
+            <StatCounter
+              key={stat.label}
+              value={stat.value}
+              suffix={stat.suffix}
+              label={stat.label}
+              icon={statIcons[index % statIcons.length]}
+            />
           ))}
-        </div>
-      </section>
-
-      <section className="about-features">
-        <div className="container">
-          <div className="about-section-head">
-            <span className="about-section-eyebrow">Why Shop With Us</span>
-            <h2 className="about-section-title">Why Customers Choose Us</h2>
-            <p className="about-section-sub">The values that make every visit worthwhile.</p>
-          </div>
-          <div className="about-features-grid">
-            {features.map((item) => (
-              <div className="feature-card" key={item.title}>
-                <span className="feature-icon-wrap">{item.icon}</span>
-                <h3>{item.title}</h3>
-              </div>
-            ))}
-          </div>
         </div>
       </section>
 
       <section className="about-owner">
         <div className="container">
-          <div className="founder-card">
+          <div className="founder-panel">
             <img
-              src="/images/owner-raguparan.png"
-              alt="Raguparan Murugamoorthy"
+              src={getImageUrl(about.owner.photo)}
+              alt={about.owner.name}
               className="founder-photo"
             />
             <div className="founder-body">
-              <span className="founder-badge">Since 2022</span>
-              <h2 className="founder-name">Raguparan Murugamoorthy</h2>
-              <p className="founder-role">Founder &amp; Owner</p>
-              <p className="founder-quote">
-                &ldquo;Our goal is to provide quality products, fresh groceries, and excellent customer service to every customer.&rdquo;
-              </p>
-              <div className="founder-contact">
-                <a href={phoneHref} className="founder-contact-item">
-                  <FiPhone /> {phone}
-                </a>
-                <a href={mapsHref} target="_blank" rel="noreferrer" className="founder-contact-item">
-                  <FiMapPin /> {address}
-                </a>
-              </div>
+              {about.owner.badge && <span className="founder-badge">{about.owner.badge}</span>}
+              <h2 className="founder-name">{about.owner.name}</h2>
+              <p className="founder-role">{about.owner.designation}</p>
+              {about.owner.quote && (
+                <p className="founder-quote">&ldquo;{about.owner.quote}&rdquo;</p>
+              )}
+            </div>
+            <div className="founder-contact-col">
+              <a href={phoneHref} className="founder-contact-item">
+                <FiPhone /> {phone}
+              </a>
+              <a href={mapsHref} target="_blank" rel="noreferrer" className="founder-contact-item">
+                <FiMapPin /> {address}
+              </a>
             </div>
           </div>
         </div>

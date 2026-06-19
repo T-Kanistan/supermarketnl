@@ -3,8 +3,14 @@ import { localDb } from './localDb';
 
 export const productService = {
   getProducts: async (params = {}) => {
+    const { admin, ...query } = params;
+    const endpoint = admin ? '/products/all' : '/products';
+
     return request(
-      () => api.get('/products', { params }),
+      async () => {
+        const response = await api.get(endpoint, { params: query });
+        return response.data.data ?? response.data;
+      },
       () => {
         let products = localDb.getProducts();
 
@@ -34,7 +40,10 @@ export const productService = {
 
   createProduct: async (productData) => {
     return request(
-      () => api.post('/products', productData),
+      async () => {
+        const response = await api.post('/products', productData);
+        return response.data.data ?? response.data;
+      },
       () => {
         const products = localDb.getProducts();
         const newProduct = {
@@ -54,7 +63,10 @@ export const productService = {
 
   updateProduct: async (id, productData) => {
     return request(
-      () => api.put(`/products/${id}`, productData),
+      async () => {
+        const response = await api.put(`/products/${id}`, productData);
+        return response.data.data ?? response.data;
+      },
       () => {
         const products = localDb.getProducts();
         const idx = products.findIndex((p) => p.id === id);

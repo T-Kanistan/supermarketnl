@@ -7,7 +7,16 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "seed-admin": "node src/scripts/seedAdmin.js"
+    "seed-admin": "node src/scripts/seedAdmin.js",
+    "db:contact-settings": "node src/scripts/initContactSettings.js",
+    "db:about-us": "node src/scripts/initAboutUs.js",
+    "db:footer": "node src/scripts/initFooter.js",
+    "db:home": "node src/scripts/initHomeCMS.js",
+    "db:normalize-faqs": "node src/scripts/normalizeFaqOrder.js",
+    "db:banner": "node src/scripts/initBanner.js",
+    "db:homepage-about": "node src/scripts/initHomepageAbout.js",
+    "db:sync-home-about": "node src/scripts/syncHomeAbout.js",
+    "db:categories": "node src/scripts/initCategories.js"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",

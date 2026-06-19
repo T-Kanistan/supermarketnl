@@ -23,12 +23,13 @@ export const AdminProducts = () => {
 
   const [formData, setFormData] = useState({
     name: '',
-    categoryId: 'grocery',
+    categoryId: 'vegetables-fruits',
     price: 0.00,
-    stock: 0,
+    stock: 1,
     weight: '1KG',
     image: '',
-    type: 'grocery', // grocery or food
+    type: 'grocery',
+    isFeatured: false,
     // Food corner specific fields
     rating: 4.5,
     reviews: 0,
@@ -41,10 +42,10 @@ export const AdminProducts = () => {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const prodData = await productService.getProducts();
-      const catData = await categoryService.getCategories();
-      setProducts(prodData);
-      setCategories(catData);
+      const prodData = await productService.getProducts({ admin: true });
+      const catData = await categoryService.getCategories({ admin: true });
+      setProducts(Array.isArray(prodData) ? prodData : []);
+      setCategories(Array.isArray(catData) ? catData : []);
     } catch (err) {
       console.error('Failed to load catalog details', err);
       addToast('Failed to load catalog details', 'error');
@@ -97,12 +98,13 @@ export const AdminProducts = () => {
     setEditingProduct(null);
     setFormData({
       name: '',
-      categoryId: categories[0]?.id || 'grocery',
+      categoryId: categories[0]?.id || 'vegetables-fruits',
       price: 0,
-      stock: 0,
+      stock: 1,
       weight: '',
       image: '',
       type: 'grocery',
+      isFeatured: false,
       rating: 4.8,
       reviews: 20,
       badge: '',
@@ -117,12 +119,13 @@ export const AdminProducts = () => {
     setEditingProduct(product);
     setFormData({
       name: product.name || '',
-      categoryId: product.categoryId || 'grocery',
+      categoryId: product.categoryId || 'vegetables-fruits',
       price: product.price || 0,
-      stock: product.stock || 0,
+      stock: product.stock > 0 ? 1 : 0,
       weight: product.weight || '',
       image: product.image || '',
       type: product.type || 'grocery',
+      isFeatured: Boolean(product.isFeatured),
       rating: product.rating || 4.8,
       reviews: product.reviews || 20,
       badge: product.badge || '',
@@ -134,7 +137,15 @@ export const AdminProducts = () => {
   };
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
+    if (name === 'stock') {
+      setFormData((prev) => ({ ...prev, stock: value === 'in_stock' ? 1 : 0 }));
+      return;
+    }
+    if (type === 'checkbox') {
+      setFormData((prev) => ({ ...prev, [name]: checked }));
+      return;
+    }
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -322,7 +333,7 @@ export const AdminProducts = () => {
                       </span>
                     ) : (
                       <span style={{ color: prod.stock > 0 ? '#15803d' : '#b91c1c', fontWeight: 600 }}>
-                        {prod.stock > 0 ? `${prod.stock} items` : 'Out of stock'}
+                        {prod.stock > 0 ? 'In Stock' : 'Out of Stock'}
                       </span>
                     )}
                   </td>
@@ -455,14 +466,16 @@ export const AdminProducts = () => {
                 {formData.type === 'grocery' ? (
                   <div className="admin-form-group row-split">
                     <div>
-                      <label>Stock Count</label>
-                      <input 
-                        type="number" 
-                        name="stock" 
-                        value={formData.stock} 
-                        onChange={handleChange} 
-                        required 
-                      />
+                      <label>Stock Status</label>
+                      <select
+                        name="stock"
+                        value={formData.stock > 0 ? 'in_stock' : 'out_of_stock'}
+                        onChange={handleChange}
+                        required
+                      >
+                        <option value="in_stock">In Stock</option>
+                        <option value="out_of_stock">Out of Stock</option>
+                      </select>
                     </div>
                     <div>
                       <label>Weight / Unit Size</label>
@@ -567,6 +580,18 @@ export const AdminProducts = () => {
                     />
                   </div>
                 )}
+
+                <div className="admin-form-group">
+                  <label className="admin-checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontWeight: 600, color: '#334155' }}>
+                    <input
+                      type="checkbox"
+                      name="isFeatured"
+                      checked={formData.isFeatured}
+                      onChange={handleChange}
+                    />
+                    Show on homepage (Featured Products)
+                  </label>
+                </div>
               </div>
 
               <div className="modal-footer">
