@@ -2,8 +2,8 @@ import mongoose from 'mongoose';
 
 const connectMongo = async () => {
   const uri =
-    process.env.MONGO_URI ||
     process.env.MONGODB_URI ||
+    process.env.MONGO_URI ||
     'mongodb://127.0.0.1:27017/supermarket_db';
 
   try {

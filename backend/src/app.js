@@ -19,8 +19,32 @@ import { errorHandler } from './middlewares/errorMiddleware.js';
 
 const app = express();
 
-const corsOrigins = (process.env.CORS_ORIGINS || 'http://localhost:5173').split(',').map((o) => o.trim());
-app.use(cors({ origin: corsOrigins }));
+const defaultCorsOrigins = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:3000',
+  'https://wins-wereld-winkel.netlify.app',
+];
+
+const corsOrigins = new Set(
+  (process.env.CORS_ORIGINS || defaultCorsOrigins.join(','))
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean)
+);
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin || corsOrigins.has(origin) || origin.endsWith('.netlify.app')) {
+        callback(null, true);
+        return;
+      }
+      callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
+    credentials: true,
+  })
+);
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));

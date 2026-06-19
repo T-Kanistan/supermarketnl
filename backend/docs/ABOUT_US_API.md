@@ -13,7 +13,7 @@ npm run dev
 ## Environment
 
 ```env
-MONGO_URI=mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/supermarket_db
+MONGODB_URI=mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/supermarket_db
 ```
 
 ## Schema (`AboutUsCMS`)

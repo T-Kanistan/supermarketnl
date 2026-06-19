@@ -1,6 +1,7 @@
 # Dependency directories
 node_modules/
 Frontend/node_modules/
+frontend/node_modules/
 backend/node_modules/
 
 # Production builds
@@ -8,6 +9,8 @@ dist/
 dist-ssr/
 Frontend/dist/
 Frontend/dist-ssr/
+frontend/dist/
+frontend/dist-ssr/
 
 # Environment variables
 .env
@@ -16,6 +19,7 @@ Frontend/dist-ssr/
 .env.test.local
 .env.production.local
 Frontend/.env
+frontend/.env
 backend/.env
 
 # Editor & OS files
@@ -42,6 +46,11 @@ test-results/
 playwright-report/
 Frontend/test-results/
 Frontend/playwright-report/
+frontend/test-results/
+frontend/playwright-report/
+
+# Runtime uploads created while testing locally
+backend/src/uploads/
 
 # Local scratch notes
 backend/database/Untitled

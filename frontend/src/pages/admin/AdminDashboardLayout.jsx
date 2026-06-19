@@ -14,6 +14,8 @@ import './AdminDashboardLayout.css';
 export const AdminDashboardLayout = () => {
   const { user, logout, isAdmin } = useAuth();
   const { cmsData } = useCMS();
+  const storeLogo = cmsData?.logo ? getImageUrl(cmsData.logo) : '/logo.png';
+  const storeName = cmsData?.storeName || 'Supermarket';
   const { addToast } = useToast();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
@@ -56,8 +58,8 @@ export const AdminDashboardLayout = () => {
       {/* Sidebar Drawer */}
       <aside className={`admin-sidebar ${mobileMenuOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
-          <img src={getImageUrl(cmsData.logo) || '/logo.png'} alt="Store Logo" className="sidebar-logo" onError={(e) => { e.target.src = '/logo.png'; }} />
-          <span className="sidebar-brand-name">{cmsData.storeName || 'Supermarket'}</span>
+          <img src={storeLogo} alt="Store Logo" className="sidebar-logo" onError={(e) => { e.target.src = '/logo.png'; }} />
+          <span className="sidebar-brand-name">{storeName}</span>
         </div>
 
         <nav className="sidebar-menu">
