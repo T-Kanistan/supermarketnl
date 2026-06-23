@@ -1,62 +1,100 @@
 import api, { apiRequest } from './api';
 
-const toPayload = (data) => ({
-  headingLine1: data.headingLine1 ?? data.title,
-  headingLine2: data.headingLine2 ?? data.highlightText,
-  headingLine3: data.headingLine3 ?? data.titleLine2,
-  subtitle: data.subtitle,
-  primaryButtonLabel: data.primaryButtonLabel ?? data.buttonText,
-  primaryButtonLink: data.primaryButtonLink ?? data.buttonLink,
-  secondaryButtonLabel: data.secondaryButtonLabel ?? data.buttonText2,
-  secondaryButtonLink: data.secondaryButtonLink ?? data.buttonLink2,
-  backgroundImage: data.backgroundImage ?? data.image,
-  status: data.status || 'active',
-  showOpenTimeCard: data.showOpenTimeCard ?? data.showOpenTime ?? true,
-  cardTitle: data.cardTitle ?? data.openTimeTitle,
-  supermarketLabel: data.supermarketLabel,
-  supermarketHours: data.supermarketHours ?? data.supermarketTimings,
-  foodCornerLabel: data.foodCornerLabel,
-  foodCornerHours: data.foodCornerHours ?? data.foodCornerTimings,
-});
+const appendField = (formData, key, value) => {
+  if (value === undefined || value === null) return;
+  formData.append(key, typeof value === 'boolean' ? String(value) : String(value));
+};
+
+const toFormPayload = (data) => {
+  const formData = new FormData();
+  appendField(formData, 'pageName', data.pageName);
+  appendField(formData, 'badgeText', data.badgeText);
+  appendField(formData, 'mainHeading', data.mainHeading);
+  appendField(formData, 'highlightText', data.highlightText);
+  appendField(formData, 'description', data.description);
+  appendField(formData, 'button1Text', data.button1Text);
+  appendField(formData, 'button1Url', data.button1Url);
+  appendField(formData, 'button2Text', data.button2Text);
+  appendField(formData, 'button2Url', data.button2Url);
+  appendField(formData, 'overlayColor', data.overlayColor);
+  appendField(formData, 'overlayOpacity', data.overlayOpacity);
+  appendField(formData, 'displayOrder', data.displayOrder);
+  appendField(formData, 'isActive', data.isActive);
+  if (data.image && !String(data.image).startsWith('blob:')) {
+    appendField(formData, 'image', data.image);
+  }
+  return formData;
+};
 
 export const bannerService = {
-  getStorefrontBanner: async () => apiRequest(() => api.get('/storefront/home-banner')),
-
-  getActiveBanner: async () => apiRequest(() => api.get('/home-banner/active')),
-
-  getBanners: async () => {
+  getBannerByPage: async (pageName) => {
     try {
-      const banner = await apiRequest(() => api.get('/storefront/home-banner'));
-      return banner ? [banner] : [];
+      return await apiRequest(() => api.get(`/banners/page/${pageName}`));
     } catch {
-      return [];
+      return null;
     }
   },
 
-  getAllBanners: async () => apiRequest(() => api.get('/home-banner')),
+  getStorefrontBanner: async () => bannerService.getBannerByPage('home'),
 
-  getBannerPreview: async (id) => apiRequest(() => api.get(`/home-banner/preview/${id}`)),
+  listBanners: async (params = {}) => {
+    const response = await api.get('/banners', { params });
+    return {
+      data: response.data?.data || [],
+      pagination: response.data?.pagination || {
+        page: 1,
+        limit: 10,
+        total: 0,
+        totalPages: 1,
+      },
+    };
+  },
+
+  getBannerById: async (id) => apiRequest(() => api.get(`/banners/${id}`)),
 
   uploadBannerImage: async (file) => {
     const formData = new FormData();
     formData.append('image', file);
-    const response = await api.post('/upload/home-banner', formData, {
+    const response = await api.post('/upload/banner', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return response.data.imageUrl;
   },
 
-  createBanner: async (bannerData) => {
-    const payload = toPayload(bannerData);
-    return apiRequest(() => api.post('/home-banner', payload));
+  createBanner: async (bannerData, imageFile = null) => {
+    const formData = toFormPayload(bannerData);
+    if (imageFile) {
+      formData.append('image', imageFile);
+    }
+    const response = await api.post('/banners', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data?.data;
   },
 
-  updateBanner: async (id, bannerData) => {
-    const payload = toPayload(bannerData);
-    return apiRequest(() => api.put(`/home-banner/${id}`, payload));
+  updateBanner: async (id, bannerData, imageFile = null) => {
+    const formData = toFormPayload(bannerData);
+    if (imageFile) {
+      formData.append('image', imageFile);
+    }
+    const response = await api.put(`/banners/${id}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data?.data;
   },
 
-  deleteBanner: async (id) => apiRequest(() => api.delete(`/home-banner/${id}`)),
+  deleteBanner: async (id) => apiRequest(() => api.delete(`/banners/${id}`)),
+
+  // Legacy helpers
+  getAllBanners: async () => {
+    const result = await bannerService.listBanners({ limit: 100 });
+    return result.data;
+  },
+
+  getBanners: async () => {
+    const banner = await bannerService.getStorefrontBanner();
+    return banner ? [banner] : [];
+  },
 };
 
 export default bannerService;

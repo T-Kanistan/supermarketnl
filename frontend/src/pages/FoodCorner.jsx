@@ -13,10 +13,9 @@ import { GiCook } from 'react-icons/gi';
 import foodCornerService from '../services/foodCornerService';
 import { getImageUrl } from '../services/api';
 import { useEnquiry } from '../context/EnquiryContext';
+import usePageBanner from '../hooks/usePageBanner';
+import { getBannerOverlayStyle } from '../utils/bannerOverlay';
 import './FoodCorner.css';
-
-const HERO_IMAGE =
-  'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&q=80&w=2000';
 
 const formatPrice = (price) =>
   new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' }).format(Number(price) || 0);
@@ -92,6 +91,7 @@ const FoodCorner = () => {
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [sortOption, setSortOption] = useState('default');
   const { openEnquiry } = useEnquiry();
+  const { banner: pageBanner, loading: bannerLoading } = usePageBanner('food-corner');
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -205,26 +205,27 @@ const FoodCorner = () => {
 
   return (
     <div className="food-corner-page">
-      <section className="fc-hero">
+      <section className={`fc-hero${bannerLoading ? ' fc-hero--loading' : ''}`}>
         <div
           className="fc-hero-bg"
-          style={{ backgroundImage: `url('${HERO_IMAGE}')` }}
+          style={{ backgroundImage: `url('${getImageUrl(pageBanner.image)}')` }}
           aria-hidden="true"
         />
-        <div className="fc-hero-overlay" />
+        <div className="fc-hero-overlay" style={getBannerOverlayStyle(pageBanner)} />
         <div className="container fc-hero-grid">
           <div className="fc-hero-copy">
             <span className="fc-hero-badge">
               <FaUtensils aria-hidden="true" />
-              FOOD CORNER
+              {pageBanner.badgeText || 'FOOD CORNER'}
             </span>
             <h1 className="fc-hero-title">
-              Enjoy Delicious
+              {pageBanner.mainHeading || 'Enjoy Delicious'}
               <br />
-              <span className="fc-hero-highlight">Food Corner</span>
+              <span className="fc-hero-highlight">{pageBanner.highlightText || 'Food Corner'}</span>
             </h1>
             <p className="fc-hero-subtitle">
-              Freshly prepared meals, snacks and beverages made with quality ingredients, every day.
+              {pageBanner.description ||
+                'Freshly prepared meals, snacks and beverages made with quality ingredients, every day.'}
             </p>
             <ul className="fc-hero-features">
               <li>

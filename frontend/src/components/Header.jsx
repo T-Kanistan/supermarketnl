@@ -2,10 +2,8 @@ import { useState } from 'react';
 import { FiSearch, FiX, FiMenu } from 'react-icons/fi';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useCMS } from '../context/CMSContext';
-import { useAuth } from '../context/AuthContext';
 import { useEnquiry } from '../context/EnquiryContext';
 import { getImageUrl } from '../services/api';
-import { getDashboardHome } from '../constants/managerPermissions';
 import './Header.css';
 
 const Header = () => {
@@ -14,7 +12,6 @@ const Header = () => {
   const path = location.pathname;
   
   const { cmsData } = useCMS();
-  const { user } = useAuth();
   const { openEnquiry } = useEnquiry();
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -43,6 +40,11 @@ const Header = () => {
 
   const toggleSearch = () => {
     setIsSearchOpen(!isSearchOpen);
+  };
+
+  const handleDashboardClick = () => {
+    closeMobileMenu();
+    navigate('/login');
   };
 
   return (
@@ -74,13 +76,13 @@ const Header = () => {
                 </button>
               </li>
               <li className="mobile-only-link">
-                <Link
-                  to={user ? getDashboardHome(user) : '/login'}
-                  onClick={closeMobileMenu}
-                  className="nav-link nav-link-dashboard"
+                <button
+                  type="button"
+                  onClick={handleDashboardClick}
+                  className="nav-link nav-link-dashboard nav-link-btn"
                 >
                   Dashboard
-                </Link>
+                </button>
               </li>
             </ul>
           </nav>
@@ -107,13 +109,13 @@ const Header = () => {
               </button>
             )}
             <div className="auth-buttons">
-              <Link
-                to={user ? getDashboardHome(user) : '/login'}
+              <button
+                type="button"
                 className="auth-nav-btn auth-nav-login auth-nav-dashboard"
-                onClick={closeMobileMenu}
+                onClick={handleDashboardClick}
               >
                 Dashboard
-              </Link>
+              </button>
               <button
                 type="button"
                 className="auth-nav-btn auth-nav-apply"

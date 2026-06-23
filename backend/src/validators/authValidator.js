@@ -100,7 +100,28 @@ export const changePasswordRules = [
     }),
 ];
 
+export const forgotPasswordRules = [
+  body('email')
+    .trim()
+    .notEmpty()
+    .withMessage('Email is required')
+    .isEmail()
+    .withMessage('Please provide a valid email address')
+    .normalizeEmail(),
+];
+
 export const resetPasswordRules = [
+  body('email')
+    .trim()
+    .notEmpty()
+    .withMessage('Email is required')
+    .isEmail()
+    .withMessage('Please provide a valid email address')
+    .normalizeEmail(),
+  body('token')
+    .trim()
+    .notEmpty()
+    .withMessage('Reset token is required'),
   body('newPassword')
     .notEmpty()
     .withMessage('New password is required')

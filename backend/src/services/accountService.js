@@ -1,5 +1,7 @@
 import User from '../models/User.js';
 import Manager from '../models/Manager.js';
+import Admin from '../models/Admin.js';
+import ManagerAccount from '../models/ManagerAccount.js';
 import { logManagerActivity } from './activityLogService.js';
 import { logAuditEvent } from './auditLogService.js';
 
@@ -59,23 +61,60 @@ export const getAccountProfile = async (authUser) => {
     throw error;
   }
 
-  if (authUser.accountType === 'manager') {
-    const manager = await Manager.findById(authUser._id);
-    if (!manager) {
-      const error = new Error('User not found');
-      error.statusCode = 404;
-      throw error;
+  const source = authUser.accountSource || authUser.accountType;
+
+  if (source === 'admin') {
+    const admin = await Admin.findById(authUser._id).select('-password');
+    if (admin) {
+      return formatAccountProfile(
+        { ...admin.toObject(), name: admin.name, role: 'admin', isActive: admin.isActive },
+        'admin'
+      );
     }
-    return formatAccountProfile(manager, 'manager');
+  }
+
+  if (source === 'manager') {
+    const managerAccount = await ManagerAccount.findById(authUser._id).select('-password');
+    if (managerAccount) {
+      return formatAccountProfile(
+        {
+          ...managerAccount.toObject(),
+          fullName: managerAccount.name,
+          status: managerAccount.isActive,
+        },
+        'manager'
+      );
+    }
+  }
+
+  if (authUser.accountType === 'manager' || authUser.role === 'manager') {
+    const manager = await Manager.findById(authUser._id);
+    if (manager) {
+      return formatAccountProfile(manager, 'manager');
+    }
+
+    const userAsManager = await User.findById(authUser._id);
+    if (userAsManager) {
+      return formatAccountProfile(userAsManager, 'manager');
+    }
   }
 
   const user = await User.findById(authUser._id);
-  if (!user) {
-    const error = new Error('User not found');
-    error.statusCode = 404;
-    throw error;
+  if (user) {
+    return formatAccountProfile(user, user.role === 'manager' ? 'manager' : 'admin');
   }
-  return formatAccountProfile(user, 'admin');
+
+  const admin = await Admin.findById(authUser._id).select('-password');
+  if (admin) {
+    return formatAccountProfile(
+      { ...admin.toObject(), name: admin.name, role: 'admin', isActive: admin.isActive },
+      'admin'
+    );
+  }
+
+  const error = new Error('User not found');
+  error.statusCode = 404;
+  throw error;
 };
 
 const validatePasswordChange = ({ currentPassword, newPassword, confirmPassword }) => {
@@ -138,32 +177,99 @@ export const changeAccountPassword = async (authUser, body, metadata = {}) => {
 
   validatePasswordChange({ currentPassword, newPassword, confirmPassword });
 
-  if (authUser.accountType === 'manager') {
+  const source = authUser.accountSource || authUser.accountType;
+  const isManager = authUser.accountType === 'manager' || authUser.role === 'manager';
+
+  if (source === 'admin') {
+    const admin = await Admin.findById(authUser._id).select('+password');
+    if (admin) {
+      const isMatch = await admin.comparePassword(currentPassword);
+      if (!isMatch) {
+        const error = new Error('Current password is incorrect');
+        error.statusCode = 400;
+        throw error;
+      }
+
+      admin.password = newPassword;
+      admin.lastPasswordChangedAt = new Date();
+      await admin.save();
+
+      await recordPasswordChangeLogs({
+        userId: admin._id,
+        accountType: 'admin',
+        metadata,
+      });
+
+      return { success: true, message: 'Password changed successfully' };
+    }
+  }
+
+  if (source === 'manager' || isManager) {
+    const managerAccount = await ManagerAccount.findById(authUser._id).select('+password');
+    if (managerAccount) {
+      const isMatch = await managerAccount.comparePassword(currentPassword);
+      if (!isMatch) {
+        const error = new Error('Current password is incorrect');
+        error.statusCode = 400;
+        throw error;
+      }
+
+      managerAccount.password = newPassword;
+      managerAccount.lastPasswordChangedAt = new Date();
+      await managerAccount.save();
+
+      await recordPasswordChangeLogs({
+        userId: managerAccount._id,
+        accountType: 'manager',
+        metadata,
+      });
+
+      return { success: true, message: 'Password changed successfully' };
+    }
+
     const manager = await Manager.findById(authUser._id).select('+passwordHash');
-    if (!manager) {
-      const error = new Error('User not found');
-      error.statusCode = 404;
-      throw error;
+    if (manager) {
+      const isMatch = await manager.comparePassword(currentPassword);
+      if (!isMatch) {
+        const error = new Error('Current password is incorrect');
+        error.statusCode = 400;
+        throw error;
+      }
+
+      manager.passwordHash = await Manager.hashPassword(newPassword);
+      manager.lastPasswordChangedAt = new Date();
+      await manager.save();
+
+      await recordPasswordChangeLogs({
+        userId: manager._id,
+        accountType: 'manager',
+        metadata,
+      });
+
+      return { success: true, message: 'Password changed successfully' };
     }
 
-    const isMatch = await manager.comparePassword(currentPassword);
-    if (!isMatch) {
-      const error = new Error('Current password is incorrect');
-      error.statusCode = 400;
-      throw error;
+    const userAsManager = await User.findById(authUser._id);
+    if (userAsManager) {
+      const isMatch = await userAsManager.comparePassword(currentPassword);
+      if (!isMatch) {
+        const error = new Error('Current password is incorrect');
+        error.statusCode = 400;
+        throw error;
+      }
+
+      userAsManager.password = newPassword;
+      userAsManager.lastPasswordChangedAt = new Date();
+      await userAsManager.save();
+
+      await recordPasswordChangeLogs({
+        userId: userAsManager._id,
+        accountType: 'manager',
+        metadata,
+      });
+
+      return { success: true, message: 'Password changed successfully' };
     }
-
-    manager.passwordHash = await Manager.hashPassword(newPassword);
-    manager.lastPasswordChangedAt = new Date();
-    await manager.save();
-
-    await recordPasswordChangeLogs({
-      userId: manager._id,
-      accountType: 'manager',
-      metadata,
-    });
-
-    return { success: true, message: 'Password changed successfully' };
   }
 
   const user = await User.findById(authUser._id);

@@ -128,6 +128,48 @@ export const sendJobApplicationApplicantEmail = async (application) => {
   return { sent: true, simulated: false };
 };
 
+export const sendPasswordResetEmail = async ({ to, name, resetUrl }) => {
+  const { fromEmail, fromName } = getMailDefaults();
+  const subject = 'Reset Your Password';
+  const textBody = [
+    `Hi ${name || 'there'},`,
+    '',
+    'We received a request to reset your password for the Wins Wereld Winkel Admin Portal.',
+    '',
+    'Click the link below to choose a new password (valid for 1 hour):',
+    resetUrl,
+    '',
+    'If you did not request this, you can safely ignore this email.',
+    '',
+    fromName,
+  ].join('\n');
+
+  const transporter = await createTransporter();
+  if (!transporter) {
+    console.log('[email-service] SMTP not configured. Password reset logged only.');
+    console.log(`[email-service] To: ${to}`);
+    console.log(`[email-service] Subject: ${subject}`);
+    console.log(`[email-service] Reset URL: ${resetUrl}`);
+    return { sent: false, simulated: true };
+  }
+
+  await transporter.sendMail({
+    from: `"${fromName}" <${fromEmail}>`,
+    to,
+    subject,
+    text: textBody,
+    html: `
+      <p>Hi ${name || 'there'},</p>
+      <p>We received a request to reset your password for the Wins Wereld Winkel Admin Portal.</p>
+      <p><a href="${resetUrl}">Reset your password</a> (link valid for 1 hour)</p>
+      <p>If you did not request this, you can safely ignore this email.</p>
+      <p>${fromName}</p>
+    `,
+  });
+
+  return { sent: true, simulated: false };
+};
+
 export const sendJobEnquiryNotificationEmail = async (enquiry) => {
   const { fromEmail, fromName, adminEmail } = getMailDefaults();
 

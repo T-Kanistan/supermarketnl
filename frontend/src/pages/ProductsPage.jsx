@@ -10,6 +10,8 @@ import { getImageUrl } from '../services/api';
 import { useEnquiry } from '../context/EnquiryContext';
 import ProductCard from '../components/ProductCard';
 import { PRODUCTS_PAGE_HERO_IMAGE } from '../constants/productsPageDefaults';
+import usePageBanner from '../hooks/usePageBanner';
+import { getBannerOverlayStyle } from '../utils/bannerOverlay';
 import '../components/ProductCard.css';
 import './ProductsPage.css';
 
@@ -53,6 +55,7 @@ const ProductsPage = () => {
   const [searchTerm, setSearchTerm] = useState(urlSearchParam);
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(urlSearchParam.trim());
   const [sortOption, setSortOption] = useState('default');
+  const { banner: pageBanner, loading: bannerLoading } = usePageBanner('products');
 
   const activeCategoryId = categoryParam;
 
@@ -207,21 +210,25 @@ const ProductsPage = () => {
   };
 
   const isAllItems = activeCategory.id === 'all';
-  const heroImage = isAllItems ? PRODUCTS_PAGE_HERO_IMAGE : (getImageUrl(activeCategory.image) || PRODUCTS_PAGE_HERO_IMAGE);
-  const heroBadge = isAllItems ? 'OUR STORE' : 'CATEGORY';
+  const heroImage = isAllItems
+    ? getImageUrl(pageBanner.image) || PRODUCTS_PAGE_HERO_IMAGE
+    : getImageUrl(activeCategory.image) || PRODUCTS_PAGE_HERO_IMAGE;
+  const heroBadge = isAllItems ? pageBanner.badgeText || 'OUR STORE' : 'CATEGORY';
   const heroSubtitle = isAllItems
-    ? 'Browse fresh groceries, beverages, spices, and daily essentials from our supermarket.'
+    ? pageBanner.description ||
+      'Browse fresh groceries, beverages, spices, and daily essentials from our supermarket.'
     : `Explore our ${activeCategory.name.toLowerCase()} selection — quality products for your home.`;
+  const heroOverlayStyle = isAllItems ? getBannerOverlayStyle(pageBanner) : undefined;
 
   return (
     <div className="products-page">
-      <section className="products-hero">
+      <section className={`products-hero${bannerLoading && isAllItems ? ' products-hero--loading' : ''}`}>
         <div
           className="products-hero-bg"
           style={{ backgroundImage: `url('${heroImage}')` }}
           aria-hidden="true"
         />
-        <div className="products-hero-overlay" />
+        <div className="products-hero-overlay" style={heroOverlayStyle} />
         <div className="container products-hero-grid">
           <div className="products-hero-copy">
             <span className="products-hero-badge">
@@ -231,9 +238,9 @@ const ProductsPage = () => {
             <h1 className="products-hero-title">
               {isAllItems ? (
                 <>
-                  Our
+                  {pageBanner.mainHeading || 'Our'}
                   <br />
-                  <span className="products-hero-highlight">Products</span>
+                  <span className="products-hero-highlight">{pageBanner.highlightText || 'Products'}</span>
                 </>
               ) : (
                 <>

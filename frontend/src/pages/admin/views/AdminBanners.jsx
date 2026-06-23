@@ -1,80 +1,132 @@
 import { useState, useEffect, useCallback } from 'react';
-import { FaSave, FaImage } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaEye, FaSearch, FaImage } from 'react-icons/fa';
 import bannerService from '../../../services/bannerService';
-import { getImageUrl } from '../../../services/api';
 import { useToast } from '../../../context/ToastContext';
 import { useAuth } from '../../../context/AuthContext';
+import { getImageUrl } from '../../../services/api';
+import { BANNER_PAGE_OPTIONS, getPageBannerLabel } from '../../../constants/pageBannerDefaults';
+import { getBannerOverlayStyle } from '../../../utils/bannerOverlay';
+import './AdminBanners.css';
 
-const defaultForm = {
-  headingLine1: 'FRESH',
-  headingLine2: 'PRODUCTS',
-  headingLine3: 'BETTER LIVING',
-  subtitle: 'Your one-stop supermarket for quality products and great offers.',
-  backgroundImage: '',
-  primaryButtonLabel: 'EXPLORE PRODUCTS',
-  primaryButtonLink: '/products',
-  secondaryButtonLabel: 'EXPLORE FOOD CORNER',
-  secondaryButtonLink: '/food-corner',
-  showOpenTimeCard: true,
-  cardTitle: 'Open Time',
-  supermarketLabel: 'Supermarket',
-  supermarketHours: '8:00 AM - 10:00 PM',
-  foodCornerLabel: 'Food Corner',
-  foodCornerHours: '6:00 PM - 10:00 PM (Weekend)',
-  status: 'active',
-};
+const PAGE_FILTER_OPTIONS = [{ value: 'all', label: 'All Pages' }, ...BANNER_PAGE_OPTIONS];
 
-const mapBannerToForm = (banner) => ({
-  headingLine1: banner.headingLine1 || banner.title || defaultForm.headingLine1,
-  headingLine2: banner.headingLine2 || banner.highlightText || defaultForm.headingLine2,
-  headingLine3: banner.headingLine3 || banner.titleLine2 || defaultForm.headingLine3,
-  subtitle: banner.subtitle || defaultForm.subtitle,
-  backgroundImage: banner.backgroundImage || banner.image || '',
-  primaryButtonLabel: banner.primaryButtonLabel || banner.buttonText || defaultForm.primaryButtonLabel,
-  primaryButtonLink: banner.primaryButtonLink || banner.buttonLink || defaultForm.primaryButtonLink,
-  secondaryButtonLabel: banner.secondaryButtonLabel || banner.buttonText2 || defaultForm.secondaryButtonLabel,
-  secondaryButtonLink: banner.secondaryButtonLink || banner.buttonLink2 || defaultForm.secondaryButtonLink,
-  showOpenTimeCard: banner.showOpenTimeCard ?? banner.showOpenTime ?? true,
-  cardTitle: banner.cardTitle || banner.openTimeTitle || defaultForm.cardTitle,
-  supermarketLabel: banner.supermarketLabel || defaultForm.supermarketLabel,
-  supermarketHours: banner.supermarketHours || banner.supermarketTimings || defaultForm.supermarketHours,
-  foodCornerLabel: banner.foodCornerLabel || defaultForm.foodCornerLabel,
-  foodCornerHours: banner.foodCornerHours || banner.foodCornerTimings || defaultForm.foodCornerHours,
-  status: banner.status || 'active',
+const emptyForm = () => ({
+  pageName: 'home',
+  badgeText: '',
+  mainHeading: '',
+  highlightText: '',
+  description: '',
+  button1Text: '',
+  button1Url: '',
+  button2Text: '',
+  button2Url: '',
+  image: '',
+  overlayColor: '#0f172a',
+  overlayOpacity: 0.55,
+  displayOrder: 0,
+  isActive: true,
 });
 
+const formatDate = (value) => {
+  if (!value) return 'N/A';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString();
+};
+
+const getBannerId = (banner) => banner?.id || banner?._id;
+
 export const AdminBanners = () => {
-  const [bannerId, setBannerId] = useState(null);
-  const [formData, setFormData] = useState(defaultForm);
+  const [banners, setBanners] = useState([]);
+  const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
   const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isViewOpen, setIsViewOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [editingBanner, setEditingBanner] = useState(null);
+  const [viewingBanner, setViewingBanner] = useState(null);
+  const [pageFilter, setPageFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [imageFile, setImageFile] = useState(null);
+  const [formData, setFormData] = useState(emptyForm());
+
   const { addToast } = useToast();
   const { isAdmin } = useAuth();
 
-  const loadBanner = useCallback(async () => {
+  const fetchBanners = useCallback(async () => {
     setLoading(true);
     try {
-      const banners = await bannerService.getAllBanners();
-      const banner = banners.find((b) => b.status === 'active') || banners[0];
-      if (banner) {
-        setBannerId(banner.id);
-        setFormData(mapBannerToForm(banner));
-      } else {
-        setBannerId(null);
-        setFormData(defaultForm);
-      }
+      const result = await bannerService.listBanners({
+        pageName: pageFilter,
+        q: searchQuery || undefined,
+        page: pagination.page,
+        limit: pagination.limit,
+      });
+      setBanners(result.data);
+      setPagination((prev) => ({ ...prev, ...result.pagination }));
     } catch (err) {
-      console.error('Failed to load home banner', err);
-      addToast('Failed to load home banner', 'error');
+      console.error('Failed to load banners', err);
+      addToast(err.response?.data?.message || 'Failed to load banners', 'error');
     } finally {
       setLoading(false);
     }
-  }, [addToast]);
+  }, [addToast, pageFilter, searchQuery, pagination.page, pagination.limit]);
 
   useEffect(() => {
-    loadBanner();
-  }, [loadBanner]);
+    fetchBanners();
+  }, [fetchBanners]);
+
+  useEffect(() => {
+    if (isModalOpen || isViewOpen) {
+      document.body.classList.add('modal-open');
+    } else {
+      document.body.classList.remove('modal-open');
+    }
+    return () => document.body.classList.remove('modal-open');
+  }, [isModalOpen, isViewOpen]);
+
+  const closeModal = () => {
+    if (isSubmitting) return;
+    setIsModalOpen(false);
+    setEditingBanner(null);
+    setImageFile(null);
+  };
+
+  const openAddModal = () => {
+    setEditingBanner(null);
+    setImageFile(null);
+    setFormData(emptyForm());
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (banner) => {
+    setEditingBanner(banner);
+    setImageFile(null);
+    setFormData({
+      pageName: banner.pageName || 'home',
+      badgeText: banner.badgeText || '',
+      mainHeading: banner.mainHeading || '',
+      highlightText: banner.highlightText || '',
+      description: banner.description || '',
+      button1Text: banner.button1Text || '',
+      button1Url: banner.button1Url || '',
+      button2Text: banner.button2Text || '',
+      button2Url: banner.button2Url || '',
+      image: banner.image || '',
+      overlayColor: banner.overlayColor || '#0f172a',
+      overlayOpacity: banner.overlayOpacity ?? 0.55,
+      displayOrder: banner.displayOrder ?? 0,
+      isActive: banner.isActive !== false,
+    });
+    setIsModalOpen(true);
+  };
+
+  const openViewModal = (banner) => {
+    setViewingBanner(banner);
+    setIsViewOpen(true);
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -88,13 +140,25 @@ export const AdminBanners = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (file.size > 5 * 1024 * 1024) {
+      addToast('Banner image must be 5MB or smaller', 'error');
+      return;
+    }
+
+    const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowed.includes(file.type)) {
+      addToast('Only JPG, PNG, and WEBP images are allowed', 'error');
+      return;
+    }
+
     const previewUrl = URL.createObjectURL(file);
-    setFormData((prev) => ({ ...prev, backgroundImage: previewUrl }));
+    setImageFile(file);
+    setFormData((prev) => ({ ...prev, image: previewUrl }));
     setIsUploading(true);
 
     try {
       const imageUrl = await bannerService.uploadBannerImage(file);
-      setFormData((prev) => ({ ...prev, backgroundImage: imageUrl }));
+      setFormData((prev) => ({ ...prev, image: imageUrl }));
       addToast('Banner image uploaded successfully', 'success');
     } catch (err) {
       console.error('Banner upload failed', err);
@@ -105,20 +169,16 @@ export const AdminBanners = () => {
   };
 
   const validateForm = () => {
-    if (!formData.headingLine1?.trim() || !formData.headingLine2?.trim() || !formData.headingLine3?.trim()) {
-      addToast('All heading lines are required', 'error');
+    if (!formData.pageName) {
+      addToast('Page name is required', 'error');
       return false;
     }
-    if (!formData.subtitle?.trim()) {
-      addToast('Subtitle is required', 'error');
+    if (!formData.mainHeading?.trim()) {
+      addToast('Main heading is required', 'error');
       return false;
     }
-    if (!formData.primaryButtonLabel?.trim() || !formData.primaryButtonLink?.trim()) {
-      addToast('Primary button label and link are required', 'error');
-      return false;
-    }
-    if (!formData.backgroundImage || formData.backgroundImage.startsWith('blob:')) {
-      addToast('Please upload a background image before saving', 'error');
+    if (!formData.image || formData.image.startsWith('blob:')) {
+      addToast('Please upload a banner image before saving', 'error');
       return false;
     }
     return true;
@@ -130,299 +190,438 @@ export const AdminBanners = () => {
 
     setIsSubmitting(true);
     try {
-      if (bannerId) {
-        await bannerService.updateBanner(bannerId, formData);
-        addToast('Home banner updated successfully', 'success');
+      const payload = {
+        ...formData,
+        overlayOpacity: Number(formData.overlayOpacity),
+        displayOrder: Number(formData.displayOrder) || 0,
+      };
+
+      if (editingBanner) {
+        const bannerId = getBannerId(editingBanner);
+        if (!bannerId) {
+          addToast('Unable to update banner: missing ID', 'error');
+          return;
+        }
+        await bannerService.updateBanner(bannerId, payload, imageFile);
+        addToast('Banner updated successfully', 'success');
       } else {
-        const created = await bannerService.createBanner(formData);
-        setBannerId(created.id);
-        addToast('Home banner created successfully', 'success');
+        await bannerService.createBanner(payload, imageFile);
+        addToast('Banner created successfully', 'success');
       }
-      loadBanner();
+
+      setIsModalOpen(false);
+      setImageFile(null);
+      fetchBanners();
     } catch (err) {
-      console.error('Failed to save home banner', err);
-      addToast(err.response?.data?.message || 'Failed to save home banner', 'error');
+      console.error('Failed to save banner', err);
+      addToast(err.response?.data?.message || 'Failed to save banner', 'error');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleDelete = async () => {
-    if (!isAdmin || !bannerId) return;
-    if (!window.confirm('Delete this homepage banner configuration?')) return;
+  const handleDelete = async (banner) => {
+    if (!isAdmin) return;
+    const bannerId = getBannerId(banner);
+    if (!bannerId) {
+      addToast('Unable to delete banner: missing ID', 'error');
+      return;
+    }
+    if (!window.confirm(`Delete banner for ${getPageBannerLabel(banner.pageName)}?`)) return;
+
     try {
       await bannerService.deleteBanner(bannerId);
-      addToast('Homepage banner deleted', 'success');
-      setBannerId(null);
-      setFormData(defaultForm);
-      loadBanner();
+      addToast('Banner deleted successfully', 'success');
+      fetchBanners();
     } catch (err) {
       console.error('Failed to delete banner', err);
       addToast(err.response?.data?.message || 'Failed to delete banner', 'error');
     }
   };
 
-  const previewImage =
-    getImageUrl(formData.backgroundImage) ||
-    'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=2000';
+  const handleSearch = (e) => {
+    e.preventDefault();
+    setPagination((prev) => ({ ...prev, page: 1 }));
+    setSearchQuery(searchInput.trim());
+  };
 
-  if (loading) {
-    return (
-      <div style={{ background: 'white', padding: '40px', borderRadius: '16px', animation: 'pulse 1.5s infinite ease-in-out' }}>
-        <div style={{ height: '30px', width: '220px', background: '#cbd5e1', marginBottom: '20px' }} />
-        <div style={{ height: '280px', background: '#cbd5e1' }} />
-      </div>
-    );
-  }
+  const previewImage =
+    getImageUrl(formData.image) ||
+    'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=2000';
 
   return (
     <div>
       <div className="view-header">
         <div className="view-title-wrap">
-          <h2>Home Banner</h2>
-          <p>Edit the homepage hero banner, buttons, and open time card shown to customers.</p>
+          <h2>Banner Management</h2>
+          <p>Manage hero banners for all storefront pages from one place.</p>
         </div>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          {isAdmin && bannerId ? (
-            <button type="button" className="action-btn-secondary" onClick={handleDelete}>
-              Delete Banner
-            </button>
-          ) : null}
-          <button
-            type="submit"
-            form="home-banner-form"
-            className="action-btn-primary"
-            disabled={isSubmitting || isUploading}
-          >
-            <FaSave /> {isSubmitting ? 'Saving...' : 'Save Banner'}
+        <button type="button" className="action-btn-primary" onClick={openAddModal}>
+          <FaPlus /> Add New Banner
+        </button>
+      </div>
+
+      <div className="admin-banners-toolbar">
+        <form onSubmit={handleSearch} className="admin-banners-search">
+          <input
+            type="text"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Search banners..."
+          />
+          <button type="submit" className="action-btn-secondary">
+            <FaSearch /> Search
           </button>
+        </form>
+
+        <div className="admin-banners-filters">
+          {PAGE_FILTER_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              className={pageFilter === option.value ? 'action-btn-primary' : 'action-btn-secondary'}
+              onClick={() => {
+                setPageFilter(option.value);
+                setPagination((prev) => ({ ...prev, page: 1 }));
+              }}
+            >
+              {option.label}
+            </button>
+          ))}
         </div>
       </div>
 
-      <form id="home-banner-form" onSubmit={handleSubmit} className="dashboard-panel" style={{ padding: '24px' }}>
-        <div className="admin-form-grid-2">
-          <div>
-            <h3 className="admin-section-title">Banner Content</h3>
+      {loading ? (
+        <div style={{ background: 'white', padding: '40px', borderRadius: '16px', animation: 'pulse 1.5s infinite ease-in-out' }}>
+          <div style={{ height: '30px', width: '220px', background: '#cbd5e1', marginBottom: '20px' }} />
+          <div style={{ height: '150px', background: '#cbd5e1' }} />
+        </div>
+      ) : banners.length > 0 ? (
+        <div className="table-responsive-wrapper">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Banner Preview</th>
+                <th>Page Name</th>
+                <th>Heading</th>
+                <th>Sub Heading</th>
+                <th>Status</th>
+                <th>Last Updated</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {banners.map((banner) => (
+                <tr key={getBannerId(banner) || banner.pageName}>
+                  <td data-label="Banner Preview">
+                    <img
+                      src={getImageUrl(banner.image)}
+                      alt=""
+                      className="admin-banner-thumb"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = '/logo.png';
+                      }}
+                    />
+                  </td>
+                  <td data-label="Page Name">
+                    <div className="admin-banner-page-label">{getPageBannerLabel(banner.pageName)}</div>
+                  </td>
+                  <td data-label="Heading">{banner.mainHeading || '—'}</td>
+                  <td data-label="Sub Heading">{banner.highlightText || banner.badgeText || '—'}</td>
+                  <td data-label="Status">
+                    <span className={`status-pill ${banner.isActive ? 'active' : 'inactive'}`}>
+                      {banner.isActive ? 'Active' : 'Inactive'}
+                    </span>
+                  </td>
+                  <td data-label="Last Updated">{formatDate(banner.updatedAt)}</td>
+                  <td data-label="Actions">
+                    <div className="cell-actions">
+                      <button
+                        type="button"
+                        className="btn-action-cell view"
+                        title="View"
+                        onClick={() => openViewModal(banner)}
+                      >
+                        <FaEye />
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-action-cell edit"
+                        title="Edit"
+                        onClick={() => openEditModal(banner)}
+                      >
+                        <FaEdit />
+                      </button>
+                      {isAdmin ? (
+                        <button
+                          type="button"
+                          className="btn-action-cell delete"
+                          title="Delete"
+                          onClick={() => handleDelete(banner)}
+                        >
+                          <FaTrash />
+                        </button>
+                      ) : null}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
 
-            <div className="admin-form-group row-split">
-              <div>
-                <label>Heading Line 1</label>
-                <input
-                  type="text"
-                  name="headingLine1"
-                  value={formData.headingLine1}
-                  onChange={handleChange}
-                  maxLength={100}
-                  required
-                />
-              </div>
-              <div>
-                <label>Heading Line 2 (highlighted)</label>
-                <input
-                  type="text"
-                  name="headingLine2"
-                  value={formData.headingLine2}
-                  onChange={handleChange}
-                  maxLength={100}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="admin-form-group">
-              <label>Heading Line 3</label>
-              <input
-                type="text"
-                name="headingLine3"
-                value={formData.headingLine3}
-                onChange={handleChange}
-                maxLength={100}
-                required
-              />
-            </div>
-
-            <div className="admin-form-group">
-              <label>Subtitle</label>
-              <input
-                type="text"
-                name="subtitle"
-                value={formData.subtitle}
-                onChange={handleChange}
-                maxLength={300}
-                required
-              />
-            </div>
-
-            <div className="admin-form-group row-split">
-              <div>
-                <label>Primary Button Label</label>
-                <input
-                  type="text"
-                  name="primaryButtonLabel"
-                  value={formData.primaryButtonLabel}
-                  onChange={handleChange}
-                  maxLength={50}
-                  required
-                />
-              </div>
-              <div>
-                <label>Primary Button Link</label>
-                <input
-                  type="text"
-                  name="primaryButtonLink"
-                  value={formData.primaryButtonLink}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="admin-form-group row-split">
-              <div>
-                <label>Secondary Button Label</label>
-                <input
-                  type="text"
-                  name="secondaryButtonLabel"
-                  value={formData.secondaryButtonLabel}
-                  onChange={handleChange}
-                  maxLength={50}
-                />
-              </div>
-              <div>
-                <label>Secondary Button Link</label>
-                <input
-                  type="text"
-                  name="secondaryButtonLink"
-                  value={formData.secondaryButtonLink}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
-
-            <div className="admin-form-group row-split">
-              <div>
-                <label>Background Image URL</label>
-                <input
-                  type="text"
-                  name="backgroundImage"
-                  value={formData.backgroundImage}
-                  onChange={handleChange}
-                  placeholder="/uploads/home-banner/..."
-                />
-              </div>
-              <div>
-                <label>Upload Image</label>
-                <div className="image-upload-zone" style={{ padding: '8px' }}>
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/jpg,image/png,image/webp"
-                    id="home-banner-file"
-                    onChange={handleImageUpload}
-                    style={{ display: 'none' }}
-                  />
-                  <label htmlFor="home-banner-file" style={{ cursor: 'pointer', margin: 0 }}>
-                    <p style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--admin-sidebar-active)' }}>
-                      <FaImage style={{ marginRight: '6px' }} />
-                      {isUploading ? 'Uploading...' : 'Browse Files'}
-                    </p>
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            <div className="admin-form-group">
-              <label>Status</label>
-              <select name="status" value={formData.status} onChange={handleChange} required>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-                <option value="draft">Draft</option>
-              </select>
-            </div>
-
-            <h3 className="admin-section-title" style={{ marginTop: '24px' }}>Open Time Card</h3>
-
-            <div className="admin-form-group">
-              <label className="admin-checkbox-label">
-                <input
-                  type="checkbox"
-                  name="showOpenTimeCard"
-                  checked={formData.showOpenTimeCard}
-                  onChange={handleChange}
-                />
-                Show open time card on homepage banner
-              </label>
-            </div>
-
-            <div className="admin-form-group">
-              <label>Card Title</label>
-              <input type="text" name="cardTitle" value={formData.cardTitle} onChange={handleChange} />
-            </div>
-
-            <div className="admin-form-group row-split">
-              <div>
-                <label>Supermarket Label</label>
-                <input type="text" name="supermarketLabel" value={formData.supermarketLabel} onChange={handleChange} />
-              </div>
-              <div>
-                <label>Supermarket Hours</label>
-                <input type="text" name="supermarketHours" value={formData.supermarketHours} onChange={handleChange} />
-              </div>
-            </div>
-
-            <div className="admin-form-group row-split">
-              <div>
-                <label>Food Corner Label</label>
-                <input type="text" name="foodCornerLabel" value={formData.foodCornerLabel} onChange={handleChange} />
-              </div>
-              <div>
-                <label>Food Corner Hours</label>
-                <input type="text" name="foodCornerHours" value={formData.foodCornerHours} onChange={handleChange} />
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <h3 className="admin-section-title">Live Preview</h3>
-            <div className="banner-preview-box">
-              <div
-                className="banner-render-mock home-banner-preview"
-                style={{ backgroundImage: `url('${previewImage}')` }}
+          <div className="admin-banner-pagination">
+            <span>
+              Page {pagination.page} of {pagination.totalPages} ({pagination.total} banners)
+            </span>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                type="button"
+                className="action-btn-secondary"
+                disabled={pagination.page <= 1}
+                onClick={() => setPagination((prev) => ({ ...prev, page: prev.page - 1 }))}
               >
-                <div className="banner-mock-layout">
-                  <div className="banner-mock-content">
-                    <h4 className="banner-mock-title">
-                      {formData.headingLine1 || 'FRESH'}
-                      <br />
-                      <span className="preview-highlight">{formData.headingLine2 || 'PRODUCTS'}</span>
-                      <br />
-                      <span>{formData.headingLine3 || 'BETTER LIVING'}</span>
-                    </h4>
-                    <p className="banner-mock-sub">{formData.subtitle || 'Subtitle goes here.'}</p>
-                    <div className="banner-mock-buttons">
-                      <span className="banner-mock-btn">{formData.primaryButtonLabel}</span>
-                      <span className="banner-mock-btn secondary">{formData.secondaryButtonLabel}</span>
-                    </div>
-                  </div>
-
-                  {formData.showOpenTimeCard ? (
-                    <div className="banner-mock-timings">
-                      <div className="banner-mock-timings-title">{formData.cardTitle}</div>
-                      <div className="banner-mock-timing-row">
-                        <strong>{formData.supermarketLabel}</strong>
-                        <span>{formData.supermarketHours}</span>
-                      </div>
-                      <div className="banner-mock-timing-row">
-                        <strong>{formData.foodCornerLabel}</strong>
-                        <span>{formData.foodCornerHours}</span>
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-              </div>
+                Previous
+              </button>
+              <button
+                type="button"
+                className="action-btn-secondary"
+                disabled={pagination.page >= pagination.totalPages}
+                onClick={() => setPagination((prev) => ({ ...prev, page: prev.page + 1 }))}
+              >
+                Next
+              </button>
             </div>
           </div>
         </div>
-      </form>
+      ) : (
+        <div className="dashboard-panel" style={{ padding: '32px', textAlign: 'center' }}>
+          <p>No banners found. Create your first banner to get started.</p>
+          <button type="button" className="action-btn-primary" style={{ marginTop: '12px' }} onClick={openAddModal}>
+            <FaPlus /> Add New Banner
+          </button>
+        </div>
+      )}
+
+      {isModalOpen ? (
+        <div className="admin-modal-overlay" onClick={closeModal}>
+          <div
+            className="admin-modal-container"
+            style={{ maxWidth: '960px' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <h3>{editingBanner ? 'Edit Banner' : 'Add New Banner'}</h3>
+              <button type="button" className="modal-close-btn" onClick={closeModal} disabled={isSubmitting}>
+                &times;
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit}>
+              <div className="modal-body admin-banner-modal-grid">
+                <div>
+                  <div className="admin-form-group">
+                    <label>Page Name</label>
+                    <select name="pageName" value={formData.pageName} onChange={handleChange} required>
+                      {BANNER_PAGE_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="admin-form-group">
+                    <label>Banner Image Upload</label>
+                    <div className="image-upload-zone" style={{ padding: '8px' }}>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/jpg,image/png,image/webp"
+                        id="banner-image-file"
+                        onChange={handleImageUpload}
+                        style={{ display: 'none' }}
+                      />
+                      <label htmlFor="banner-image-file" style={{ cursor: 'pointer', margin: 0 }}>
+                        <p style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--admin-sidebar-active)' }}>
+                          <FaImage style={{ marginRight: '6px' }} />
+                          {isUploading ? 'Uploading...' : 'Browse JPG, PNG, WEBP (max 5MB)'}
+                        </p>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="admin-form-group row-split">
+                    <div>
+                      <label>Small Badge Text</label>
+                      <input type="text" name="badgeText" value={formData.badgeText} onChange={handleChange} maxLength={120} />
+                    </div>
+                    <div>
+                      <label>Display Order</label>
+                      <input type="number" name="displayOrder" value={formData.displayOrder} onChange={handleChange} min="0" />
+                    </div>
+                  </div>
+
+                  <div className="admin-form-group row-split">
+                    <div>
+                      <label>Main Heading</label>
+                      <input type="text" name="mainHeading" value={formData.mainHeading} onChange={handleChange} required maxLength={200} />
+                    </div>
+                    <div>
+                      <label>Highlight Heading Text</label>
+                      <input type="text" name="highlightText" value={formData.highlightText} onChange={handleChange} maxLength={200} />
+                    </div>
+                  </div>
+
+                  <div className="admin-form-group">
+                    <label>Description</label>
+                    <textarea name="description" value={formData.description} onChange={handleChange} rows={3} maxLength={600} />
+                  </div>
+
+                  <div className="admin-form-group row-split">
+                    <div>
+                      <label>Button 1 Text</label>
+                      <input type="text" name="button1Text" value={formData.button1Text} onChange={handleChange} maxLength={80} />
+                    </div>
+                    <div>
+                      <label>Button 1 URL</label>
+                      <input type="text" name="button1Url" value={formData.button1Url} onChange={handleChange} />
+                    </div>
+                  </div>
+
+                  <div className="admin-form-group row-split">
+                    <div>
+                      <label>Button 2 Text</label>
+                      <input type="text" name="button2Text" value={formData.button2Text} onChange={handleChange} maxLength={80} />
+                    </div>
+                    <div>
+                      <label>Button 2 URL</label>
+                      <input type="text" name="button2Url" value={formData.button2Url} onChange={handleChange} />
+                    </div>
+                  </div>
+
+                  <div className="admin-form-group row-split">
+                    <div>
+                      <label>Overlay Color</label>
+                      <input type="color" name="overlayColor" value={formData.overlayColor} onChange={handleChange} />
+                    </div>
+                    <div>
+                      <label>Overlay Opacity ({formData.overlayOpacity})</label>
+                      <input
+                        type="range"
+                        name="overlayOpacity"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        value={formData.overlayOpacity}
+                        onChange={handleChange}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="admin-form-group">
+                    <label className="admin-checkbox-label">
+                      <input type="checkbox" name="isActive" checked={formData.isActive} onChange={handleChange} />
+                      Active Status
+                    </label>
+                  </div>
+                </div>
+
+                <div className="admin-banner-preview-panel">
+                  <h4 className="admin-section-title">Preview</h4>
+                  <div
+                    className="admin-banner-live-preview"
+                    style={{ backgroundImage: `url('${previewImage}')` }}
+                  >
+                    <div
+                      className="admin-banner-live-overlay"
+                      style={getBannerOverlayStyle(formData)}
+                    />
+                    <div className="admin-banner-live-content">
+                      {formData.badgeText ? (
+                        <span className="admin-banner-live-badge">{formData.badgeText}</span>
+                      ) : null}
+                      <h4 className="admin-banner-live-title">
+                        {formData.mainHeading || 'Main Heading'}
+                        {formData.highlightText ? (
+                          <>
+                            <br />
+                            <span className="admin-banner-live-highlight">{formData.highlightText}</span>
+                          </>
+                        ) : null}
+                      </h4>
+                      {formData.description ? (
+                        <p className="admin-banner-live-desc">{formData.description}</p>
+                      ) : null}
+                      <div className="admin-banner-live-buttons">
+                        {formData.button1Text ? (
+                          <span className="admin-banner-live-btn">{formData.button1Text}</span>
+                        ) : null}
+                        {formData.button2Text ? (
+                          <span className="admin-banner-live-btn secondary">{formData.button2Text}</span>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="modal-footer">
+                <button type="button" className="action-btn-secondary" onClick={closeModal} disabled={isSubmitting}>
+                  Cancel
+                </button>
+                <button type="submit" className="action-btn-primary" disabled={isSubmitting || isUploading}>
+                  {isSubmitting ? 'Saving...' : editingBanner ? 'Update Banner' : 'Create Banner'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
+
+      {isViewOpen && viewingBanner ? (
+        <div className="admin-modal-overlay" onClick={() => setIsViewOpen(false)}>
+          <div
+            className="admin-modal-container"
+            style={{ maxWidth: '560px' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <h3>{getPageBannerLabel(viewingBanner.pageName)} Banner</h3>
+              <button type="button" className="modal-close-btn" onClick={() => setIsViewOpen(false)}>
+                &times;
+              </button>
+            </div>
+            <div className="modal-body">
+              <img
+                src={getImageUrl(viewingBanner.image)}
+                alt=""
+                style={{ width: '100%', borderRadius: '12px', marginBottom: '16px', maxHeight: '220px', objectFit: 'cover' }}
+              />
+              <p><strong>Main Heading:</strong> {viewingBanner.mainHeading}</p>
+              <p><strong>Highlight:</strong> {viewingBanner.highlightText || '—'}</p>
+              <p><strong>Badge:</strong> {viewingBanner.badgeText || '—'}</p>
+              <p><strong>Description:</strong> {viewingBanner.description || '—'}</p>
+              <p><strong>Status:</strong> {viewingBanner.isActive ? 'Active' : 'Inactive'}</p>
+              <p><strong>Last Updated:</strong> {formatDate(viewingBanner.updatedAt)}</p>
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="action-btn-secondary" onClick={() => setIsViewOpen(false)}>
+                Close
+              </button>
+              <button
+                type="button"
+                className="action-btn-primary"
+                onClick={() => {
+                  setIsViewOpen(false);
+                  openEditModal(viewingBanner);
+                }}
+              >
+                <FaEdit /> Edit
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };

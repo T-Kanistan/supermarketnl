@@ -10,6 +10,14 @@ import {
   normalizeRole,
 } from '../constants/managerPermissions';
 
+const DASHBOARD_ACCESS_DENIED =
+  'Access Denied. You are not authorized to access the dashboard.';
+
+const isDashboardRole = (user) => {
+  const role = normalizeRole(user?.role);
+  return role === 'admin' || role === 'manager';
+};
+
 export const ProtectedRoute = ({ children, adminOnly = false, allowedRoles }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
@@ -46,6 +54,10 @@ export const ProtectedRoute = ({ children, adminOnly = false, allowedRoles }) =>
 
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  if (!isDashboardRole(user)) {
+    return <AccessDenied message={DASHBOARD_ACCESS_DENIED} />;
   }
 
   if (allowedRoles?.length) {

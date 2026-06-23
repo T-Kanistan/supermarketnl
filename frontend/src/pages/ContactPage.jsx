@@ -17,6 +17,9 @@ import { useToast } from '../context/ToastContext';
 import { mergeContactPage } from '../constants/contactPageDefaults';
 import contactSettingsService from '../services/contactSettingsService';
 import cmsService from '../services/cmsService';
+import usePageBanner from '../hooks/usePageBanner';
+import { getBannerOverlayStyle } from '../utils/bannerOverlay';
+import { getImageUrl } from '../services/api';
 import './ContactPage.css';
 
 const ContactPage = () => {
@@ -34,6 +37,7 @@ const ContactPage = () => {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { banner: pageBanner, loading: bannerLoading } = usePageBanner('contact');
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -71,6 +75,11 @@ const ContactPage = () => {
   }
 
   const contact = mergeContactPage(contactData.contactPage);
+  const heroBadge = pageBanner.badgeText || contact.heroBadge;
+  const heroTitle = pageBanner.highlightText
+    ? `${pageBanner.mainHeading} ${pageBanner.highlightText}`.trim()
+    : pageBanner.mainHeading || contact.heroTitle;
+  const heroSubtitle = pageBanner.description || contact.heroSubtitle;
   const phone = contactData.contactPhone || '';
   const email = contactData.contactEmail || '';
   const address = contactData.address || '';
@@ -112,14 +121,18 @@ const ContactPage = () => {
   return (
     <div className="contact-page">
       {/* ─── Hero ─── */}
-      <section className="contact-hero">
-        <div className="contact-hero-bg" aria-hidden="true" />
-        <div className="contact-hero-overlay" />
+      <section className={`contact-hero${bannerLoading ? ' contact-hero--loading' : ''}`}>
+        <div
+          className="contact-hero-bg"
+          style={{ backgroundImage: `url('${getImageUrl(pageBanner.image)}')` }}
+          aria-hidden="true"
+        />
+        <div className="contact-hero-overlay" style={getBannerOverlayStyle(pageBanner)} />
         <div className="contact-page-shell contact-hero-inner">
           <div className="contact-hero-content">
-            <span className="contact-hero-badge">{contact.heroBadge}</span>
-            <h1>{contact.heroTitle}</h1>
-            <p className="contact-hero-subtitle">{contact.heroSubtitle}</p>
+            <span className="contact-hero-badge">{heroBadge}</span>
+            <h1>{heroTitle}</h1>
+            <p className="contact-hero-subtitle">{heroSubtitle}</p>
             <ul className="contact-hero-quick">
               <li>
                 <FiPhone aria-hidden="true" />

@@ -1,6 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { FiPlus, FiMinus, FiHelpCircle } from 'react-icons/fi';
 import faqService from '../services/faqService';
+import { getImageUrl } from '../services/api';
+import usePageBanner from '../hooks/usePageBanner';
+import { getBannerOverlayStyle } from '../utils/bannerOverlay';
 import { formatFaqQuestionLabel, sortFaqsByOrder } from '../utils/faqUtils';
 import './FAQPage.css';
 
@@ -15,6 +18,7 @@ const FAQPage = () => {
   const [faqs, setFaqs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openId, setOpenId] = useState(null);
+  const { banner: pageBanner, loading: bannerLoading } = usePageBanner('faq');
 
   const sortedFaqs = useMemo(() => sortFaqsByOrder(faqs), [faqs]);
 
@@ -41,15 +45,24 @@ const FAQPage = () => {
 
   return (
     <div className="faq-page">
-      <section className="faq-hero">
-        <div className="faq-hero-bg" aria-hidden="true" />
-        <div className="faq-hero-overlay" />
+      <section className={`faq-hero${bannerLoading ? ' faq-hero--loading' : ''}`}>
+        <div
+          className="faq-hero-bg"
+          style={{ backgroundImage: `url('${getImageUrl(pageBanner.image)}')` }}
+          aria-hidden="true"
+        />
+        <div className="faq-hero-overlay" style={getBannerOverlayStyle(pageBanner)} />
         <div className="container faq-hero-inner">
           <div className="faq-hero-copy">
-            <span className="faq-hero-badge">HELP CENTER</span>
-            <h1 className="faq-hero-heading">Frequently Asked Questions</h1>
+            <span className="faq-hero-badge">{pageBanner.badgeText || 'HELP CENTER'}</span>
+            <h1 className="faq-hero-heading">
+              {pageBanner.highlightText
+                ? `${pageBanner.mainHeading} ${pageBanner.highlightText}`.trim()
+                : pageBanner.mainHeading || 'Frequently Asked Questions'}
+            </h1>
             <p className="faq-hero-subtitle">
-              Find answers about our supermarket, products, food corner, and services.
+              {pageBanner.description ||
+                'Find answers about our supermarket, products, food corner, and services.'}
             </p>
           </div>
           <div className="faq-hero-art" aria-hidden="true">

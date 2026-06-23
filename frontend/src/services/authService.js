@@ -7,6 +7,41 @@ const USER_KEY = 'supermarket_user';
 const PERMISSIONS_KEY = 'supermarket_permissions';
 const REMEMBER_KEY = 'supermarket_remember_me';
 
+const isPersistedApiToken = (token) => {
+  if (!token || typeof token !== 'string') return false;
+  if (token.startsWith('mock_jwt_token_for_')) return false;
+  return token.split('.').length === 3;
+};
+
+const decodeJwtPayload = (token) => {
+  try {
+    const payloadPart = token.split('.')[1];
+    if (!payloadPart) return null;
+    const normalized = payloadPart.replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(atob(normalized));
+  } catch {
+    return null;
+  }
+};
+
+const isTokenExpired = (token) => {
+  const payload = decodeJwtPayload(token);
+  if (!payload?.exp) return false;
+  return payload.exp * 1000 <= Date.now();
+};
+
+const getUsableToken = () => {
+  const token = readAuthToken();
+  if (!token) return null;
+
+  if (!isPersistedApiToken(token) || isTokenExpired(token)) {
+    clearSession();
+    return null;
+  }
+
+  return token;
+};
+
 const normalizeAuthUser = (user) => {
   if (!user) return null;
   return {
@@ -50,11 +85,17 @@ const clearSession = () => {
 
 export const authService = {
   login: async (login, password, rememberMe = true) => {
+    clearSession();
+
     try {
       const response = await api.post('/auth/login', { email: login, password });
       const data = response.data;
       if (data?.token) {
         const normalizedUser = normalizeAuthUser(data.user);
+        const role = normalizeRole(normalizedUser?.role);
+        if (role !== 'admin' && role !== 'manager') {
+          throw new Error('Access Denied. You are not authorized to access the dashboard.');
+        }
         persistSession(data.token, normalizedUser, data.permissions || ['*'], rememberMe);
         return normalizedUser;
       }
@@ -76,6 +117,10 @@ export const authService = {
         );
         if (!user) {
           throw new Error('Invalid email or password');
+        }
+        const role = normalizeRole(user.role);
+        if (role !== 'admin' && role !== 'manager') {
+          throw new Error('Access Denied. You are not authorized to access the dashboard.');
         }
         const token = `mock_jwt_token_for_${user.role}`;
         persistSession(
@@ -102,7 +147,7 @@ export const authService = {
   },
 
   getCurrentUser: async () => {
-    const token = readAuthToken();
+    const token = getUsableToken();
     if (!token) {
       return null;
     }

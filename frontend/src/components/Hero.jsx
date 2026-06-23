@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaShoppingBasket, FaUtensils, FaArrowRight } from 'react-icons/fa';
+import { mergePageBanner } from '../constants/pageBannerDefaults';
+import { getBannerOverlayStyle } from '../utils/bannerOverlay';
 import bannerService from '../services/bannerService';
 import { getImageUrl } from '../services/api';
 import './Hero.css';
@@ -32,14 +34,10 @@ const Hero = () => {
     const fetchBanner = async () => {
       try {
         const data = await bannerService.getStorefrontBanner();
-        if (data && typeof data === 'object') {
-          setBanner(data);
-        } else {
-          setBanner(DEFAULT_BANNER);
-        }
+        setBanner(mergePageBanner('home', data));
       } catch (err) {
         console.error('Failed to fetch home banner', err);
-        setBanner(DEFAULT_BANNER);
+        setBanner(mergePageBanner('home', null));
       } finally {
         setLoading(false);
       }
@@ -51,28 +49,28 @@ const Hero = () => {
     return <section className="hero hero-loading" aria-hidden="true" />;
   }
 
-  const bannerData = banner || DEFAULT_BANNER;
+  const bannerData = banner || mergePageBanner('home', null);
 
-  const rawBackground = bannerData.backgroundImage || bannerData.image;
+  const rawBackground = bannerData.image || bannerData.backgroundImage;
   const bgImage = rawBackground
     ? getImageUrl(rawBackground)
     : getImageUrl(DEFAULT_BANNER.backgroundImage);
-  const headingLine1 = bannerData.headingLine1 || bannerData.title || DEFAULT_BANNER.headingLine1;
+  const headingLine1 = bannerData.mainHeading || bannerData.headingLine1 || DEFAULT_BANNER.headingLine1;
   const headingLine2 =
-    bannerData.headingLine2 || bannerData.highlightText || DEFAULT_BANNER.headingLine2;
+    bannerData.highlightText || bannerData.headingLine2 || DEFAULT_BANNER.headingLine2;
   const headingLine3 =
-    bannerData.headingLine3 || bannerData.titleLine2 || DEFAULT_BANNER.headingLine3;
+    bannerData.badgeText || bannerData.headingLine3 || DEFAULT_BANNER.headingLine3;
   const primaryLabel =
-    bannerData.primaryButtonLabel || bannerData.buttonText || DEFAULT_BANNER.primaryButtonLabel;
+    bannerData.button1Text || bannerData.primaryButtonLabel || DEFAULT_BANNER.primaryButtonLabel;
   const primaryLink =
-    bannerData.primaryButtonLink || bannerData.buttonLink || DEFAULT_BANNER.primaryButtonLink;
+    bannerData.button1Url || bannerData.primaryButtonLink || DEFAULT_BANNER.primaryButtonLink;
   const secondaryLabel =
+    bannerData.button2Text ||
     bannerData.secondaryButtonLabel ||
-    bannerData.buttonText2 ||
     DEFAULT_BANNER.secondaryButtonLabel;
   const secondaryLink =
+    bannerData.button2Url ||
     bannerData.secondaryButtonLink ||
-    bannerData.buttonLink2 ||
     DEFAULT_BANNER.secondaryButtonLink;
   const showOpenTimeCard = true;
 
@@ -82,10 +80,9 @@ const Hero = () => {
       id="home"
       style={bgImage ? { '--hero-photo': `url('${bgImage}')` } : undefined}
     >
-      <div className="hero-overlay" />
-      <div className="hero-content container">
-        <div className="hero-layout">
-          <div className="hero-text">
+      <div className="hero-overlay" style={getBannerOverlayStyle(bannerData)} />
+      <div className="hero-content">
+        <div className="hero-text left-hero-card">
             <h1 className="hero-title">
               <span className="hero-title-fresh">{headingLine1}</span>
               <span className="hero-highlight">{headingLine2}</span>
@@ -93,7 +90,7 @@ const Hero = () => {
               <span className="hero-title-accent" aria-hidden="true" />
             </h1>
             <p className="hero-subtitle">
-              {bannerData.subtitle || DEFAULT_BANNER.subtitle}
+              {bannerData.description || bannerData.subtitle || DEFAULT_BANNER.subtitle}
             </p>
             <div className="hero-buttons">
               <button
@@ -116,7 +113,7 @@ const Hero = () => {
           </div>
 
           {showOpenTimeCard !== false ? (
-            <div className="hero-timings-card">
+            <div className="hero-timings-card right-time-card">
               <h3 className="hero-timings-title">
                 {bannerData.cardTitle || bannerData.openTimeTitle || DEFAULT_BANNER.cardTitle}
               </h3>
@@ -153,7 +150,6 @@ const Hero = () => {
               </div>
             </div>
           ) : null}
-        </div>
       </div>
     </section>
   );

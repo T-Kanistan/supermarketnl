@@ -38,6 +38,7 @@ export const errorHandler = (err, req, res, next) => {
     statusCode = 400;
     if (err.code === 'LIMIT_FILE_SIZE') {
       message = req.originalUrl?.includes('home-banner') ||
+        req.originalUrl?.includes('/banner') ||
         req.originalUrl?.includes('announcement')
         ? 'Banner image file size must not exceed 5MB'
         : 'Image file size must not exceed 3MB';

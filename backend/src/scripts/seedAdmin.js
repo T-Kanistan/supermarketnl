@@ -1,16 +1,12 @@
-import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import connectMongo, { disconnectMongo } from '../config/mongo.js';
 import User from '../models/User.js';
 
-// Load environment variables
 dotenv.config();
 
 const seedAdmin = async () => {
   try {
-    const mongoUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/supermarket_db';
-    console.log(`Connecting to MongoDB at: ${mongoUri}`);
-    
-    await mongoose.connect(mongoUri);
+    await connectMongo();
     console.log('Database connected successfully for seeding.');
 
     const defaultAdmin = {
@@ -40,13 +36,14 @@ const seedAdmin = async () => {
       console.log('Password: Admin@123 (Change upon first login)');
     }
 
-    await mongoose.connection.close();
-    console.log('Database connection closed.');
+    await disconnectMongo();
     process.exit(0);
   } catch (error) {
     console.error(`Seeding error: ${error.message}`);
-    if (mongoose.connection.readyState !== 0) {
-      await mongoose.connection.close();
+    try {
+      await disconnectMongo();
+    } catch {
+      // ignore disconnect errors during failure cleanup
     }
     process.exit(1);
   }

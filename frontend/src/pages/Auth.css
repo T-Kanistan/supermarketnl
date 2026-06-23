@@ -151,6 +151,17 @@
   font-size: 1rem;
 }
 
+.auth-credentials-hint {
+  margin: 0 0 20px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  color: #0c4a6e;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
 /* Modern Form Elements */
 .modern-auth-form .form-group {
   margin-bottom: 20px;

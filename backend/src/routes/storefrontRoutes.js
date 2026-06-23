@@ -1,6 +1,6 @@
 import express from 'express';
 import { getStorefrontAnnouncements } from '../controllers/announcementController.js';
-import { getStorefrontHomeBanner } from '../controllers/homeBannerController.js';
+import { getStorefrontHomeBanner } from '../controllers/bannerController.js';
 import { getStorefrontHomepageAbout } from '../controllers/homepageAboutController.js';
 import { getStorefrontFaqs } from '../controllers/faqController.js';
 import { getStorefrontTestimonials } from '../controllers/testimonialController.js';

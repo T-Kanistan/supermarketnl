@@ -61,7 +61,7 @@ export const AdminDashboardLayout = () => {
     if (path.includes('/about-us')) return 'About Us Management';
     if (path.includes('/site-settings')) return 'CMS Settings';
     if (path.includes('/homepage-about')) return 'Homepage About Section';
-    if (path.includes('/banners')) return 'Home Banner';
+    if (path.includes('/banners')) return 'Banner Management';
     if (path.includes('/food-corner-categories')) return 'Food Corner Categories';
     if (path.includes('/categories')) return 'Catalog Categories';
     if (path.includes('/products') && new URLSearchParams(location.search).get('type') === 'food-corner') return 'Food Corner';
@@ -88,13 +88,15 @@ export const AdminDashboardLayout = () => {
         <FaGlobe className="sidebar-link-icon" />
         <span>Site Settings</span>
       </NavLink>
-      <NavLink to={dashboardPath('/banners')} className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
-        <FaImages className="sidebar-link-icon" />
-        <span>Home Banner</span>
-      </NavLink>
       <NavLink to={dashboardPath('/homepage-about')} className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
         <FaHome className="sidebar-link-icon" />
         <span>Homepage About Section</span>
+      </NavLink>
+
+      <div className="menu-section-title">Content Management</div>
+      <NavLink to={dashboardPath('/banners')} className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+        <FaImages className="sidebar-link-icon" />
+        <span>Banner Management</span>
       </NavLink>
 
       <div className="menu-section-title">Catalog</div>
@@ -207,10 +209,10 @@ export const AdminDashboardLayout = () => {
         <span>Job Applications</span>
       </NavLink>
 
-      <div className="menu-section-title">Content</div>
+      <div className="menu-section-title">Content Management</div>
       <NavLink to={dashboardPath('/banners')} className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
         <FaImages className="sidebar-link-icon" />
-        <span>Homepage Banner</span>
+        <span>Banner Management</span>
       </NavLink>
       <NavLink to={dashboardPath('/homepage-about')} className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
         <FaHome className="sidebar-link-icon" />

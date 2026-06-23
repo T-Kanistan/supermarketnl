@@ -6,10 +6,12 @@ import {
 } from '../controllers/productController.js';
 import { uploadAnnouncementBanner } from '../controllers/announcementController.js';
 import { uploadHomeBannerImage } from '../controllers/homeBannerController.js';
+import { uploadBannerImage } from '../controllers/bannerController.js';
 import { uploadHomepageAboutImage } from '../controllers/homepageAboutController.js';
 import { uploadTestimonialAvatar } from '../controllers/testimonialController.js';
 import { announcementBannerUpload } from '../middlewares/announcementUploadMiddleware.js';
 import { homeBannerUpload } from '../middlewares/homeBannerUploadMiddleware.js';
+import { bannerUpload } from '../middlewares/bannerUploadMiddleware.js';
 import { homepageAboutUpload } from '../middlewares/homepageAboutUploadMiddleware.js';
 import { testimonialAvatarUpload } from '../middlewares/testimonialUploadMiddleware.js';
 
@@ -40,6 +42,14 @@ router.post(
   restrictTo('admin', 'manager'),
   homeBannerUpload.single('image'),
   uploadHomeBannerImage
+);
+
+router.post(
+  '/banner',
+  protect,
+  restrictTo('admin', 'manager'),
+  bannerUpload.single('image'),
+  uploadBannerImage
 );
 
 router.post(

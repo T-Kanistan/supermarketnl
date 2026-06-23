@@ -71,8 +71,6 @@ const managerSchema = new mongoose.Schema(
   }
 );
 
-managerSchema.index({ email: 1 }, { unique: true });
-
 managerSchema.pre('save', function syncAccountStatus(next) {
   if (this.isModified('status') || this.isNew) {
     if (!this.status) {

@@ -28,11 +28,11 @@
 
 .fc-hero-bg {
   position: absolute;
-  inset: -6px;
+  inset: -12px;
   background-size: cover;
   background-position: center;
-  filter: blur(1.5px);
-  transform: scale(1.02);
+  filter: blur(5px) brightness(0.92);
+  transform: scale(1.04);
 }
 
 .fc-hero-overlay {

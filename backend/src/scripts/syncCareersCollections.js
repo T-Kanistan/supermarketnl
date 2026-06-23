@@ -2,20 +2,15 @@
  * MongoDB schema sync for vacancies and job applications.
  * Run: node src/scripts/syncCareersCollections.js
  */
-import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import connectMongo, { disconnectMongo } from '../config/mongo.js';
 import JobApplication, { APPLICATION_STATUS_LABELS } from '../models/JobApplication.js';
 import Vacancy from '../models/Vacancy.js';
 
 dotenv.config();
 
 const sync = async () => {
-  const uri = process.env.MONGO_URI || process.env.MONGODB_URI;
-  if (!uri) {
-    throw new Error('MONGO_URI is not configured');
-  }
-
-  await mongoose.connect(uri);
+  await connectMongo();
 
   await Vacancy.updateMany({ openDate: { $exists: false } }, [
     { $set: { openDate: '$createdAt' } },
@@ -28,10 +23,15 @@ const sync = async () => {
   }
 
   console.log('Careers collections synced successfully.');
-  await mongoose.disconnect();
+  await disconnectMongo();
 };
 
-sync().catch((error) => {
+sync().catch(async (error) => {
   console.error('Careers sync failed:', error);
+  try {
+    await disconnectMongo();
+  } catch {
+    // ignore
+  }
   process.exit(1);
 });

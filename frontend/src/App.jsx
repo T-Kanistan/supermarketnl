@@ -4,7 +4,8 @@ import { lazy, Suspense } from 'react';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import ScrollToTop from './components/ScrollToTop';
-import ProtectedRoute from './components/ProtectedRoute';
+import AdminRoute from './components/AdminRoute';
+import ManagerRoute from './components/ManagerRoute';
 import { dashboardChildRoutes } from './routes/dashboardChildRoutes';
 
 import { ToastProvider } from './context/ToastContext';
@@ -62,13 +63,15 @@ function App() {
                       <Route path="/admin" element={<Navigate to="/login" replace />} />
                       <Route path="/admin/" element={<Navigate to="/login" replace />} />
                       <Route path="/admin/login" element={<Navigate to="/login" replace />} />
+                      <Route path="/manager" element={<Navigate to="/login" replace />} />
+                      <Route path="/manager/" element={<Navigate to="/login" replace />} />
 
                       <Route
                         path="/admin/dashboard"
                         element={
-                          <ProtectedRoute allowedRoles={['admin']}>
+                          <AdminRoute>
                             <AdminDashboardLayout />
-                          </ProtectedRoute>
+                          </AdminRoute>
                         }
                       >
                         {dashboardChildRoutes}
@@ -77,9 +80,9 @@ function App() {
                       <Route
                         path="/manager/dashboard"
                         element={
-                          <ProtectedRoute allowedRoles={['manager']}>
+                          <ManagerRoute>
                             <AdminDashboardLayout />
-                          </ProtectedRoute>
+                          </ManagerRoute>
                         }
                       >
                         {dashboardChildRoutes}

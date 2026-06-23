@@ -1,14 +1,13 @@
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
+import connectMongo, { disconnectMongo } from '../config/mongo.js';
 
 dotenv.config();
 
 const NEW_IMG = '/images/premium_supermarket_hero.png';
 
 const run = async () => {
-  const uri =
-    process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/supermarket_db';
-  await mongoose.connect(uri);
+  await connectMongo();
 
   const res = await mongoose.connection.db.collection('aboutus').updateMany(
     {},
@@ -19,10 +18,15 @@ const run = async () => {
   const doc = await mongoose.connection.db.collection('aboutus').findOne({});
   console.log('Current story image:', doc?.storySection?.image || doc?.storyImage || '(none)');
 
-  await mongoose.disconnect();
+  await disconnectMongo();
 };
 
-run().catch((err) => {
+run().catch(async (err) => {
   console.error(err);
+  try {
+    await disconnectMongo();
+  } catch {
+    // ignore
+  }
   process.exit(1);
 });

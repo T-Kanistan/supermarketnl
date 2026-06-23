@@ -5,8 +5,11 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useCMS } from '../context/CMSContext';
 import { getImageUrl } from '../services/api';
-import { getDashboardHome } from '../constants/managerPermissions';
+import { normalizeRole } from '../constants/managerPermissions';
 import './Auth.css';
+
+const DASHBOARD_ACCESS_DENIED =
+  'Access Denied. You are not authorized to access the dashboard.';
 
 export const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -14,8 +17,9 @@ export const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [accessDenied, setAccessDenied] = useState(false);
 
-  const { login: signIn, user } = useAuth();
+  const { login: signIn, logout } = useAuth();
   const { addToast } = useToast();
   const { cmsData } = useCMS();
   const navigate = useNavigate();
@@ -31,23 +35,10 @@ export const LoginPage = () => {
     }
   }, [searchParams, addToast]);
 
-  useEffect(() => {
-    if (user) {
-      const home = getDashboardHome(user);
-      navigate(home, { replace: true });
-    }
-  }, [user, navigate]);
-
-  const resolveRedirectPath = (loggedUser) => {
-    const from = location.state?.from?.pathname;
-    if (from && from !== '/login' && !from.startsWith('/admin/login')) {
-      return from;
-    }
-    return getDashboardHome(loggedUser);
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setAccessDenied(false);
+
     if (!email.trim() || !password) {
       addToast('Please enter your email and password', 'error');
       return;
@@ -56,8 +47,35 @@ export const LoginPage = () => {
     setIsSubmitting(true);
     try {
       const loggedUser = await signIn(email.trim(), password, rememberMe);
+      const role = normalizeRole(loggedUser?.role);
+
+      if (role !== 'admin' && role !== 'manager') {
+        await logout();
+        setAccessDenied(true);
+        addToast(DASHBOARD_ACCESS_DENIED, 'error');
+        return;
+      }
+
       addToast(`Welcome back, ${loggedUser.name || loggedUser.fullName}!`, 'success');
-      navigate(resolveRedirectPath(loggedUser), { replace: true });
+
+      const from = location.state?.from?.pathname;
+      if (role === 'admin') {
+        if (from && from.startsWith('/admin/dashboard')) {
+          navigate(from, { replace: true });
+        } else {
+          navigate('/admin/dashboard', { replace: true });
+        }
+        return;
+      }
+
+      if (role === 'manager') {
+        if (from && from.startsWith('/manager/dashboard')) {
+          navigate(from, { replace: true });
+        } else {
+          navigate('/manager/dashboard', { replace: true });
+        }
+        return;
+      }
     } catch (err) {
       addToast(err.message || 'Invalid email or password', 'error');
     } finally {
@@ -105,16 +123,42 @@ export const LoginPage = () => {
               <p>Enter your credentials to access the dashboard.</p>
             </div>
 
+            {accessDenied ? (
+              <div
+                className="login-access-denied"
+                role="alert"
+                style={{
+                  marginBottom: '20px',
+                  padding: '14px 16px',
+                  borderRadius: '12px',
+                  background: '#fef2f2',
+                  border: '1px solid #fecaca',
+                  color: '#b91c1c',
+                  fontWeight: 600,
+                  lineHeight: 1.5,
+                }}
+              >
+                {DASHBOARD_ACCESS_DENIED}
+              </div>
+            ) : null}
+
+            {import.meta.env.DEV ? (
+              <p className="auth-credentials-hint">
+                Dev login: <strong>admin@winswereldwinkel.nl</strong> or{' '}
+                <strong>admin@store.com</strong> / <strong>Admin@123</strong>
+              </p>
+            ) : null}
+
             <form className="modern-auth-form" onSubmit={handleSubmit}>
               <div className="form-group">
-                <label htmlFor="email">Email</label>
+                <label htmlFor="email">Email Address</label>
                 <div className="input-with-icon">
                   <FaEnvelope className="input-icon" />
                   <input
                     type="email"
                     id="email"
                     name="email"
-                    placeholder="admin@store.com"
+                    placeholder="admin@winswereldwinkel.nl"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     autoComplete="email"

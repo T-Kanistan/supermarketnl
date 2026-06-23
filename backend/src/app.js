@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import path from 'path';
+import mongoose from 'mongoose';
 import authRoutes from './routes/authRoutes.js';
 import cmsRoutes from './routes/cmsRoutes.js';
 import bannerRoutes from './routes/bannerRoutes.js';
@@ -41,6 +43,12 @@ import { errorHandler } from './middlewares/errorMiddleware.js';
 
 const app = express();
 
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  })
+);
+
 const defaultCorsOrigins = [
   'http://localhost:5173',
   'http://127.0.0.1:5173',
@@ -58,11 +66,18 @@ const corsOrigins = new Set(
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || corsOrigins.has(origin) || origin.endsWith('.netlify.app')) {
+      if (
+        !origin ||
+        corsOrigins.has(origin) ||
+        origin.endsWith('.netlify.app') ||
+        origin.endsWith('.railway.app') ||
+        origin.endsWith('.up.railway.app')
+      ) {
         callback(null, true);
         return;
       }
-      callback(new Error(`CORS blocked for origin: ${origin}`));
+      console.warn(`[CORS] Blocked origin: ${origin}`);
+      callback(null, false);
     },
     credentials: true,
   })
@@ -118,11 +133,26 @@ app.use('/api/job-enquiries', jobEnquiryRoutes);
 app.use('/api/admin/job-enquiries', adminJobEnquiryRoutes);
 app.use('/api/manager/job-enquiries', managerJobEnquiryRoutes);
 
-// Base health-check route
+// Base health-check route (used by Railway/Render probes)
 app.get('/', (req, res) => {
+  const mongoState = mongoose.connection.readyState;
+  const mongoStatus =
+    mongoState === 1 ? 'connected' : mongoState === 2 ? 'connecting' : 'disconnected';
+
   res.status(200).json({
     success: true,
     message: 'Wins Wereld Winkel Supermarket API is running',
+    mongo: mongoStatus,
+    uptimeSeconds: Math.floor(process.uptime()),
+  });
+});
+
+app.get('/health', (req, res) => {
+  const mongoReady = mongoose.connection.readyState === 1;
+  res.status(mongoReady ? 200 : 503).json({
+    success: mongoReady,
+    mongo: mongoReady ? 'connected' : 'disconnected',
+    timestamp: new Date().toISOString(),
   });
 });
 
