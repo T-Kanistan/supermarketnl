@@ -1,22 +1,74 @@
 import express from 'express';
+
 import {
+
   getProducts,
+
   getAllProducts,
+
+  getFeaturedProducts,
+
+  getProductCategories,
+
+  getProduct,
+
   createProduct,
+
   updateProduct,
+
   deleteProduct,
+
+  uploadProductImage,
+
+  productImageUpload,
+
 } from '../controllers/productController.js';
-import { protect, restrictTo } from '../middlewares/authMiddleware.js';
+
+import { protect, restrictTo, adminOnly } from '../middlewares/authMiddleware.js';
+
 import { validateRequest } from '../middlewares/validationMiddleware.js';
-import { createProductRules, updateProductRules } from '../validators/productValidator.js';
+import { normalizeProductRequestBody } from '../middlewares/productRequestNormalizer.js';
+
+import {
+
+  createProductRules,
+
+  updateProductRules,
+
+  productIdRules,
+
+  productCategoriesQueryRules,
+
+} from '../validators/productValidator.js';
+
+
 
 const router = express.Router();
 
-router.get('/', getProducts);
-router.get('/all', protect, restrictTo('admin', 'manager'), getAllProducts);
+const auth = [protect, restrictTo('admin', 'manager')];
 
-router.post('/', protect, restrictTo('admin', 'manager'), createProductRules, validateRequest, createProduct);
-router.put('/:id', protect, restrictTo('admin', 'manager'), updateProductRules, validateRequest, updateProduct);
-router.delete('/:id', protect, restrictTo('admin', 'manager'), deleteProduct);
+
+
+router.get('/', getProducts);
+
+router.get('/featured', getFeaturedProducts);
+
+router.get('/categories', productCategoriesQueryRules, validateRequest, getProductCategories);
+
+router.get('/all', ...auth, getAllProducts);
+
+router.get('/:id', productIdRules, validateRequest, getProduct);
+
+
+
+router.post('/', ...auth, normalizeProductRequestBody, createProductRules, validateRequest, createProduct);
+
+router.put('/:id', ...auth, normalizeProductRequestBody, updateProductRules, validateRequest, updateProduct);
+
+router.delete('/:id', protect, adminOnly, productIdRules, validateRequest, deleteProduct);
+
+
 
 export default router;
+
+

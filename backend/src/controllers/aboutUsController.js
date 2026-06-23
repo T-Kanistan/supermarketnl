@@ -10,6 +10,15 @@ export const getAboutUs = async (req, res, next) => {
   }
 };
 
+export const getAboutUsAdmin = async (req, res, next) => {
+  try {
+    const data = await aboutUsService.getAboutUsAdmin();
+    return successResponse(res, 200, 'About Us admin CMS retrieved successfully', data);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const updateAboutUs = async (req, res, next) => {
   try {
     const data = await aboutUsService.updateAboutUs(req.body);
@@ -148,8 +157,120 @@ export const deleteStatistic = async (req, res, next) => {
   }
 };
 
+export const reorderStatistics = async (req, res, next) => {
+  try {
+    const data = await aboutUsService.reorderStatistics(req.body.orders);
+    return successResponse(res, 200, 'Statistics reordered successfully', data);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const uploadOfferImage = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'Offer image file is required' });
+    }
+    const data = await aboutUsService.uploadOfferImage(req.params.id, req.file);
+    return successResponse(res, 200, 'Offer image uploaded successfully', data);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getTimeline = async (req, res, next) => {
+  try {
+    const data = await aboutUsService.listTimeline(false);
+    return successResponse(res, 200, 'Timeline retrieved successfully', data);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const createTimelineItem = async (req, res, next) => {
+  try {
+    const data = await aboutUsService.createTimelineItem(req.body);
+    return successResponse(res, 201, 'Timeline item created successfully', data);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateTimelineItem = async (req, res, next) => {
+  try {
+    const data = await aboutUsService.updateTimelineItem(req.params.id, req.body);
+    return successResponse(res, 200, 'Timeline item updated successfully', data);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteTimelineItem = async (req, res, next) => {
+  try {
+    await aboutUsService.deleteTimelineItem(req.params.id);
+    return successResponse(res, 200, 'Timeline item deleted successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const reorderTimeline = async (req, res, next) => {
+  try {
+    const data = await aboutUsService.reorderTimeline(req.body.orders);
+    return successResponse(res, 200, 'Timeline reordered successfully', data);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getMvpCards = async (req, res, next) => {
+  try {
+    const data = await aboutUsService.listMvpCards(false);
+    return successResponse(res, 200, 'MVP cards retrieved successfully', data);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const createMvpCard = async (req, res, next) => {
+  try {
+    const data = await aboutUsService.createMvpCard(req.body);
+    return successResponse(res, 201, 'MVP card created successfully', data);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateMvpCard = async (req, res, next) => {
+  try {
+    const data = await aboutUsService.updateMvpCard(req.params.id, req.body);
+    return successResponse(res, 200, 'MVP card updated successfully', data);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteMvpCard = async (req, res, next) => {
+  try {
+    await aboutUsService.deleteMvpCard(req.params.id);
+    return successResponse(res, 200, 'MVP card deleted successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const reorderMvpCards = async (req, res, next) => {
+  try {
+    const data = await aboutUsService.reorderMvpCards(req.body.orders);
+    return successResponse(res, 200, 'MVP cards reordered successfully', data);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export default {
   getAboutUs,
+  getAboutUsAdmin,
   updateAboutUs,
   uploadHomepageImage,
   uploadHeroImage,
@@ -164,4 +285,16 @@ export default {
   createStatistic,
   updateStatistic,
   deleteStatistic,
+  reorderStatistics,
+  uploadOfferImage,
+  getTimeline,
+  createTimelineItem,
+  updateTimelineItem,
+  deleteTimelineItem,
+  reorderTimeline,
+  getMvpCards,
+  createMvpCard,
+  updateMvpCard,
+  deleteMvpCard,
+  reorderMvpCards,
 };

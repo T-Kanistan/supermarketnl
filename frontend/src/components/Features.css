@@ -1,14 +1,25 @@
+.features {
+  position: relative;
+  z-index: 3;
+  margin-top: -48px;
+  margin-bottom: 32px;
+}
+
+.features .container {
+  margin-left: auto;
+  margin-right: auto;
+}
+
 .features-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 20px;
   background: var(--white);
-  padding: 30px;
-  border-radius: 12px;
-  box-shadow: var(--shadow-lg);
-  margin-top: -80px; /* Overlap with hero section */
-  position: relative;
-  z-index: 10;
+  padding: 28px 30px;
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.12), 0 4px 16px rgba(15, 23, 42, 0.08);
+  margin: 0 auto;
+  max-width: 100%;
 }
 
 .feature-card {
@@ -48,24 +59,37 @@
 }
 
 @media (max-width: 1024px) {
+  .features {
+    margin-top: -40px;
+    margin-bottom: 28px;
+  }
+
   .features-grid {
     grid-template-columns: repeat(2, 1fr);
-    margin-top: -60px;
   }
+
   .feature-card:nth-child(2) {
     border-right: none;
   }
 }
 
 @media (max-width: 768px) {
+  .features {
+    margin-top: -32px;
+    margin-bottom: 24px;
+  }
+
   .features-grid {
     grid-template-columns: 1fr;
+    padding: 24px 20px;
   }
+
   .feature-card {
     border-right: none;
     border-bottom: 1px solid var(--border-color);
     padding: 20px 10px;
   }
+
   .feature-card:last-child {
     border-bottom: none;
   }

@@ -3,7 +3,7 @@ import {
   getContactSettings,
   updateContactSettings,
 } from '../controllers/contactSettingsController.js';
-import { protect, restrictTo } from '../middlewares/authMiddleware.js';
+import { protect, adminOnly } from '../middlewares/authMiddleware.js';
 import {
   updateContactSettingsRules,
   validateRequest,
@@ -16,7 +16,7 @@ router.get('/', getContactSettings);
 router.put(
   '/',
   protect,
-  restrictTo('admin', 'manager'),
+  adminOnly,
   updateContactSettingsRules,
   validateRequest,
   updateContactSettings

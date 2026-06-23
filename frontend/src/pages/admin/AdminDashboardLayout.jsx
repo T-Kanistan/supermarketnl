@@ -1,26 +1,38 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { 
-  FaChartBar, FaGlobe, FaImages, FaTags, FaBoxOpen, FaQuestionCircle, 
-  FaCommentDots, FaBullhorn, FaEnvelopeOpenText, FaUsers, FaUser, 
-  FaSignOutAlt, FaBars, FaTimes, FaExternalLinkAlt, FaHome
+import {
+  FaChartBar, FaGlobe, FaImages, FaTags, FaBoxOpen, FaQuestionCircle,
+  FaCommentDots, FaBullhorn, FaEnvelopeOpenText, FaUsers, FaUser,
+  FaSignOutAlt, FaBars, FaTimes, FaExternalLinkAlt, FaHome, FaUtensils,
+  FaKey, FaBriefcase,
 } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
+import AccessDenied from '../../components/AccessDenied';
+import { canManagerAccessRoute, getDashboardRouteSegment } from '../../constants/managerPermissions';
 import { useCMS } from '../../context/CMSContext';
 import { useToast } from '../../context/ToastContext';
 import { getImageUrl } from '../../services/api';
 import './AdminDashboardLayout.css';
 
 export const AdminDashboardLayout = () => {
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout, isManager, displayName } = useAuth();
   const { cmsData } = useCMS();
   const storeLogo = cmsData?.logo ? getImageUrl(cmsData.logo) : '/logo.png';
   const storeName = cmsData?.storeName || 'Supermarket';
   const { addToast } = useToast();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  
+  const contentBodyRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
+
+  const scrollDashboardToTop = () => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    contentBodyRef.current?.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  };
+
+  useEffect(() => {
+    scrollDashboardToTop();
+  }, [location.pathname, location.search]);
 
   const handleLogout = async () => {
     try {
@@ -35,27 +47,186 @@ export const AdminDashboardLayout = () => {
 
   const closeMobileMenu = () => setMobileMenuOpen(false);
 
-  // Map route pathname to human readable title in header
+  useEffect(() => {
+    if (location.pathname.includes('/food-corner-items')) {
+      navigate('/admin/dashboard/products?type=food-corner', { replace: true });
+    }
+  }, [location.pathname, navigate]);
+
   const getHeaderTitle = () => {
     const path = location.pathname;
-    if (path.endsWith('/dashboard')) return 'Overview Dashboard';
+    if (path.endsWith('/dashboard')) return isManager ? 'Manager Dashboard' : 'Overview Dashboard';
+    if (path.includes('/about-us')) return 'About Us Management';
     if (path.includes('/site-settings')) return 'CMS Settings';
     if (path.includes('/homepage-about')) return 'Homepage About Section';
     if (path.includes('/banners')) return 'Home Banner';
+    if (path.includes('/food-corner-categories')) return 'Food Corner Categories';
     if (path.includes('/categories')) return 'Catalog Categories';
+    if (path.includes('/products') && new URLSearchParams(location.search).get('type') === 'food-corner') return 'Food Corner';
     if (path.includes('/products')) return 'Catalog Products';
     if (path.includes('/faqs')) return 'FAQs Board';
     if (path.includes('/testimonials')) return 'Testimonials Board';
-    if (path.includes('/announcements')) return 'Announcements & Campaigns';
-    if (path.includes('/messages')) return 'Client Contact Enquiries';
+    if (path.includes('/announcements')) return 'Offers Management';
+    if (path.includes('/messages')) return 'Customer Enquiries';
+    if (path.includes('/vacancies')) return 'Vacancy Management';
+    if (path.includes('/job-applications')) return 'Job Applications';
     if (path.includes('/managers')) return 'Manager User Accounts';
     if (path.includes('/profile')) return 'My Account Settings';
-    return 'Admin Panel';
+    return isManager ? 'Manager Panel' : 'Admin Panel';
   };
+
+  const renderAdminSidebar = () => (
+    <>
+      <div className="menu-section-title">CMS Management</div>
+      <NavLink to="/admin/dashboard/about-us" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+        <FaGlobe className="sidebar-link-icon" />
+        <span>About Us Management</span>
+      </NavLink>
+      <NavLink to="/admin/dashboard/site-settings" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+        <FaGlobe className="sidebar-link-icon" />
+        <span>Site Settings</span>
+      </NavLink>
+      <NavLink to="/admin/dashboard/banners" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+        <FaImages className="sidebar-link-icon" />
+        <span>Home Banner</span>
+      </NavLink>
+      <NavLink to="/admin/dashboard/homepage-about" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+        <FaHome className="sidebar-link-icon" />
+        <span>Homepage About Section</span>
+      </NavLink>
+
+      <div className="menu-section-title">Catalog</div>
+      <NavLink to="/admin/dashboard/categories" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+        <FaTags className="sidebar-link-icon" />
+        <span>Categories</span>
+      </NavLink>
+      <NavLink to="/admin/dashboard/products" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+        <FaBoxOpen className="sidebar-link-icon" />
+        <span>Products</span>
+      </NavLink>
+
+      <div className="menu-section-title">Food Corner</div>
+      <NavLink to="/admin/dashboard/food-corner-categories" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+        <FaUtensils className="sidebar-link-icon" />
+        <span>Food Corner Categories</span>
+      </NavLink>
+      <NavLink
+        to="/admin/dashboard/products?type=food-corner"
+        className={({ active }) => `sidebar-link ${active ? 'active' : ''}`}
+        onClick={closeMobileMenu}
+      >
+        <FaUtensils className="sidebar-link-icon" />
+        <span>Food Corner Items</span>
+      </NavLink>
+
+      <div className="menu-section-title">Content</div>
+      <NavLink to="/admin/dashboard/faqs" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+        <FaQuestionCircle className="sidebar-link-icon" />
+        <span>FAQ</span>
+      </NavLink>
+      <NavLink to="/admin/dashboard/testimonials" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+        <FaCommentDots className="sidebar-link-icon" />
+        <span>Testimonials</span>
+      </NavLink>
+      <NavLink to="/admin/dashboard/announcements" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+        <FaBullhorn className="sidebar-link-icon" />
+        <span>Announcements</span>
+      </NavLink>
+
+      <div className="menu-section-title">Messages</div>
+      <NavLink to="/admin/dashboard/messages" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+        <FaEnvelopeOpenText className="sidebar-link-icon" />
+        <span>Contact Messages</span>
+      </NavLink>
+      <NavLink to="/admin/dashboard/vacancies" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+        <FaBriefcase className="sidebar-link-icon" />
+        <span>Vacancy Management</span>
+      </NavLink>
+      <NavLink to="/admin/dashboard/job-applications" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+        <FaBriefcase className="sidebar-link-icon" />
+        <span>Job Applications</span>
+      </NavLink>
+
+      <div className="menu-section-title">User Management</div>
+      <NavLink to="/admin/dashboard/managers" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+        <FaUsers className="sidebar-link-icon" />
+        <span>Managers</span>
+      </NavLink>
+    </>
+  );
+
+  const isFoodCornerProducts =
+    location.pathname.includes('/products') &&
+    new URLSearchParams(location.search).get('type') === 'food-corner';
+
+  const renderManagerSidebar = () => (
+    <>
+      <div className="menu-section-title">Catalog</div>
+      <NavLink
+        to="/admin/dashboard/products"
+        className={`sidebar-link ${location.pathname.includes('/products') && !isFoodCornerProducts ? 'active' : ''}`}
+        onClick={closeMobileMenu}
+      >
+        <FaBoxOpen className="sidebar-link-icon" />
+        <span>Products</span>
+      </NavLink>
+
+      <div className="menu-section-title">Food Corner</div>
+      <NavLink
+        to="/admin/dashboard/products?type=food-corner"
+        className={`sidebar-link ${isFoodCornerProducts ? 'active' : ''}`}
+        onClick={closeMobileMenu}
+      >
+        <FaUtensils className="sidebar-link-icon" />
+        <span>Food Corner Items</span>
+      </NavLink>
+
+      <div className="menu-section-title">Offers</div>
+      <NavLink to="/admin/dashboard/announcements" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+        <FaBullhorn className="sidebar-link-icon" />
+        <span>Offers Management</span>
+      </NavLink>
+      <NavLink to="/admin/dashboard/announcements" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+        <FaBullhorn className="sidebar-link-icon" />
+        <span>Announcements</span>
+      </NavLink>
+
+      <div className="menu-section-title">Messages</div>
+      <NavLink to="/admin/dashboard/messages" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+        <FaEnvelopeOpenText className="sidebar-link-icon" />
+        <span>Customer Enquiries</span>
+      </NavLink>
+      <NavLink to="/admin/dashboard/vacancies" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+        <FaBriefcase className="sidebar-link-icon" />
+        <span>Vacancy Management</span>
+      </NavLink>
+      <NavLink to="/admin/dashboard/job-applications" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+        <FaBriefcase className="sidebar-link-icon" />
+        <span>Job Applications</span>
+      </NavLink>
+
+      <div className="menu-section-title">Content</div>
+      <NavLink to="/admin/dashboard/banners" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+        <FaImages className="sidebar-link-icon" />
+        <span>Homepage Banner</span>
+      </NavLink>
+      <NavLink to="/admin/dashboard/homepage-about" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+        <FaHome className="sidebar-link-icon" />
+        <span>Homepage About Section</span>
+      </NavLink>
+      <NavLink to="/admin/dashboard/faqs" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+        <FaQuestionCircle className="sidebar-link-icon" />
+        <span>FAQ</span>
+      </NavLink>
+      <NavLink to="/admin/dashboard/testimonials" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+        <FaCommentDots className="sidebar-link-icon" />
+        <span>Testimonials</span>
+      </NavLink>
+    </>
+  );
 
   return (
     <div className="admin-layout">
-      {/* Sidebar Drawer */}
       <aside className={`admin-sidebar ${mobileMenuOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
           <img src={storeLogo} alt="Store Logo" className="sidebar-logo" onError={(e) => { e.target.src = '/logo.png'; }} />
@@ -68,92 +239,46 @@ export const AdminDashboardLayout = () => {
             <span>Dashboard</span>
           </NavLink>
 
-          <div className="menu-section-title">CMS Management</div>
-          <NavLink to="/admin/dashboard/site-settings" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
-            <FaGlobe className="sidebar-link-icon" />
-            <span>Site Settings</span>
-          </NavLink>
-          <NavLink to="/admin/dashboard/banners" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
-            <FaImages className="sidebar-link-icon" />
-            <span>Home Banner</span>
-          </NavLink>
-          <NavLink to="/admin/dashboard/homepage-about" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
-            <FaHome className="sidebar-link-icon" />
-            <span>Homepage About Section</span>
-          </NavLink>
-
-          <div className="menu-section-title">Catalog</div>
-          <NavLink to="/admin/dashboard/categories" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
-            <FaTags className="sidebar-link-icon" />
-            <span>Categories</span>
-          </NavLink>
-          <NavLink to="/admin/dashboard/products" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
-            <FaBoxOpen className="sidebar-link-icon" />
-            <span>Products</span>
-          </NavLink>
-
-          <div className="menu-section-title">Content</div>
-          <NavLink to="/admin/dashboard/faqs" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
-            <FaQuestionCircle className="sidebar-link-icon" />
-            <span>FAQ</span>
-          </NavLink>
-          <NavLink to="/admin/dashboard/testimonials" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
-            <FaCommentDots className="sidebar-link-icon" />
-            <span>Testimonials</span>
-          </NavLink>
-          <NavLink to="/admin/dashboard/announcements" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
-            <FaBullhorn className="sidebar-link-icon" />
-            <span>Announcements</span>
-          </NavLink>
-
-          <div className="menu-section-title">Messages</div>
-          <NavLink to="/admin/dashboard/messages" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
-            <FaEnvelopeOpenText className="sidebar-link-icon" />
-            <span>Contact Messages</span>
-          </NavLink>
-
-          {isAdmin && (
-            <>
-              <div className="menu-section-title">User Management</div>
-              <NavLink to="/admin/dashboard/managers" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
-                <FaUsers className="sidebar-link-icon" />
-                <span>Managers</span>
-              </NavLink>
-            </>
-          )}
+          {isManager ? renderManagerSidebar() : renderAdminSidebar()}
 
           <div className="menu-section-title">Account</div>
           <NavLink to="/admin/dashboard/profile" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
             <FaUser className="sidebar-link-icon" />
             <span>My Profile</span>
           </NavLink>
+          <NavLink to="/admin/dashboard/change-password" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+            <FaKey className="sidebar-link-icon" />
+            <span>Change Password</span>
+          </NavLink>
+          <button type="button" className="sidebar-link" onClick={handleLogout} style={{ border: 'none', background: 'transparent', width: '100%', cursor: 'pointer', textAlign: 'left' }}>
+            <FaSignOutAlt className="sidebar-link-icon" />
+            <span>Logout</span>
+          </button>
         </nav>
 
-        {/* Sidebar Footer User Info */}
         <div className="sidebar-footer">
           <div className="sidebar-user-card">
             <div className="user-avatar-placeholder">
-              {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+              {displayName ? displayName.charAt(0).toUpperCase() : 'U'}
             </div>
             <div className="user-info">
-              <span className="user-name">{user?.name || 'User Account'}</span>
-              <span className="user-role">{user?.role || 'Staff'}</span>
+              <span className="user-name">{displayName || 'User Account'}</span>
+              <span className="user-role">{user?.displayRole || user?.role || 'Staff'}</span>
             </div>
-            <button className="logout-btn-sidebar" onClick={handleLogout} title="Sign Out">
+            <button type="button" className="logout-btn-sidebar" onClick={handleLogout} title="Sign Out">
               <FaSignOutAlt />
             </button>
           </div>
         </div>
       </aside>
 
-      {/* Main Panel Content Area */}
       <main className="admin-main">
-        {/* Header */}
         <header className="admin-header">
           <div className="header-title-area">
-            <button 
-              className="menu-toggle-btn" 
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)} 
+            <button
+              type="button"
+              className="menu-toggle-btn"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label="Toggle Navigation Drawer"
             >
               {mobileMenuOpen ? <FaTimes /> : <FaBars />}
@@ -169,9 +294,12 @@ export const AdminDashboardLayout = () => {
           </div>
         </header>
 
-        {/* Dynamic Nested Route Rendering */}
-        <div className="admin-content-body">
-          <Outlet />
+        <div className="admin-content-body" ref={contentBodyRef}>
+          {isManager && !canManagerAccessRoute(getDashboardRouteSegment(location.pathname)) ? (
+            <AccessDenied />
+          ) : (
+            <Outlet />
+          )}
         </div>
       </main>
     </div>

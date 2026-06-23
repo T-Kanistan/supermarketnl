@@ -28,7 +28,7 @@ const Header = () => {
   const handleEnquiryClick = (e) => {
     e.preventDefault();
     closeMobileMenu();
-    openEnquiry();
+    openEnquiry({ enquirySource: 'general' });
   };
 
   const handleSearchSubmit = (e) => {
@@ -63,10 +63,20 @@ const Header = () => {
               <li><Link to="/products" onClick={closeMobileMenu} className={`nav-link ${path === '/products' ? 'active' : ''}`}>Products</Link></li>
               <li><Link to="/food-corner" onClick={closeMobileMenu} className={`nav-link ${path === '/food-corner' ? 'active' : ''}`}>Food Corner</Link></li>
               <li><Link to="/offers" onClick={closeMobileMenu} className={`nav-link ${path === '/offers' ? 'active' : ''}`}>Offers</Link></li>
+              <li><Link to="/vacancies" onClick={closeMobileMenu} className={`nav-link ${path === '/vacancies' ? 'active' : ''}`}>Vacancies</Link></li>
               <li><Link to="/about" onClick={closeMobileMenu} className={`nav-link ${path === '/about' ? 'active' : ''}`}>About Us</Link></li>
               <li><Link to="/faq" onClick={closeMobileMenu} className={`nav-link ${path === '/faq' ? 'active' : ''}`}>FAQ</Link></li>
               <li><Link to="/contact" onClick={closeMobileMenu} className={`nav-link ${path === '/contact' ? 'active' : ''}`}>Contact Us</Link></li>
-              <li className="mobile-only-link"><button type="button" onClick={handleEnquiryClick} className="nav-link nav-link-btn">Enquiry</button></li>
+              <li className="mobile-only-link">
+                <button type="button" onClick={handleEnquiryClick} className="nav-link nav-link-btn">
+                  Enquiry Now
+                </button>
+              </li>
+              {!user && (
+                <li className="mobile-only-link">
+                  <Link to="/admin/login" onClick={closeMobileMenu} className="nav-link">Login</Link>
+                </li>
+              )}
             </ul>
           </nav>
 
@@ -93,9 +103,19 @@ const Header = () => {
             )}
             <div className="auth-buttons">
               {user ? (
-                <Link to="/admin/dashboard" className="auth-nav-btn" style={{ background: 'var(--dark-blue)', color: 'white', marginRight: '8px' }}>Dashboard</Link>
-              ) : null}
-              <button type="button" onClick={handleEnquiryClick} className="auth-nav-btn">Enquiry</button>
+                <Link to="/admin/dashboard" className="auth-nav-btn auth-nav-login">Dashboard</Link>
+              ) : (
+                <Link to="/admin/login" className="auth-nav-btn auth-nav-login" onClick={closeMobileMenu}>
+                  Login
+                </Link>
+              )}
+              <button
+                type="button"
+                className="auth-nav-btn auth-nav-apply"
+                onClick={handleEnquiryClick}
+              >
+                Enquiry Now
+              </button>
             </div>
             
             <button className="mobile-menu-btn" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} aria-label="Toggle Menu">

@@ -261,6 +261,16 @@
   font-size: 1.2rem;
 }
 
+.enquiry-btn-cancel {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+
+.enquiry-btn-cancel:hover {
+  background: #e2e8f0;
+}
+
 .enquiry-success {
   text-align: center;
   padding: 48px 24px;

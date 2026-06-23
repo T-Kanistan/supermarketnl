@@ -1,163 +1,110 @@
-import Testimonial from '../models/Testimonial.js';
-import { handleImageUpload, handleBase64Upload } from '../middlewares/uploadMiddleware.js';
+import * as testimonialService from '../services/testimonialService.js';
+import { getTestimonialAvatarPublicPath } from '../middlewares/testimonialUploadMiddleware.js';
 
-/**
- * @desc    Get Active Testimonials (Public)
- * @route   GET /api/testimonials
- * @access  Public
- */
+const handleServiceError = (error, res, next) => {
+  if (error.statusCode) {
+    return res.status(error.statusCode).json({ success: false, message: error.message });
+  }
+  return next(error);
+};
+
+export const getStorefrontTestimonials = async (req, res, next) => {
+  try {
+    const data = await testimonialService.getStorefrontTestimonials();
+    return res.status(200).json({ success: true, count: data.length, data });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 export const getTestimonials = async (req, res, next) => {
   try {
-    const testimonials = await Testimonial.find({ status: 'active' }).sort({ createdAt: -1 });
-    res.status(200).json({
-      success: true,
-      count: testimonials.length,
-      data: testimonials,
-    });
+    const data = await testimonialService.listTestimonials();
+    return res.status(200).json({ success: true, count: data.length, data });
   } catch (error) {
-    next(error);
+    return next(error);
   }
 };
 
-/**
- * @desc    Get All Testimonials (Admin/Manager)
- * @route   GET /api/testimonials/all
- * @access  Private (Admin / Manager)
- */
-export const getAllTestimonials = async (req, res, next) => {
+export const getAllTestimonials = getTestimonials;
+
+export const searchTestimonials = async (req, res, next) => {
   try {
-    const testimonials = await Testimonial.find().sort({ createdAt: -1 });
-    res.status(200).json({
-      success: true,
-      count: testimonials.length,
-      data: testimonials,
-    });
+    const data = await testimonialService.searchTestimonials(req.query.q || req.query.search);
+    return res.status(200).json({ success: true, count: data.length, data });
   } catch (error) {
-    next(error);
+    return next(error);
   }
 };
 
-/**
- * @desc    Get Single Testimonial By ID
- * @route   GET /api/testimonials/:id
- * @access  Private (Admin / Manager)
- */
 export const getTestimonialById = async (req, res, next) => {
   try {
-    const testimonial = await Testimonial.findById(req.params.id);
-    if (!testimonial) {
-      return res.status(404).json({
-        success: false,
-        message: 'Testimonial not found',
-      });
-    }
-    res.status(200).json({
-      success: true,
-      data: testimonial,
-    });
+    const data = await testimonialService.getTestimonialById(req.params.id);
+    return res.status(200).json({ success: true, data });
   } catch (error) {
-    next(error);
+    return handleServiceError(error, res, next);
   }
 };
 
-/**
- * @desc    Create Testimonial
- * @route   POST /api/testimonials
- * @access  Private (Admin / Manager)
- */
 export const createTestimonial = async (req, res, next) => {
   try {
-    const { customerName, rating, review, status } = req.body;
-
-    let imageUrl = '';
+    const body = { ...req.body };
     if (req.file) {
-      imageUrl = await handleImageUpload(req.file);
-    } else if (req.body.image) {
-      imageUrl = await handleBase64Upload(req.body.image);
+      body.avatarImage = getTestimonialAvatarPublicPath(req.file.filename);
     }
 
-    const testimonial = await Testimonial.create({
-      customerName,
-      image: imageUrl,
-      rating,
-      review,
-      status,
-    });
-
-    res.status(201).json({
+    const data = await testimonialService.createTestimonial(body, req.user);
+    return res.status(201).json({
       success: true,
       message: 'Testimonial created successfully',
-      data: testimonial,
+      data,
     });
   } catch (error) {
-    next(error);
+    return handleServiceError(error, res, next);
   }
 };
 
-/**
- * @desc    Update Testimonial
- * @route   PUT /api/testimonials/:id
- * @access  Private (Admin / Manager)
- */
 export const updateTestimonial = async (req, res, next) => {
   try {
-    const { customerName, rating, review, status } = req.body;
-    const testimonial = await Testimonial.findById(req.params.id);
-
-    if (!testimonial) {
-      return res.status(404).json({
-        success: false,
-        message: 'Testimonial not found',
-      });
-    }
-
-    if (customerName !== undefined) testimonial.customerName = customerName;
-    if (rating !== undefined) testimonial.rating = rating;
-    if (review !== undefined) testimonial.review = review;
-    if (status !== undefined) testimonial.status = status;
-
+    const body = { ...req.body };
     if (req.file) {
-      const imageUrl = await handleImageUpload(req.file);
-      if (imageUrl) {
-        testimonial.image = imageUrl;
-      }
-    } else if (req.body.image !== undefined) {
-      testimonial.image = await handleBase64Upload(req.body.image);
+      body.avatarImage = getTestimonialAvatarPublicPath(req.file.filename);
     }
 
-    await testimonial.save();
-
-    res.status(200).json({
+    const data = await testimonialService.updateTestimonial(req.params.id, body, req.user);
+    return res.status(200).json({
       success: true,
       message: 'Testimonial updated successfully',
-      data: testimonial,
+      data,
     });
   } catch (error) {
-    next(error);
+    return handleServiceError(error, res, next);
   }
 };
 
-/**
- * @desc    Delete Testimonial
- * @route   DELETE /api/testimonials/:id
- * @access  Private (Admin / Manager)
- */
 export const deleteTestimonial = async (req, res, next) => {
   try {
-    const testimonial = await Testimonial.findByIdAndDelete(req.params.id);
-
-    if (!testimonial) {
-      return res.status(404).json({
-        success: false,
-        message: 'Testimonial not found',
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      message: 'Testimonial deleted successfully',
-    });
+    await testimonialService.softDeleteTestimonial(req.params.id, req.user);
+    return res.status(200).json({ success: true, message: 'Testimonial deleted successfully' });
   } catch (error) {
-    next(error);
+    return handleServiceError(error, res, next);
   }
 };
+
+export const uploadTestimonialAvatar = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'Avatar image file is required' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      imageUrl: getTestimonialAvatarPublicPath(req.file.filename),
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// Legacy public endpoint
+export const getPublicTestimonials = getStorefrontTestimonials;

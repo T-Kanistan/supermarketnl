@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import connectMongo from './config/mongo.js';
 import app from './app.js';
+import { startAnnouncementExpiryJob } from './jobs/announcementExpiryJob.js';
 
 // Handle Uncaught Exceptions
 process.on('uncaughtException', (err) => {
@@ -19,6 +20,7 @@ const startServer = async () => {
 
   const server = app.listen(PORT, () => {
     console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+    startAnnouncementExpiryJob();
   });
 
   process.on('unhandledRejection', (err) => {

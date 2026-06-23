@@ -24,6 +24,120 @@ const needsMigration = (raw) => {
   return Boolean(hasLegacy && nestedEmpty);
 };
 
+const sortByDisplayOrder = (items = []) =>
+  [...items].sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+
+const isVisibleItem = (item) => item.isActive !== false && item.isDeleted !== true;
+
+const mapTimelineToApi = (item) => ({
+  id: item._id,
+  marker: item.marker,
+  title: item.title,
+  description: item.description || '',
+  icon: item.icon || 'FiCalendar',
+  displayOrder: item.displayOrder ?? 0,
+  isActive: item.isActive !== false,
+  isDeleted: item.isDeleted === true,
+  createdAt: item.createdAt,
+  updatedAt: item.updatedAt,
+});
+
+const mapMvpCardToApi = (card) => ({
+  id: card._id,
+  title: card.title,
+  icon: card.icon || 'FiTarget',
+  description: card.description || '',
+  displayOrder: card.displayOrder ?? 0,
+  isActive: card.isActive !== false,
+  isDeleted: card.isDeleted === true,
+  createdAt: card.createdAt,
+  updatedAt: card.updatedAt,
+});
+
+const mapOfferToApi = (offer) => ({
+  id: offer._id,
+  categoryName: offer.categoryName,
+  description: offer.description,
+  imageUrl: offer.imageUrl || '',
+  displayOrder: offer.displayOrder ?? 0,
+  isActive: offer.isActive !== false,
+  isDeleted: offer.isDeleted === true,
+  createdAt: offer.createdAt,
+  updatedAt: offer.updatedAt,
+});
+
+const mapStatisticToApi = (stat) => ({
+  id: stat._id,
+  value: stat.value ?? 0,
+  suffix: stat.suffix || '',
+  label: stat.label || '',
+  icon: stat.icon || 'FiUsers',
+  displayOrder: stat.displayOrder ?? 0,
+  isActive: stat.isActive !== false,
+  isDeleted: stat.isDeleted === true,
+  createdAt: stat.createdAt,
+  updatedAt: stat.updatedAt,
+});
+
+const buildMvpCardsFromLegacy = (mvp = {}) => [
+  {
+    title: mvp.missionTitle || 'Our Mission',
+    icon: 'FiTarget',
+    description: mvp.missionDescription || '',
+    displayOrder: 1,
+    isActive: true,
+  },
+  {
+    title: mvp.visionTitle || 'Our Vision',
+    icon: 'FiEye',
+    description: mvp.visionDescription || '',
+    displayOrder: 2,
+    isActive: true,
+  },
+  {
+    title: mvp.promiseTitle || 'Our Promise',
+    icon: 'FiHeart',
+    description: mvp.promiseDescription || '',
+    displayOrder: 3,
+    isActive: true,
+  },
+];
+
+const seedMissingSections = async (doc) => {
+  const defaults = getDefaultAboutCMS();
+  let changed = false;
+
+  if (!doc.storyTimeline?.length) {
+    doc.storyTimeline = defaults.storyTimeline;
+    changed = true;
+  }
+  if (!doc.mvpCards?.length) {
+    doc.mvpCards = buildMvpCardsFromLegacy(doc.missionVisionPromise?.toObject?.() || doc.missionVisionPromise);
+    changed = true;
+  }
+  if (!doc.heroSection?.descriptionParagraphs?.length) {
+    const hero = doc.heroSection?.toObject?.() || doc.heroSection || {};
+    doc.heroSection = {
+      ...hero,
+      descriptionParagraphs: defaults.heroSection.descriptionParagraphs,
+      button1Text: hero.button1Text || defaults.heroSection.button1Text,
+      button1Url: hero.button1Url || defaults.heroSection.button1Url,
+      button2Text: hero.button2Text || defaults.heroSection.button2Text,
+      button2Url: hero.button2Url || defaults.heroSection.button2Url,
+      displayOrder: hero.displayOrder ?? 1,
+      isActive: hero.isActive !== false,
+    };
+    changed = true;
+  }
+
+  if (changed) {
+    doc.markModified('storyTimeline');
+    doc.markModified('mvpCards');
+    doc.markModified('heroSection');
+    await doc.save();
+  }
+};
+
 const ensureAboutUs = async () => {
   let doc = await AboutUsCMS.findOne();
 
@@ -49,40 +163,22 @@ const ensureAboutUs = async () => {
     await doc.save();
   }
 
+  await seedMissingSections(doc);
+
   return doc;
 };
 
-const sortByDisplayOrder = (items = []) =>
-  [...items].sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+export const mapDocToApi = (doc, { activeOnly = false } = {}) => {
+  const filterList = (items) =>
+    activeOnly ? sortByDisplayOrder(items).filter(isVisibleItem) : sortByDisplayOrder(items);
 
-const mapOfferToApi = (offer) => ({
-  id: offer._id,
-  categoryName: offer.categoryName,
-  description: offer.description,
-  imageUrl: offer.imageUrl || '',
-  displayOrder: offer.displayOrder ?? 0,
-  isActive: offer.isActive !== false,
-  createdAt: offer.createdAt,
-  updatedAt: offer.updatedAt,
-});
+  const timeline = filterList(doc.storyTimeline || []);
+  const mvpCards = filterList(doc.mvpCards || []);
+  const offers = filterList(doc.whatWeOffer || []);
+  const statistics = filterList(doc.statistics || []);
 
-const mapStatisticToApi = (stat) => ({
-  id: stat._id,
-  value: stat.value ?? 0,
-  suffix: stat.suffix || '',
-  label: stat.label || '',
-  displayOrder: stat.displayOrder ?? 0,
-  createdAt: stat.createdAt,
-  updatedAt: stat.updatedAt,
-});
-
-export const mapDocToApi = (doc, { activeOffersOnly = false } = {}) => {
-  const offers = sortByDisplayOrder(doc.whatWeOffer || []);
-  const statistics = sortByDisplayOrder(doc.statistics || []);
-
-  const filteredOffers = activeOffersOnly
-    ? offers.filter((offer) => offer.isActive !== false)
-    : offers;
+  const hero = doc.heroSection?.toObject?.() || doc.heroSection || {};
+  const owner = doc.ownerDetails?.toObject?.() || doc.ownerDetails || {};
 
   return {
     id: doc._id,
@@ -93,18 +189,26 @@ export const mapDocToApi = (doc, { activeOffersOnly = false } = {}) => {
       image: doc.homepageAboutSection?.image || '',
     },
     heroSection: {
-      eyebrowTag: doc.heroSection?.eyebrowTag || '',
-      pageHeading: doc.heroSection?.pageHeading || '',
-      highlightedWord: doc.heroSection?.highlightedWord || '',
-      description: doc.heroSection?.description || '',
-      imageBadgeText: doc.heroSection?.imageBadgeText || '',
-      heroImage: doc.heroSection?.heroImage || '',
+      eyebrowTag: hero.eyebrowTag || '',
+      pageHeading: hero.pageHeading || '',
+      highlightedWord: hero.highlightedWord || '',
+      description: hero.description || '',
+      descriptionParagraphs: hero.descriptionParagraphs || [],
+      button1Text: hero.button1Text || 'Explore Products',
+      button1Url: hero.button1Url || '/products',
+      button2Text: hero.button2Text || 'Contact Us',
+      button2Url: hero.button2Url || '/contact',
+      imageBadgeText: hero.imageBadgeText || '',
+      heroImage: hero.heroImage || '',
+      displayOrder: hero.displayOrder ?? 1,
+      isActive: hero.isActive !== false,
     },
     storySection: {
       title: doc.storySection?.title || '',
       description: doc.storySection?.description || '',
       image: doc.storySection?.image || '',
     },
+    storyTimeline: timeline.map(mapTimelineToApi),
     missionVisionPromise: {
       missionTitle: doc.missionVisionPromise?.missionTitle || '',
       missionDescription: doc.missionVisionPromise?.missionDescription || '',
@@ -113,16 +217,20 @@ export const mapDocToApi = (doc, { activeOffersOnly = false } = {}) => {
       promiseTitle: doc.missionVisionPromise?.promiseTitle || '',
       promiseDescription: doc.missionVisionPromise?.promiseDescription || '',
     },
-    whatWeOffer: filteredOffers.map(mapOfferToApi),
+    mvpCards: mvpCards.map(mapMvpCardToApi),
+    whatWeOffer: offers.map(mapOfferToApi),
     statistics: statistics.map(mapStatisticToApi),
     ownerDetails: {
-      ownerPhoto: doc.ownerDetails?.ownerPhoto || '',
-      ownerName: doc.ownerDetails?.ownerName || '',
-      designation: doc.ownerDetails?.designation || '',
-      phoneNumber: doc.ownerDetails?.phoneNumber || '',
-      location: doc.ownerDetails?.location || '',
-      badgeText: doc.ownerDetails?.badgeText || '',
-      ownerQuote: doc.ownerDetails?.ownerQuote || '',
+      ownerPhoto: owner.ownerPhoto || '',
+      ownerName: owner.ownerName || '',
+      designation: owner.designation || '',
+      phoneNumber: owner.phoneNumber || '',
+      location: owner.location || '',
+      badgeText: owner.badgeText || '',
+      ownerQuote: owner.ownerQuote || '',
+      sinceYear: owner.sinceYear || '2022',
+      experienceText: owner.experienceText || '',
+      isActive: owner.isActive !== false,
     },
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
@@ -252,6 +360,41 @@ const applyNestedUpdate = (doc, body) => {
     doc.markModified('ownerDetails');
   }
 
+  if (Array.isArray(body.storyTimeline)) {
+    doc.storyTimeline = body.storyTimeline.map((item, index) => {
+      const entry = {
+        marker: item.marker,
+        title: item.title,
+        description: item.description || '',
+        icon: item.icon || 'FiCalendar',
+        displayOrder: item.displayOrder ?? index + 1,
+        isActive: item.isActive !== false,
+        isDeleted: item.isDeleted === true,
+      };
+      const itemId = item.id || item._id;
+      if (itemId && mongoose.Types.ObjectId.isValid(itemId)) entry._id = itemId;
+      return entry;
+    });
+    doc.markModified('storyTimeline');
+  }
+
+  if (Array.isArray(body.mvpCards)) {
+    doc.mvpCards = body.mvpCards.map((card, index) => {
+      const entry = {
+        title: card.title,
+        icon: card.icon || 'FiTarget',
+        description: card.description || '',
+        displayOrder: card.displayOrder ?? index + 1,
+        isActive: card.isActive !== false,
+        isDeleted: card.isDeleted === true,
+      };
+      const cardId = card.id || card._id;
+      if (cardId && mongoose.Types.ObjectId.isValid(cardId)) entry._id = cardId;
+      return entry;
+    });
+    doc.markModified('mvpCards');
+  }
+
   if (Array.isArray(body.whatWeOffer)) {
     doc.whatWeOffer = body.whatWeOffer.map((offer, index) => {
       const item = {
@@ -260,6 +403,7 @@ const applyNestedUpdate = (doc, body) => {
         imageUrl: offer.imageUrl || '',
         displayOrder: offer.displayOrder ?? index + 1,
         isActive: offer.isActive !== false,
+        isDeleted: offer.isDeleted === true,
       };
       const offerId = offer.id || offer._id;
       if (offerId && mongoose.Types.ObjectId.isValid(offerId)) {
@@ -276,7 +420,10 @@ const applyNestedUpdate = (doc, body) => {
         value: Number(stat.value) || 0,
         suffix: stat.suffix || '',
         label: stat.label || '',
+        icon: stat.icon || 'FiUsers',
         displayOrder: stat.displayOrder ?? index + 1,
+        isActive: stat.isActive !== false,
+        isDeleted: stat.isDeleted === true,
       };
       const statId = stat.id || stat._id;
       if (statId && mongoose.Types.ObjectId.isValid(statId)) {
@@ -300,12 +447,12 @@ const getImageUrlFromDoc = (doc, type) => {
 
 export const getAboutUs = async () => {
   const doc = await ensureAboutUs();
-  return mapDocToApi(doc, { activeOffersOnly: true });
+  return mapDocToApi(doc, { activeOnly: true });
 };
 
 export const getAboutUsAdmin = async () => {
   const doc = await ensureAboutUs();
-  return mapDocToApi(doc, { activeOffersOnly: false });
+  return mapDocToApi(doc, { activeOnly: false });
 };
 
 export const updateAboutUs = async (body) => {
@@ -316,7 +463,7 @@ export const updateAboutUs = async (body) => {
   applyNestedUpdate(doc, payload);
   await doc.save();
 
-  return mapDocToApi(doc, { activeOffersOnly: false });
+  return mapDocToApi(doc, { activeOnly: false });
 };
 
 export const uploadAboutImage = async (type, file) => {
@@ -340,7 +487,7 @@ export const uploadAboutImage = async (type, file) => {
 
   return {
     imageUrl,
-    cms: mapDocToApi(updated, { activeOffersOnly: false }),
+    cms: mapDocToApi(updated, { activeOnly: false }),
   };
 };
 
@@ -392,7 +539,7 @@ export const updateOffer = async (id, body) => {
   return mapOfferToApi(offer);
 };
 
-export const deleteOffer = async (id) => {
+export const deleteOffer = async (id, { soft = true } = {}) => {
   const doc = await ensureAboutUs();
   const offer = doc.whatWeOffer.id(id);
   if (!offer) {
@@ -401,7 +548,12 @@ export const deleteOffer = async (id) => {
     throw error;
   }
 
-  offer.deleteOne();
+  if (soft) {
+    offer.isDeleted = true;
+    offer.isActive = false;
+  } else {
+    offer.deleteOne();
+  }
   await doc.save();
 };
 
@@ -435,7 +587,9 @@ export const createStatistic = async (body) => {
     value: Number(body.value) || 0,
     suffix: body.suffix || '',
     label: body.label || '',
+    icon: body.icon || 'FiUsers',
     displayOrder: body.displayOrder ?? maxOrder + 1,
+    isActive: body.isActive !== false,
   });
 
   await doc.save();
@@ -455,13 +609,15 @@ export const updateStatistic = async (id, body) => {
   if (body.value !== undefined) stat.value = Number(body.value) || 0;
   if (body.suffix !== undefined) stat.suffix = body.suffix;
   if (body.label !== undefined) stat.label = body.label;
+  if (body.icon !== undefined) stat.icon = body.icon;
   if (body.displayOrder !== undefined) stat.displayOrder = body.displayOrder;
+  if (body.isActive !== undefined) stat.isActive = body.isActive;
 
   await doc.save();
   return mapStatisticToApi(stat);
 };
 
-export const deleteStatistic = async (id) => {
+export const deleteStatistic = async (id, { soft = true } = {}) => {
   const doc = await ensureAboutUs();
   const stat = doc.statistics.id(id);
   if (!stat) {
@@ -470,8 +626,171 @@ export const deleteStatistic = async (id) => {
     throw error;
   }
 
-  stat.deleteOne();
+  if (soft) {
+    stat.isDeleted = true;
+    stat.isActive = false;
+  } else {
+    stat.deleteOne();
+  }
   await doc.save();
+};
+
+export const reorderStatistics = async (orders = []) => {
+  const doc = await ensureAboutUs();
+  orders.forEach(({ id, displayOrder }) => {
+    const stat = doc.statistics.id(id);
+    if (stat && displayOrder !== undefined) stat.displayOrder = displayOrder;
+  });
+  await doc.save();
+  return listStatistics();
+};
+
+export const uploadOfferImage = async (id, file) => {
+  const doc = await ensureAboutUs();
+  const offer = doc.whatWeOffer.id(id);
+  if (!offer) {
+    const error = new Error('Offer not found');
+    error.statusCode = 404;
+    throw error;
+  }
+  if (offer.imageUrl?.startsWith('/uploads/')) deleteLocalImage(offer.imageUrl);
+  offer.imageUrl = toPublicUrl(file);
+  await doc.save();
+  return mapOfferToApi(offer);
+};
+
+// Story timeline CRUD
+export const listTimeline = async (activeOnly = false) => {
+  const doc = await ensureAboutUs();
+  const items = sortByDisplayOrder(doc.storyTimeline || []);
+  const filtered = activeOnly ? items.filter(isVisibleItem) : items;
+  return filtered.map(mapTimelineToApi);
+};
+
+export const createTimelineItem = async (body) => {
+  const doc = await ensureAboutUs();
+  const maxOrder = (doc.storyTimeline || []).reduce((max, item) => Math.max(max, item.displayOrder || 0), 0);
+  doc.storyTimeline.push({
+    marker: body.marker,
+    title: body.title,
+    description: body.description || '',
+    icon: body.icon || 'FiCalendar',
+    displayOrder: body.displayOrder ?? maxOrder + 1,
+    isActive: body.isActive !== false,
+  });
+  await doc.save();
+  return mapTimelineToApi(doc.storyTimeline[doc.storyTimeline.length - 1]);
+};
+
+export const updateTimelineItem = async (id, body) => {
+  const doc = await ensureAboutUs();
+  const item = doc.storyTimeline.id(id);
+  if (!item) {
+    const error = new Error('Timeline item not found');
+    error.statusCode = 404;
+    throw error;
+  }
+  if (body.marker !== undefined) item.marker = body.marker;
+  if (body.title !== undefined) item.title = body.title;
+  if (body.description !== undefined) item.description = body.description;
+  if (body.icon !== undefined) item.icon = body.icon;
+  if (body.displayOrder !== undefined) item.displayOrder = body.displayOrder;
+  if (body.isActive !== undefined) item.isActive = body.isActive;
+  await doc.save();
+  return mapTimelineToApi(item);
+};
+
+export const deleteTimelineItem = async (id, { soft = true } = {}) => {
+  const doc = await ensureAboutUs();
+  const item = doc.storyTimeline.id(id);
+  if (!item) {
+    const error = new Error('Timeline item not found');
+    error.statusCode = 404;
+    throw error;
+  }
+  if (soft) {
+    item.isDeleted = true;
+    item.isActive = false;
+  } else {
+    item.deleteOne();
+  }
+  await doc.save();
+};
+
+export const reorderTimeline = async (orders = []) => {
+  const doc = await ensureAboutUs();
+  orders.forEach(({ id, displayOrder }) => {
+    const item = doc.storyTimeline.id(id);
+    if (item && displayOrder !== undefined) item.displayOrder = displayOrder;
+  });
+  await doc.save();
+  return listTimeline(false);
+};
+
+// MVP cards CRUD
+export const listMvpCards = async (activeOnly = false) => {
+  const doc = await ensureAboutUs();
+  const items = sortByDisplayOrder(doc.mvpCards || []);
+  const filtered = activeOnly ? items.filter(isVisibleItem) : items;
+  return filtered.map(mapMvpCardToApi);
+};
+
+export const createMvpCard = async (body) => {
+  const doc = await ensureAboutUs();
+  const maxOrder = (doc.mvpCards || []).reduce((max, item) => Math.max(max, item.displayOrder || 0), 0);
+  doc.mvpCards.push({
+    title: body.title,
+    icon: body.icon || 'FiTarget',
+    description: body.description || '',
+    displayOrder: body.displayOrder ?? maxOrder + 1,
+    isActive: body.isActive !== false,
+  });
+  await doc.save();
+  return mapMvpCardToApi(doc.mvpCards[doc.mvpCards.length - 1]);
+};
+
+export const updateMvpCard = async (id, body) => {
+  const doc = await ensureAboutUs();
+  const card = doc.mvpCards.id(id);
+  if (!card) {
+    const error = new Error('MVP card not found');
+    error.statusCode = 404;
+    throw error;
+  }
+  if (body.title !== undefined) card.title = body.title;
+  if (body.icon !== undefined) card.icon = body.icon;
+  if (body.description !== undefined) card.description = body.description;
+  if (body.displayOrder !== undefined) card.displayOrder = body.displayOrder;
+  if (body.isActive !== undefined) card.isActive = body.isActive;
+  await doc.save();
+  return mapMvpCardToApi(card);
+};
+
+export const deleteMvpCard = async (id, { soft = true } = {}) => {
+  const doc = await ensureAboutUs();
+  const card = doc.mvpCards.id(id);
+  if (!card) {
+    const error = new Error('MVP card not found');
+    error.statusCode = 404;
+    throw error;
+  }
+  if (soft) {
+    card.isDeleted = true;
+    card.isActive = false;
+  } else {
+    card.deleteOne();
+  }
+  await doc.save();
+};
+
+export const reorderMvpCards = async (orders = []) => {
+  const doc = await ensureAboutUs();
+  orders.forEach(({ id, displayOrder }) => {
+    const card = doc.mvpCards.id(id);
+    if (card && displayOrder !== undefined) card.displayOrder = displayOrder;
+  });
+  await doc.save();
+  return listMvpCards(false);
 };
 
 export default {
@@ -484,9 +803,21 @@ export default {
   updateOffer,
   deleteOffer,
   reorderOffers,
+  uploadOfferImage,
   listStatistics,
   createStatistic,
   updateStatistic,
   deleteStatistic,
+  reorderStatistics,
+  listTimeline,
+  createTimelineItem,
+  updateTimelineItem,
+  deleteTimelineItem,
+  reorderTimeline,
+  listMvpCards,
+  createMvpCard,
+  updateMvpCard,
+  deleteMvpCard,
+  reorderMvpCards,
   mapDocToApi,
 };

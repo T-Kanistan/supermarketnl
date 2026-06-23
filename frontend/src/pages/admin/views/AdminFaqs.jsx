@@ -1,10 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { FaPlus, FaEdit, FaTrash, FaQuestionCircle, FaArrowUp, FaArrowDown, FaSave } from 'react-icons/fa';
 import faqService from '../../../services/faqService';
+import { sortFaqsByOrder, stripLeadingNumberFromQuestion } from '../../../utils/faqUtils';
 import { useToast } from '../../../context/ToastContext';
+import { useAuth } from '../../../context/AuthContext';
 
 export const AdminFaqs = () => {
   const [faqs, setFaqs] = useState([]);
+  const [orderValues, setOrderValues] = useState({});
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -13,24 +16,30 @@ export const AdminFaqs = () => {
   const [dragIndex, setDragIndex] = useState(null);
 
   const { addToast } = useToast();
+  const { isAdmin } = useAuth();
 
   const [formData, setFormData] = useState({
     question: '',
     answer: '',
     status: 'active',
+    displayOrder: '',
   });
+
+  const syncOrderValues = (list) => {
+    const next = {};
+    list.forEach((faq, index) => {
+      next[faq.id] = faq.displayOrder ?? faq.order ?? index + 1;
+    });
+    setOrderValues(next);
+  };
 
   const fetchFaqs = useCallback(async () => {
     setLoading(true);
     try {
       const data = await faqService.getAllFaqs();
-      setFaqs(
-        [...data].sort((a, b) => {
-          const orderDiff = (a.order || 0) - (b.order || 0);
-          if (orderDiff !== 0) return orderDiff;
-          return new Date(a.createdAt) - new Date(b.createdAt);
-        })
-      );
+      const sorted = sortFaqsByOrder(Array.isArray(data) ? data : []);
+      setFaqs(sorted);
+      syncOrderValues(sorted);
     } catch (err) {
       console.error('Failed to load FAQs', err);
       addToast('Failed to load FAQs board', 'error');
@@ -43,14 +52,20 @@ export const AdminFaqs = () => {
     fetchFaqs();
   }, [fetchFaqs]);
 
-  const moveFaq = (index, direction) => {
-    setFaqs((prev) => {
-      const next = [...prev];
-      const target = index + direction;
-      if (target < 0 || target >= next.length) return prev;
-      [next[index], next[target]] = [next[target], next[index]];
-      return next;
-    });
+  const moveFaq = async (index, direction) => {
+    const faq = faqs[index];
+    if (!faq) return;
+    try {
+      if (direction < 0) {
+        await faqService.moveFaqUp(faq.id);
+      } else {
+        await faqService.moveFaqDown(faq.id);
+      }
+      fetchFaqs();
+    } catch (err) {
+      console.error('Failed to move FAQ', err);
+      addToast(err.response?.data?.message || 'Failed to move FAQ', 'error');
+    }
   };
 
   const handleDragStart = (index) => setDragIndex(index);
@@ -61,16 +76,45 @@ export const AdminFaqs = () => {
       const next = [...prev];
       const [moved] = next.splice(dragIndex, 1);
       next.splice(index, 0, moved);
+      syncOrderValues(
+        next.map((faq, position) => ({
+          ...faq,
+          displayOrder: position + 1,
+          order: position + 1,
+        }))
+      );
       return next;
     });
     setDragIndex(null);
   };
 
+  const handleOrderChange = (faqId, value) => {
+    setOrderValues((prev) => ({
+      ...prev,
+      [faqId]: value,
+    }));
+  };
+
   const saveOrder = async () => {
+    const orders = faqs.map((faq) => ({
+      faqId: faq.id,
+      displayOrder: Number(orderValues[faq.id]),
+    }));
+
+    if (orders.some((entry) => !Number.isInteger(entry.displayOrder) || entry.displayOrder < 1)) {
+      addToast('Each FAQ must have a valid order number of 1 or higher', 'error');
+      return;
+    }
+
+    const uniqueOrders = new Set(orders.map((entry) => entry.displayOrder));
+    if (uniqueOrders.size !== orders.length) {
+      addToast('Order values must be unique', 'error');
+      return;
+    }
+
     setIsSavingOrder(true);
     try {
-      const orders = faqs.map((faq, index) => ({ id: faq.id, order: index + 1 }));
-      await faqService.reorderFaqs(orders);
+      await faqService.saveFaqOrder(orders);
       addToast('FAQ order saved successfully', 'success');
       fetchFaqs();
     } catch (err) {
@@ -83,16 +127,22 @@ export const AdminFaqs = () => {
 
   const openAddModal = () => {
     setEditingFaq(null);
-    setFormData({ question: '', answer: '', status: 'active' });
+    setFormData({
+      question: '',
+      answer: '',
+      status: 'active',
+      displayOrder: String((faqs.length || 0) + 1),
+    });
     setIsModalOpen(true);
   };
 
   const openEditModal = (faq) => {
     setEditingFaq(faq);
     setFormData({
-      question: faq.question || '',
+      question: stripLeadingNumberFromQuestion(faq.question || ''),
       answer: faq.answer || '',
       status: faq.status || 'active',
+      displayOrder: String(faq.displayOrder ?? faq.order ?? ''),
     });
     setIsModalOpen(true);
   };
@@ -103,6 +153,10 @@ export const AdminFaqs = () => {
   };
 
   const handleDelete = async (id) => {
+    if (!isAdmin) {
+      addToast('Only administrators can delete FAQs', 'error');
+      return;
+    }
     if (!window.confirm('Delete this FAQ?')) return;
     try {
       await faqService.deleteFaq(id);
@@ -116,18 +170,35 @@ export const AdminFaqs = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.question || !formData.answer) {
-      addToast('Question and answer are both required', 'error');
+    if (!formData.question?.trim() || formData.question.trim().length < 5) {
+      addToast('Question must be at least 5 characters', 'error');
       return;
     }
+    if (!formData.answer?.trim() || formData.answer.trim().length < 10) {
+      addToast('Answer must be at least 10 characters', 'error');
+      return;
+    }
+
+    const displayOrder = Number(formData.displayOrder);
+    if (!Number.isInteger(displayOrder) || displayOrder < 1) {
+      addToast('Order must be a positive number', 'error');
+      return;
+    }
+
+    const payload = {
+      question: stripLeadingNumberFromQuestion(formData.question),
+      answer: formData.answer.trim(),
+      status: formData.status,
+      displayOrder,
+    };
 
     setIsSubmitting(true);
     try {
       if (editingFaq) {
-        await faqService.updateFaq(editingFaq.id, formData);
+        await faqService.updateFaq(editingFaq.id, payload);
         addToast('FAQ updated successfully', 'success');
       } else {
-        await faqService.createFaq(formData);
+        await faqService.createFaq(payload);
         addToast('New FAQ added successfully', 'success');
       }
       setIsModalOpen(false);
@@ -184,16 +255,16 @@ export const AdminFaqs = () => {
                   onDrop={() => handleDrop(index)}
                 >
                   <td>
-                    <div className="cell-actions">
-                      <button type="button" className="btn-action-cell" onClick={() => moveFaq(index, -1)} title="Move up">
-                        <FaArrowUp />
-                      </button>
-                      <button type="button" className="btn-action-cell" onClick={() => moveFaq(index, 1)} title="Move down">
-                        <FaArrowDown />
-                      </button>
-                    </div>
+                    <input
+                      type="number"
+                      min="1"
+                      className="admin-order-input"
+                      value={orderValues[faq.id] ?? faq.displayOrder ?? faq.order ?? index + 1}
+                      onChange={(e) => handleOrderChange(faq.id, e.target.value)}
+                      aria-label={`Order for ${stripLeadingNumberFromQuestion(faq.question)}`}
+                    />
                   </td>
-                  <td style={{ fontWeight: 600 }}>{faq.question}</td>
+                  <td style={{ fontWeight: 600 }}>{stripLeadingNumberFromQuestion(faq.question)}</td>
                   <td style={{ color: 'var(--admin-text-sub)' }}>{faq.answer}</td>
                   <td>
                     <span className={`status-badge-admin ${faq.status}`}>{faq.status}</span>
@@ -203,9 +274,17 @@ export const AdminFaqs = () => {
                       <button type="button" className="btn-action-cell edit" onClick={() => openEditModal(faq)} title="Edit FAQ">
                         <FaEdit />
                       </button>
-                      <button type="button" className="btn-action-cell delete" onClick={() => handleDelete(faq.id)} title="Delete FAQ">
-                        <FaTrash />
+                      <button type="button" className="btn-action-cell" onClick={() => moveFaq(index, -1)} title="Move up">
+                        <FaArrowUp />
                       </button>
+                      <button type="button" className="btn-action-cell" onClick={() => moveFaq(index, 1)} title="Move down">
+                        <FaArrowDown />
+                      </button>
+                      {isAdmin && (
+                        <button type="button" className="btn-action-cell delete" onClick={() => handleDelete(faq.id)} title="Delete FAQ">
+                          <FaTrash />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -233,11 +312,22 @@ export const AdminFaqs = () => {
               <div className="modal-body">
                 <div className="admin-form-group">
                   <label>Question text</label>
-                  <input type="text" name="question" value={formData.question} onChange={handleChange} required />
+                  <input type="text" name="question" value={formData.question} onChange={handleChange} minLength={5} maxLength={300} required />
                 </div>
                 <div className="admin-form-group">
                   <label>Answer text</label>
-                  <textarea name="answer" value={formData.answer} onChange={handleChange} rows="4" required />
+                  <textarea name="answer" value={formData.answer} onChange={handleChange} rows="4" minLength={10} maxLength={5000} required />
+                </div>
+                <div className="admin-form-group">
+                  <label>Order</label>
+                  <input
+                    type="number"
+                    name="displayOrder"
+                    min="1"
+                    value={formData.displayOrder}
+                    onChange={handleChange}
+                    required
+                  />
                 </div>
                 <div className="admin-form-group">
                   <label>Status</label>

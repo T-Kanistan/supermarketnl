@@ -1,11 +1,11 @@
-import User from '../models/User.js';
-import Banner from '../models/Banner.js';
+import Manager from '../models/Manager.js';
+import HomepageBanner from '../models/HomepageBanner.js';
 import FAQ from '../models/FAQ.js';
 import Testimonial from '../models/Testimonial.js';
 import Announcement from '../models/Announcement.js';
 import Product from '../models/Product.js';
 import Category from '../models/Category.js';
-import ContactMessage from '../models/ContactMessage.js';
+import CustomerEnquiry from '../models/CustomerEnquiry.js';
 
 /**
  * @desc    Get dashboard metrics / counts
@@ -14,6 +14,68 @@ import ContactMessage from '../models/ContactMessage.js';
  */
 export const getStats = async (req, res, next) => {
   try {
+    if (req.user.role === 'manager') {
+      const [
+        totalProducts,
+        foodCornerProducts,
+        activeOffers,
+        totalEnquiries,
+        unreadEnquiries,
+        activeAnnouncements,
+      ] = await Promise.all([
+        // Grocery only (supermarket products)
+        Product.countDocuments({
+          status: 'active',
+          $or: [{ productType: 'grocery' }, { type: 'grocery' }],
+        }),
+        // Food Corner only
+        Product.countDocuments({
+          status: 'active',
+          $or: [
+            { productType: 'food-corner' },
+            { type: 'food' },
+            { type: 'food-corner' },
+          ],
+        }),
+        Announcement.countDocuments({ status: 'active' }),
+        CustomerEnquiry.countDocuments({ status: { $ne: 'deleted' } }),
+        CustomerEnquiry.countDocuments({ status: 'new', isRead: false }),
+        Announcement.countDocuments({ status: 'active' }),
+      ]);
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          totalProducts,
+          foodCornerProducts,
+          activeOffers,
+          totalEnquiries,
+          unreadEnquiries,
+          activeAnnouncements,
+          recentActivities: [
+            {
+              id: 'mgr-act1',
+              type: 'product',
+              text: `Catalog has ${totalProducts} grocery products`,
+              time: 'Updated',
+            },
+            {
+              id: 'mgr-act2',
+              type: 'announcement',
+              text: `${activeOffers} active offers running`,
+              time: 'Updated',
+            },
+            {
+              id: 'mgr-act3',
+              type: 'message',
+              text: `${unreadEnquiries} unread customer enquiries`,
+              time: 'Updated',
+            },
+          ],
+        },
+      });
+    }
+
     const [
       totalManagers,
       activeManagers,
@@ -27,27 +89,49 @@ export const getStats = async (req, res, next) => {
       activeAnnouncements,
       totalProducts,
       activeProducts,
+      totalFoodCornerProducts,
+      activeFoodCornerProducts,
       totalCategories,
       activeCategories,
       totalMessages,
       unreadMessages,
     ] = await Promise.all([
-      User.countDocuments({ role: 'manager' }),
-      User.countDocuments({ role: 'manager', isActive: true }),
-      Banner.countDocuments(),
-      Banner.countDocuments({ status: 'active' }),
-      FAQ.countDocuments(),
+      Manager.countDocuments(),
+      Manager.countDocuments({ status: true }),
+      HomepageBanner.countDocuments({ status: { $ne: 'deleted' } }),
+      HomepageBanner.countDocuments({ status: 'active' }),
+      FAQ.countDocuments({ status: { $ne: 'deleted' } }),
       FAQ.countDocuments({ status: 'active' }),
-      Testimonial.countDocuments(),
+      Testimonial.countDocuments({ status: { $ne: 'deleted' } }),
       Testimonial.countDocuments({ status: 'active' }),
-      Announcement.countDocuments(),
-      Announcement.countDocuments({ status: 'active' }),
-      Product.countDocuments(),
-      Product.countDocuments({ status: 'active' }),
+      Announcement.countDocuments({ status: { $ne: 'deleted' } }),
+      Announcement.countDocuments({ status: 'active', isExpired: { $ne: true } }),
+      Product.countDocuments({
+        $or: [{ productType: 'grocery' }, { type: 'grocery' }],
+      }),
+      Product.countDocuments({
+        status: 'active',
+        $or: [{ productType: 'grocery' }, { type: 'grocery' }],
+      }),
+      Product.countDocuments({
+        $or: [
+          { productType: 'food-corner' },
+          { type: 'food' },
+          { type: 'food-corner' },
+        ],
+      }),
+      Product.countDocuments({
+        status: 'active',
+        $or: [
+          { productType: 'food-corner' },
+          { type: 'food' },
+          { type: 'food-corner' },
+        ],
+      }),
       Category.countDocuments(),
       Category.countDocuments({ status: 'active' }),
-      ContactMessage.countDocuments(),
-      ContactMessage.countDocuments({ isRead: false }),
+      CustomerEnquiry.countDocuments({ status: { $ne: 'deleted' } }),
+      CustomerEnquiry.countDocuments({ status: 'new', isRead: false }),
     ]);
 
     res.status(200).json({
@@ -82,6 +166,11 @@ export const getStats = async (req, res, next) => {
           total: totalProducts,
           active: activeProducts,
           inactive: totalProducts - activeProducts,
+        },
+        foodCornerProducts: {
+          total: totalFoodCornerProducts,
+          active: activeFoodCornerProducts,
+          inactive: totalFoodCornerProducts - activeFoodCornerProducts,
         },
         categories: {
           total: totalCategories,

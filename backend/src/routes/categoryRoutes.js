@@ -6,7 +6,7 @@ import {
   updateCategory,
   deleteCategory,
 } from '../controllers/categoryController.js';
-import { protect, restrictTo } from '../middlewares/authMiddleware.js';
+import { protect, adminOnly, restrictTo } from '../middlewares/authMiddleware.js';
 import { validateRequest } from '../middlewares/validationMiddleware.js';
 import { createCategoryRules, updateCategoryRules } from '../validators/categoryValidator.js';
 
@@ -15,8 +15,8 @@ const router = express.Router();
 router.get('/', getCategories);
 router.get('/all', protect, restrictTo('admin', 'manager'), getAllCategories);
 
-router.post('/', protect, restrictTo('admin', 'manager'), createCategoryRules, validateRequest, createCategory);
-router.put('/:id', protect, restrictTo('admin', 'manager'), updateCategoryRules, validateRequest, updateCategory);
-router.delete('/:id', protect, restrictTo('admin', 'manager'), deleteCategory);
+router.post('/', protect, adminOnly, createCategoryRules, validateRequest, createCategory);
+router.put('/:id', protect, adminOnly, updateCategoryRules, validateRequest, updateCategory);
+router.delete('/:id', protect, adminOnly, deleteCategory);
 
 export default router;

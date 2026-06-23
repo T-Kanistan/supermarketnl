@@ -17,7 +17,7 @@ import {
   updateLegalLink,
   deleteLegalLink,
 } from '../controllers/footerController.js';
-import { protect, restrictTo } from '../middlewares/authMiddleware.js';
+import { protect, adminOnly } from '../middlewares/authMiddleware.js';
 import { footerLogoUpload } from '../middleware/upload.js';
 import {
   validateRequest,
@@ -41,7 +41,7 @@ router.get('/settings', getSettings);
 router.put(
   '/settings',
   protect,
-  restrictTo('admin', 'manager'),
+  adminOnly,
   updateFooterSettingsRules,
   validateRequest,
   updateSettings
@@ -51,19 +51,19 @@ router.put(
 router.post(
   '/upload-logo',
   protect,
-  restrictTo('admin', 'manager'),
+  adminOnly,
   footerLogoUpload.single('footer_logo'),
   uploadLogo
 );
 
-router.delete('/logo', protect, restrictTo('admin', 'manager'), deleteLogo);
+router.delete('/logo', protect, adminOnly, deleteLogo);
 
 // Quick links
 router.get('/quick-links', getQuickLinks);
 router.post(
   '/quick-links',
   protect,
-  restrictTo('admin', 'manager'),
+  adminOnly,
   createQuickLinkRules,
   validateRequest,
   createQuickLink
@@ -71,7 +71,7 @@ router.post(
 router.put(
   '/quick-links/:id',
   protect,
-  restrictTo('admin', 'manager'),
+  adminOnly,
   updateQuickLinkRules,
   validateRequest,
   updateQuickLink
@@ -79,7 +79,7 @@ router.put(
 router.delete(
   '/quick-links/:id',
   protect,
-  restrictTo('admin', 'manager'),
+  adminOnly,
   quickLinkIdRules,
   validateRequest,
   deleteQuickLink
@@ -90,7 +90,7 @@ router.get('/category-links', getCategoryLinks);
 router.post(
   '/category-links',
   protect,
-  restrictTo('admin', 'manager'),
+  adminOnly,
   createCategoryLinkRules,
   validateRequest,
   createCategoryLink
@@ -98,7 +98,7 @@ router.post(
 router.put(
   '/category-links/:id',
   protect,
-  restrictTo('admin', 'manager'),
+  adminOnly,
   updateCategoryLinkRules,
   validateRequest,
   updateCategoryLink
@@ -106,7 +106,7 @@ router.put(
 router.delete(
   '/category-links/:id',
   protect,
-  restrictTo('admin', 'manager'),
+  adminOnly,
   categoryLinkIdRules,
   validateRequest,
   deleteCategoryLink
@@ -117,7 +117,7 @@ router.get('/legal-links', getLegalLinks);
 router.post(
   '/legal-links',
   protect,
-  restrictTo('admin', 'manager'),
+  adminOnly,
   createLegalLinkRules,
   validateRequest,
   createLegalLink
@@ -125,7 +125,7 @@ router.post(
 router.put(
   '/legal-links/:id',
   protect,
-  restrictTo('admin', 'manager'),
+  adminOnly,
   updateLegalLinkRules,
   validateRequest,
   updateLegalLink
@@ -133,7 +133,7 @@ router.put(
 router.delete(
   '/legal-links/:id',
   protect,
-  restrictTo('admin', 'manager'),
+  adminOnly,
   legalLinkIdRules,
   validateRequest,
   deleteLegalLink

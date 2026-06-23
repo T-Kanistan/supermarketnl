@@ -1,31 +1,62 @@
 import express from 'express';
 import {
-  getHomepageAbout,
-  getAdminHomepageAbout,
+  getActiveHomepageAbout,
+  getHomepageAboutSections,
+  getHomepageAboutById,
+  getHomepageAboutPreview,
+  createHomepageAbout,
   updateHomepageAbout,
-  uploadHomepageAboutImage,
+  deleteHomepageAbout,
+  getAdminHomepageAbout,
+  updateHomepageAboutLegacy,
 } from '../controllers/homepageAboutController.js';
-import { protect, restrictTo } from '../middlewares/authMiddleware.js';
-import { homepageAboutImageUpload } from '../middleware/upload.js';
+import { protect, restrictTo, adminOnly } from '../middlewares/authMiddleware.js';
+import { validateRequest } from '../middlewares/validationMiddleware.js';
+import { homepageAboutUpload } from '../middlewares/homepageAboutUploadMiddleware.js';
 import {
+  createHomepageAboutRules,
   updateHomepageAboutRules,
-} from '../middleware/homepageAboutValidation.js';
-import { validateRequest } from '../middleware/aboutUsValidation.js';
+  updateHomepageAboutLegacyRules,
+  homepageAboutIdRules,
+} from '../validators/homepageAboutValidator.js';
 
 const router = express.Router();
-const adminOnly = [protect, restrictTo('admin', 'manager')];
+const auth = [protect, restrictTo('admin', 'manager')];
 
-router.get('/', getHomepageAbout);
-
-router.get('/admin', ...adminOnly, getAdminHomepageAbout);
-
-router.put('/', ...adminOnly, updateHomepageAboutRules, validateRequest, updateHomepageAbout);
+router.get('/active', getActiveHomepageAbout);
+router.get('/admin', ...auth, getAdminHomepageAbout);
+router.get('/preview/:id', ...auth, homepageAboutIdRules, validateRequest, getHomepageAboutPreview);
+router.get('/', ...auth, getHomepageAboutSections);
+router.get('/:id', ...auth, homepageAboutIdRules, validateRequest, getHomepageAboutById);
 
 router.post(
-  '/upload-image',
-  ...adminOnly,
-  homepageAboutImageUpload.single('image'),
-  uploadHomepageAboutImage
+  '/',
+  protect,
+  adminOnly,
+  homepageAboutUpload.single('image'),
+  createHomepageAboutRules,
+  validateRequest,
+  createHomepageAbout
 );
+
+router.put(
+  '/',
+  ...auth,
+  homepageAboutUpload.single('image'),
+  updateHomepageAboutLegacyRules,
+  validateRequest,
+  updateHomepageAboutLegacy
+);
+
+router.put(
+  '/:id',
+  ...auth,
+  homepageAboutUpload.single('image'),
+  updateHomepageAboutRules,
+  validateRequest,
+  updateHomepageAbout
+);
+
+router.delete('/:id', protect, adminOnly, homepageAboutIdRules, validateRequest, deleteHomepageAbout);
 
 export default router;

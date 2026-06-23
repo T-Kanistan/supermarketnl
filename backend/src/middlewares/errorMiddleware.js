@@ -36,9 +36,14 @@ export const errorHandler = (err, req, res, next) => {
 
   if (err.name === 'MulterError') {
     statusCode = 400;
-    message = err.code === 'LIMIT_FILE_SIZE'
-      ? 'Image file size must not exceed 3MB'
-      : err.message;
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      message = req.originalUrl?.includes('home-banner') ||
+        req.originalUrl?.includes('announcement')
+        ? 'Banner image file size must not exceed 5MB'
+        : 'Image file size must not exceed 3MB';
+    } else {
+      message = err.message;
+    }
   }
 
   if (err.message?.includes('Only jpg, jpeg, png, and webp')) {

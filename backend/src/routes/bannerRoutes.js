@@ -7,39 +7,40 @@ import {
   updateBanner,
   deleteBanner,
 } from '../controllers/bannerController.js';
-import { protect, restrictTo } from '../middlewares/authMiddleware.js';
-import { upload } from '../middlewares/uploadMiddleware.js';
+import { protect, restrictTo, adminOnly } from '../middlewares/authMiddleware.js';
+import { homeBannerUpload } from '../middlewares/homeBannerUploadMiddleware.js';
 import { validateRequest } from '../middlewares/validationMiddleware.js';
-import { createBannerRules, updateBannerRules } from '../validators/bannerValidator.js';
+import {
+  createHomeBannerRules,
+  updateHomeBannerRules,
+  homeBannerIdRules,
+} from '../validators/homeBannerValidator.js';
 
 const router = express.Router();
+const auth = [protect, restrictTo('admin', 'manager')];
 
-// Public route to fetch active banners
 router.get('/', getBanners);
+router.get('/all', ...auth, getAllBanners);
+router.get('/:id', ...auth, homeBannerIdRules, validateRequest, getBannerById);
 
-// Protected routes to fetch all banners and single banner
-router.get('/all', protect, restrictTo('admin', 'manager'), getAllBanners);
-router.get('/:id', protect, restrictTo('admin', 'manager'), getBannerById);
-
-// Protected CRUD routes
 router.post(
   '/',
-  protect,
-  restrictTo('admin', 'manager'),
-  upload.single('image'),
-  createBannerRules,
+  ...auth,
+  homeBannerUpload.single('image'),
+  createHomeBannerRules,
   validateRequest,
   createBanner
 );
+
 router.put(
   '/:id',
-  protect,
-  restrictTo('admin', 'manager'),
-  upload.single('image'),
-  updateBannerRules,
+  ...auth,
+  homeBannerUpload.single('image'),
+  updateHomeBannerRules,
   validateRequest,
   updateBanner
 );
-router.delete('/:id', protect, restrictTo('admin', 'manager'), deleteBanner);
+
+router.delete('/:id', protect, adminOnly, homeBannerIdRules, validateRequest, deleteBanner);
 
 export default router;

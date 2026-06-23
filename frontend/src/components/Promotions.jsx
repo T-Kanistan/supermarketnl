@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { FiChevronRight, FiShoppingBag } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 import { useCMS } from '../context/CMSContext';
-import cmsService from '../services/cmsService';
+import announcementService from '../services/announcementService';
 import { getImageUrl } from '../services/api';
 import './Promotions.css';
 
@@ -13,9 +13,9 @@ const Promotions = () => {
   useEffect(() => {
     const fetchAnnouncements = async () => {
       try {
-        const list = await cmsService.getAnnouncements();
-        const active = list.find((a) => a.status === 'active' && a.title?.toUpperCase().includes('WEEKLY'));
-        const fallback = list.find((a) => a.status === 'active');
+        const list = await announcementService.getStorefrontAnnouncements();
+        const active = list.find((a) => a.title?.toUpperCase().includes('WEEKLY'));
+        const fallback = list[0];
         setWeeklyDeal(active || fallback);
       } catch (err) {
         console.error('Failed to load campaigns', err);
@@ -27,7 +27,7 @@ const Promotions = () => {
   const promo = cmsData?.foodCornerPromo || {};
   const promoTitle = weeklyDeal?.title || 'WEEKLY DEALS';
   const promoDesc = weeklyDeal?.description || 'Stock up on your daily essentials with our exclusive supermarket deals. Freshness guaranteed!';
-  const promoImage = getImageUrl(weeklyDeal?.image) || 'https://images.unsplash.com/photo-1518843875459-f738682238a6?auto=format&fit=crop&w=800&q=80';
+  const promoImage = getImageUrl(weeklyDeal?.bannerImage || weeklyDeal?.image) || 'https://images.unsplash.com/photo-1518843875459-f738682238a6?auto=format&fit=crop&w=800&q=80';
   const titleParts = promoTitle.split(' ');
 
   return (

@@ -1,97 +1,97 @@
 import api, { apiRequest } from './api';
 
-const dataUrlToFile = async (dataUrl, filename) => {
-  const res = await fetch(dataUrl);
-  const blob = await res.blob();
-  return new File([blob], filename, { type: blob.type || 'image/png' });
+const normalizeStatus = (status) => {
+  if (!status) return 'active';
+  const lower = String(status).toLowerCase();
+  return ['active', 'inactive', 'draft'].includes(lower) ? lower : 'active';
 };
 
 const mapAdminToForm = (data) => ({
-  useAboutUsContent: data.useAboutUsContent !== false,
+  id: data.id,
+  useAboutUsPageContent: data.useAboutUsPageContent ?? data.useAboutUsContent ?? false,
+  useAboutUsContent: data.useAboutUsPageContent ?? data.useAboutUsContent ?? false,
   sectionHeading: data.sectionHeading || '',
   shortDescription: data.shortDescription || '',
   buttonText: data.buttonText || 'Learn More',
-  buttonLink: data.buttonLink || '/about-us',
+  buttonLink: data.buttonLink || '/about',
   aboutImage: data.aboutImage || '',
-  status: data.status === 'Inactive' ? 'Inactive' : 'Active',
+  status: normalizeStatus(data.status),
   resolvedContent: data.resolvedContent || null,
 });
 
+const toPayload = (formData) => ({
+  useAboutUsPageContent: formData.useAboutUsPageContent ?? formData.useAboutUsContent ?? false,
+  sectionHeading: formData.sectionHeading,
+  shortDescription: formData.shortDescription,
+  buttonText: formData.buttonText,
+  buttonLink: formData.buttonLink,
+  aboutImage: formData.aboutImage,
+  status: normalizeStatus(formData.status),
+});
+
 export const homepageAboutService = {
-  getHomepageAbout: async () => {
-    return apiRequest(() => api.get('/homepage-about'));
-  },
+  getStorefrontAbout: async () => apiRequest(() => api.get('/storefront/homepage-about')),
+
+  getHomepageAbout: async () => homepageAboutService.getStorefrontAbout(),
+
+  getActiveAbout: async () => apiRequest(() => api.get('/homepage-about/active')),
 
   getAdminHomepageAbout: async () => {
     const data = await apiRequest(() => api.get('/homepage-about/admin'));
     return mapAdminToForm(data);
   },
 
+  getAllSections: async () => apiRequest(() => api.get('/homepage-about')),
+
+  getPreview: async (id) => apiRequest(() => api.get(`/homepage-about/preview/${id}`)),
+
+  uploadImage: async (file) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    const response = await api.post('/upload/homepage-about', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data.imageUrl;
+  },
+
+  createSection: async (formData) => {
+    const data = await apiRequest(() => api.post('/homepage-about', toPayload(formData)));
+    return mapAdminToForm(data);
+  },
+
   updateHomepageAbout: async (formData) => {
-    const hasNewImage = (formData.aboutImage || '').startsWith('data:image');
-    const useAboutUsContent = hasNewImage ? false : formData.useAboutUsContent !== false;
-    const resolved = formData.resolvedContent || {};
+    const payload = toPayload(formData);
+    const useAboutUs = payload.useAboutUsPageContent === true;
 
-    const sectionHeading =
-      formData.sectionHeading?.trim() || resolved.sectionHeading?.trim() || '';
-    const shortDescription =
-      formData.shortDescription?.trim() || resolved.shortDescription?.trim() || '';
-    const buttonText = formData.buttonText?.trim() || resolved.buttonText?.trim() || '';
-    const buttonLink = formData.buttonLink?.trim() || resolved.buttonLink?.trim() || '';
-
-    const errors = [];
-
-    if (!useAboutUsContent) {
-      if (!sectionHeading) errors.push('Section heading is required');
-      if (!shortDescription) errors.push('Short description is required');
-      if (!buttonText) errors.push('Button text is required');
-      if (!buttonLink) errors.push('Button link is required');
+    if (!useAboutUs) {
+      const errors = [];
+      if (!payload.sectionHeading?.trim()) errors.push('Section heading is required');
+      if (!payload.shortDescription?.trim()) errors.push('Short description is required');
+      if (!payload.buttonText?.trim()) errors.push('Button text is required');
+      if (!payload.buttonLink?.trim()) errors.push('Button link is required');
+      if (!payload.aboutImage?.trim()) errors.push('About image is required');
+      if (errors.length) {
+        const error = new Error(errors.join('. '));
+        error.validationErrors = errors;
+        throw error;
+      }
     }
 
-    if (errors.length) {
-      const error = new Error(errors.join('. '));
-      error.validationErrors = errors;
-      throw error;
+    let aboutImage = payload.aboutImage || '';
+    if (aboutImage.startsWith('blob:')) {
+      throw new Error('Please wait for image upload to finish');
     }
 
-    let aboutImage = formData.aboutImage || '';
-
-    if (aboutImage.startsWith('data:image')) {
-      const file = await dataUrlToFile(aboutImage, 'homepage-about.jpg');
-      const formDataUpload = new FormData();
-      formDataUpload.append('image', file);
-      const uploadResult = await apiRequest(() =>
-        api.post('/homepage-about/upload-image', formDataUpload, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        })
-      );
-      aboutImage = uploadResult.aboutImage || uploadResult.imageUrl || aboutImage;
+    if (formData.id) {
+      const data = await apiRequest(() => api.put(`/homepage-about/${formData.id}`, payload));
+      return mapAdminToForm(data);
     }
-
-    const payload = {
-      useAboutUsContent,
-      sectionHeading,
-      shortDescription,
-      features: [],
-      buttonText,
-      buttonLink,
-      aboutImage,
-      status: formData.status === 'Inactive' ? 'Inactive' : 'Active',
-    };
 
     const data = await apiRequest(() => api.put('/homepage-about', payload));
     return mapAdminToForm(data);
   },
 
-  uploadImage: async (file) => {
-    const formData = new FormData();
-    formData.append('image', file);
-    return apiRequest(() =>
-      api.post('/homepage-about/upload-image', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
-    );
-  },
+  deleteSection: async (id) => apiRequest(() => api.delete(`/homepage-about/${id}`)),
 };
 
 export default homepageAboutService;

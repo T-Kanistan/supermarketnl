@@ -2,25 +2,59 @@ import api, { apiRequest } from './api';
 
 const isMongoId = (id) => typeof id === 'string' && /^[a-f\d]{24}$/i.test(id);
 
-const mapApiToFrontend = (data) => {
-  if (!data) return null;
+const mapTimeline = (items = []) =>
+  items.map((item) => ({
+    id: String(item.id),
+    marker: item.marker || '',
+    title: item.title || '',
+    description: item.description || '',
+    icon: item.icon || 'FiCalendar',
+    displayOrder: item.displayOrder ?? 0,
+    isActive: item.isActive !== false,
+    isDeleted: item.isDeleted === true,
+  }));
 
-  const offers = (data.whatWeOffer || []).map((o) => ({
+const mapMvpCards = (cards = []) =>
+  cards.map((card) => ({
+    id: String(card.id),
+    title: card.title || '',
+    icon: card.icon || 'FiTarget',
+    description: card.description || '',
+    displayOrder: card.displayOrder ?? 0,
+    isActive: card.isActive !== false,
+    isDeleted: card.isDeleted === true,
+  }));
+
+const mapOffers = (offers = []) =>
+  offers.map((o) => ({
     id: String(o.id),
     title: o.categoryName,
     description: o.description,
     image: o.imageUrl || '',
-    order: o.displayOrder,
+    displayOrder: o.displayOrder ?? 0,
     isActive: o.isActive !== false,
+    isDeleted: o.isDeleted === true,
   }));
 
-  const stats = (data.statistics || []).map((s) => ({
+const mapStats = (stats = []) =>
+  stats.map((s) => ({
     id: String(s.id),
     value: s.value,
     suffix: s.suffix,
     label: s.label,
-    displayOrder: s.displayOrder,
+    icon: s.icon || 'FiUsers',
+    displayOrder: s.displayOrder ?? 0,
+    isActive: s.isActive !== false,
+    isDeleted: s.isDeleted === true,
   }));
+
+export const mapApiToFrontend = (data) => {
+  if (!data) return null;
+
+  const hero = data.heroSection || {};
+  const story = data.storySection || {};
+  const mvp = data.missionVisionPromise || {};
+  const owner = data.ownerDetails || {};
 
   return {
     aboutUs: data.homepageShortDescription || '',
@@ -30,35 +64,46 @@ const mapApiToFrontend = (data) => {
       image: data.homepageAboutSection?.image || '',
     },
     aboutPage: {
-      heroEyebrow: data.heroSection?.eyebrowTag || '',
-      heroHeading: data.heroSection?.pageHeading || '',
-      heroHighlight: data.heroSection?.highlightedWord || '',
-      heroDescription: data.heroSection?.description || '',
-      heroBadge: data.heroSection?.imageBadgeText || '',
-      heroImage: data.heroSection?.heroImage || '',
-      storyTitle: data.storySection?.title || '',
-      storyDescription: data.storySection?.description || '',
-      storyImage: data.storySection?.image || '',
-      missionTitle: data.missionVisionPromise?.missionTitle || '',
-      missionDescription: data.missionVisionPromise?.missionDescription || '',
-      visionTitle: data.missionVisionPromise?.visionTitle || '',
-      visionDescription: data.missionVisionPromise?.visionDescription || '',
-      promiseTitle: data.missionVisionPromise?.promiseTitle || '',
-      promiseDescription: data.missionVisionPromise?.promiseDescription || '',
-      stats,
-      offerings: offers,
+      heroEyebrow: hero.eyebrowTag || '',
+      heroHeading: hero.pageHeading || '',
+      heroHighlight: hero.highlightedWord || '',
+      heroDescription: hero.description || '',
+      heroParagraphs: hero.descriptionParagraphs?.length ? hero.descriptionParagraphs : [],
+      heroBadge: hero.imageBadgeText || '',
+      heroImage: hero.heroImage || '',
+      button1Text: hero.button1Text || 'Explore Products',
+      button1Url: hero.button1Url || '/products',
+      button2Text: hero.button2Text || 'Contact Us',
+      button2Url: hero.button2Url || '/contact',
+      heroDisplayOrder: hero.displayOrder ?? 1,
+      heroIsActive: hero.isActive !== false,
+      storyTitle: story.title || '',
+      storyDescription: story.description || '',
+      storyImage: story.image || '',
+      storyTimeline: mapTimeline(data.storyTimeline),
+      missionTitle: mvp.missionTitle || '',
+      missionDescription: mvp.missionDescription || '',
+      visionTitle: mvp.visionTitle || '',
+      visionDescription: mvp.visionDescription || '',
+      promiseTitle: mvp.promiseTitle || '',
+      promiseDescription: mvp.promiseDescription || '',
+      mvpCards: mapMvpCards(data.mvpCards),
+      stats: mapStats(data.statistics),
+      offerings: mapOffers(data.whatWeOffer),
       owner: {
-        name: data.ownerDetails?.ownerName || '',
-        designation: data.ownerDetails?.designation || '',
-        phone: data.ownerDetails?.phoneNumber || '',
-        location: data.ownerDetails?.location || '',
-        badge: data.ownerDetails?.badgeText || '',
-        quote: data.ownerDetails?.ownerQuote || '',
-        photo: data.ownerDetails?.ownerPhoto || '',
+        name: owner.ownerName || '',
+        designation: owner.designation || '',
+        phone: owner.phoneNumber || '',
+        location: owner.location || '',
+        badge: owner.badgeText || '',
+        quote: owner.ownerQuote || '',
+        photo: owner.ownerPhoto || '',
+        sinceYear: owner.sinceYear || '2022',
+        yearsServing: owner.experienceText || '',
+        isActive: owner.isActive !== false,
       },
     },
-    offersAdmin: data.whatWeOffer || [],
-    statisticsAdmin: data.statistics || [],
+    raw: data,
   };
 };
 
@@ -69,9 +114,7 @@ const dataUrlToFile = async (dataUrl, filename) => {
 };
 
 const uploadImageIfNeeded = async (endpoint, value, filename) => {
-  if (!value || !value.startsWith('data:image')) {
-    return value || '';
-  }
+  if (!value || !value.startsWith('data:image')) return value || '';
   const file = await dataUrlToFile(value, filename);
   const formData = new FormData();
   formData.append('image', file);
@@ -81,24 +124,48 @@ const uploadImageIfNeeded = async (endpoint, value, filename) => {
   return result.imageUrl || value;
 };
 
-const buildUpdatePayload = (formData, imageUrls = {}) => {
-  const ap = formData.aboutPage || {};
+export const buildUpdatePayload = (ap = {}, imageUrls = {}) => {
   const owner = ap.owner || {};
-
   return {
     heroSection: {
       eyebrowTag: ap.heroEyebrow || '',
       pageHeading: ap.heroHeading || '',
       highlightedWord: ap.heroHighlight || '',
       description: ap.heroDescription || '',
+      descriptionParagraphs: ap.heroParagraphs || [],
+      button1Text: ap.button1Text || 'Explore Products',
+      button1Url: ap.button1Url || '/products',
+      button2Text: ap.button2Text || 'Contact Us',
+      button2Url: ap.button2Url || '/contact',
       imageBadgeText: ap.heroBadge || '',
       heroImage: imageUrls.hero || ap.heroImage || '',
+      displayOrder: ap.heroDisplayOrder ?? 1,
+      isActive: ap.heroIsActive !== false,
     },
     storySection: {
       title: ap.storyTitle || '',
       description: ap.storyDescription || '',
       image: imageUrls.story || ap.storyImage || '',
     },
+    storyTimeline: (ap.storyTimeline || []).map((item, index) => ({
+      ...(isMongoId(item.id) ? { id: item.id } : {}),
+      marker: item.marker || '',
+      title: item.title || '',
+      description: item.description || '',
+      icon: item.icon || 'FiCalendar',
+      displayOrder: item.displayOrder ?? index + 1,
+      isActive: item.isActive !== false,
+      isDeleted: item.isDeleted === true,
+    })),
+    mvpCards: (ap.mvpCards || []).map((card, index) => ({
+      ...(isMongoId(card.id) ? { id: card.id } : {}),
+      title: card.title || '',
+      icon: card.icon || 'FiTarget',
+      description: card.description || '',
+      displayOrder: card.displayOrder ?? index + 1,
+      isActive: card.isActive !== false,
+      isDeleted: card.isDeleted === true,
+    })),
     missionVisionPromise: {
       missionTitle: ap.missionTitle || '',
       missionDescription: ap.missionDescription || '',
@@ -112,15 +179,19 @@ const buildUpdatePayload = (formData, imageUrls = {}) => {
       categoryName: item.title || '',
       description: item.description || '',
       imageUrl: item.image || '',
-      displayOrder: index + 1,
+      displayOrder: item.displayOrder ?? index + 1,
       isActive: item.isActive !== false,
+      isDeleted: item.isDeleted === true,
     })),
     statistics: (ap.stats || []).map((stat, index) => ({
       ...(isMongoId(stat.id) ? { id: stat.id } : {}),
       value: Number(stat.value) || 0,
       suffix: stat.suffix || '',
       label: stat.label || '',
+      icon: stat.icon || 'FiUsers',
       displayOrder: stat.displayOrder ?? index + 1,
+      isActive: stat.isActive !== false,
+      isDeleted: stat.isDeleted === true,
     })),
     ownerDetails: {
       ownerName: owner.name || '',
@@ -130,27 +201,11 @@ const buildUpdatePayload = (formData, imageUrls = {}) => {
       badgeText: owner.badge || '',
       ownerQuote: owner.quote || '',
       ownerPhoto: imageUrls.owner || owner.photo || '',
+      sinceYear: owner.sinceYear || '2022',
+      experienceText: owner.yearsServing || '',
+      isActive: owner.isActive !== false,
     },
   };
-};
-
-const validateForm = (formData) => {
-  const errors = [];
-  const ap = formData.aboutPage || {};
-
-  if (!ap.heroHeading?.trim()) errors.push('Page heading is required');
-  if (!ap.storyTitle?.trim()) errors.push('Story title is required');
-  if (!ap.missionTitle?.trim()) errors.push('Mission title is required');
-  if (!ap.visionTitle?.trim()) errors.push('Vision title is required');
-  if (!ap.owner?.name?.trim()) errors.push('Owner name is required');
-  if (!ap.offerings?.length) errors.push('At least one offer is required');
-  if (!ap.stats?.length) errors.push('At least one statistic is required');
-
-  if (errors.length) {
-    const error = new Error(errors.join('. '));
-    error.validationErrors = errors;
-    throw error;
-  }
 };
 
 export const aboutUsService = {
@@ -159,46 +214,79 @@ export const aboutUsService = {
     return mapApiToFrontend(data);
   },
 
-  updateAboutUs: async (formData) => {
-    validateForm(formData);
-
-    const ap = formData.aboutPage || {};
-    const owner = ap.owner || {};
-
-    const [hero, story, ownerPhoto] = await Promise.all([
-      uploadImageIfNeeded('/about-us/upload/hero-image', ap.heroImage, 'hero.jpg'),
-      uploadImageIfNeeded('/about-us/upload/story-image', ap.storyImage, 'story.jpg'),
-      uploadImageIfNeeded('/about-us/upload/owner-photo', owner.photo, 'owner.jpg'),
-    ]);
-
-    const payload = buildUpdatePayload(formData, {
-      hero,
-      story,
-      owner: ownerPhoto,
-    });
-
-    const data = await apiRequest(() => api.put('/about-us', payload));
+  getAboutUsAdmin: async () => {
+    const data = await apiRequest(() => api.get('/about-us/admin'));
     return mapApiToFrontend(data);
   },
 
-  getOffers: async () => apiRequest(() => api.get('/about-us/offers')),
+  updateAboutUs: async (formDataOrPage, imageUrls = {}) => {
+    const aboutPage = formDataOrPage?.aboutPage || formDataOrPage;
+    const data = await apiRequest(() => api.put('/about-us', buildUpdatePayload(aboutPage, imageUrls)));
+    return mapApiToFrontend(data);
+  },
 
-  createOffer: async (body) => apiRequest(() => api.post('/about-us/offers', body)),
+  uploadHeroImage: async (file) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    const result = await apiRequest(() =>
+      api.post('/about-us/upload/hero-image', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+    );
+    return result.imageUrl;
+  },
 
-  updateOffer: async (id, body) => apiRequest(() => api.put(`/about-us/offers/${id}`, body)),
+  uploadStoryImage: async (file) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    const result = await apiRequest(() =>
+      api.post('/about-us/upload/story-image', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+    );
+    return result.imageUrl;
+  },
 
-  deleteOffer: async (id) => apiRequest(() => api.delete(`/about-us/offers/${id}`)),
+  uploadOwnerPhoto: async (file) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    const result = await apiRequest(() =>
+      api.post('/about-us/upload/owner-photo', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+    );
+    return result.imageUrl;
+  },
+
+  uploadOfferImage: async (id, file) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    return apiRequest(() =>
+      api.post(`/about-us/offers/${id}/image`, formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+    );
+  },
 
   reorderOffers: async (orders) =>
     apiRequest(() => api.put('/about-us/offers/reorder', { orders })),
 
-  getStatistics: async () => apiRequest(() => api.get('/about-us/statistics')),
+  reorderStatistics: async (orders) =>
+    apiRequest(() => api.put('/about-us/statistics/reorder', { orders })),
+
+  reorderTimeline: async (orders) =>
+    apiRequest(() => api.put('/about-us/timeline/reorder', { orders })),
+
+  reorderMvpCards: async (orders) =>
+    apiRequest(() => api.put('/about-us/mvp-cards/reorder', { orders })),
+
+  createOffer: async (body) => apiRequest(() => api.post('/about-us/offers', body)),
+  updateOffer: async (id, body) => apiRequest(() => api.put(`/about-us/offers/${id}`, body)),
+  deleteOffer: async (id) => apiRequest(() => api.delete(`/about-us/offers/${id}`)),
 
   createStatistic: async (body) => apiRequest(() => api.post('/about-us/statistics', body)),
-
   updateStatistic: async (id, body) => apiRequest(() => api.put(`/about-us/statistics/${id}`, body)),
-
   deleteStatistic: async (id) => apiRequest(() => api.delete(`/about-us/statistics/${id}`)),
+
+  createTimelineItem: async (body) => apiRequest(() => api.post('/about-us/timeline', body)),
+  updateTimelineItem: async (id, body) => apiRequest(() => api.put(`/about-us/timeline/${id}`, body)),
+  deleteTimelineItem: async (id) => apiRequest(() => api.delete(`/about-us/timeline/${id}`)),
+
+  createMvpCard: async (body) => apiRequest(() => api.post('/about-us/mvp-cards', body)),
+  updateMvpCard: async (id, body) => apiRequest(() => api.put(`/about-us/mvp-cards/${id}`, body)),
+  deleteMvpCard: async (id) => apiRequest(() => api.delete(`/about-us/mvp-cards/${id}`)),
 };
 
 export default aboutUsService;

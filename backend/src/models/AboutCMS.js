@@ -7,6 +7,7 @@ const whatWeOfferSchema = new mongoose.Schema(
     imageUrl: { type: String, default: '' },
     displayOrder: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true },
+    isDeleted: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
@@ -16,7 +17,35 @@ const statisticSchema = new mongoose.Schema(
     value: { type: Number, default: 0 },
     suffix: { type: String, default: '', trim: true },
     label: { type: String, default: '', trim: true },
+    icon: { type: String, default: 'FiUsers', trim: true },
     displayOrder: { type: Number, default: 0 },
+    isActive: { type: Boolean, default: true },
+    isDeleted: { type: Boolean, default: false },
+  },
+  { timestamps: true }
+);
+
+const storyTimelineSchema = new mongoose.Schema(
+  {
+    marker: { type: String, required: true, trim: true },
+    title: { type: String, required: true, trim: true },
+    description: { type: String, default: '', trim: true },
+    icon: { type: String, default: 'FiCalendar', trim: true },
+    displayOrder: { type: Number, default: 0 },
+    isActive: { type: Boolean, default: true },
+    isDeleted: { type: Boolean, default: false },
+  },
+  { timestamps: true }
+);
+
+const mvpCardSchema = new mongoose.Schema(
+  {
+    title: { type: String, required: true, trim: true },
+    icon: { type: String, default: 'FiTarget', trim: true },
+    description: { type: String, default: '' },
+    displayOrder: { type: Number, default: 0 },
+    isActive: { type: Boolean, default: true },
+    isDeleted: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
@@ -36,8 +65,15 @@ const heroSectionSchema = new mongoose.Schema(
     pageHeading: { type: String, default: '', trim: true },
     highlightedWord: { type: String, default: '', trim: true },
     description: { type: String, default: '' },
+    descriptionParagraphs: { type: [String], default: [] },
+    button1Text: { type: String, default: 'Explore Products', trim: true },
+    button1Url: { type: String, default: '/products', trim: true },
+    button2Text: { type: String, default: 'Contact Us', trim: true },
+    button2Url: { type: String, default: '/contact', trim: true },
     imageBadgeText: { type: String, default: '', trim: true },
     heroImage: { type: String, default: '' },
+    displayOrder: { type: Number, default: 1 },
+    isActive: { type: Boolean, default: true },
   },
   { _id: false }
 );
@@ -72,6 +108,9 @@ const ownerDetailsSchema = new mongoose.Schema(
     location: { type: String, default: '', trim: true },
     badgeText: { type: String, default: '', trim: true },
     ownerQuote: { type: String, default: '' },
+    sinceYear: { type: String, default: '2022', trim: true },
+    experienceText: { type: String, default: '5+ Years Serving Community', trim: true },
+    isActive: { type: Boolean, default: true },
   },
   { _id: false }
 );
@@ -82,7 +121,9 @@ const aboutUsCmsSchema = new mongoose.Schema(
     homepageAboutSection: { type: homepageAboutSectionSchema, default: () => ({}) },
     heroSection: { type: heroSectionSchema, default: () => ({}) },
     storySection: { type: storySectionSchema, default: () => ({}) },
+    storyTimeline: { type: [storyTimelineSchema], default: [] },
     missionVisionPromise: { type: missionVisionPromiseSchema, default: () => ({}) },
+    mvpCards: { type: [mvpCardSchema], default: [] },
     whatWeOffer: { type: [whatWeOfferSchema], default: [] },
     statistics: { type: [statisticSchema], default: [] },
     ownerDetails: { type: ownerDetailsSchema, default: () => ({}) },
@@ -110,17 +151,66 @@ export const getDefaultAboutCMS = () => ({
     highlightedWord: 'Hilversum',
     description:
       'Founded in July 2022, Wins Wereld Winkel has become a trusted destination for quality groceries, fresh produce, and delicious takeaway food in Hilversum. We serve our community with international products, affordable prices, and friendly service.',
-    imageBadgeText: 'Serving Hilversum since 2022',
+    descriptionParagraphs: [
+      'Founded in July 2022, Wins Wereld Winkel has become a trusted destination for quality groceries, fresh produce, and delicious takeaway food in Hilversum.',
+      'We bring together international products from Asia, Africa, and Arabic countries — giving our community one place to shop for everyday essentials and specialty items.',
+      'Our Food Corner serves freshly prepared meals and snacks, while our supermarket shelves stay stocked with affordable, high-quality products.',
+      'Every visit is built around friendly service, fair prices, and a welcoming atmosphere for families and neighbours across Hilversum.',
+    ],
+    button1Text: 'Explore Products',
+    button1Url: '/products',
+    button2Text: 'Contact Us',
+    button2Url: '/contact',
+    imageBadgeText: 'Serving Hilversum Since 2022',
     heroImage:
       'https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&q=80&w=1400',
+    displayOrder: 1,
+    isActive: true,
   },
   storySection: {
     title: 'Our Story',
     description:
       'Established on 01 July 2022 with a vision of creating a supermarket where customers find everything under one roof.',
-    image:
-      'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=800',
+    image: '/images/premium_supermarket_hero.png',
   },
+  storyTimeline: [
+    {
+      marker: 'July 2022',
+      title: 'Store Founded',
+      description:
+        'Wins Wereld Winkel opened in Hilversum with a vision to bring quality groceries and global products under one roof.',
+      icon: 'FiCalendar',
+      displayOrder: 1,
+      isActive: true,
+    },
+    {
+      marker: 'Community Growth',
+      title: 'Community Growth',
+      description:
+        'We expanded our international range and built lasting relationships with families across Hilversum.',
+      icon: 'FiUsers',
+      displayOrder: 2,
+      isActive: true,
+    },
+    {
+      marker: 'Food Corner Launch',
+      title: 'Food Corner Launch',
+      description:
+        'Freshly prepared meals and takeaway favourites joined our shelves, making every visit even more convenient.',
+      icon: 'FiCoffee',
+      displayOrder: 3,
+      isActive: true,
+    },
+    {
+      marker: 'Today',
+      title: 'Trusted Supermarket in Hilversum',
+      description:
+        'A welcoming one-stop destination for fresh produce, global groceries, and friendly service every day.',
+      icon: 'FiAward',
+      displayOrder: 4,
+      isActive: true,
+    },
+  ],
   missionVisionPromise: {
     missionTitle: 'Our Mission',
     missionDescription:
@@ -132,6 +222,32 @@ export const getDefaultAboutCMS = () => ({
     promiseDescription:
       'Fresh quality, fair prices, and friendly service on every visit.',
   },
+  mvpCards: [
+    {
+      title: 'Our Mission',
+      icon: 'FiTarget',
+      description:
+        'High-quality products at affordable prices, exceptional service, and a welcoming environment for everyone.',
+      displayOrder: 1,
+      isActive: true,
+    },
+    {
+      title: 'Our Vision',
+      icon: 'FiEye',
+      description:
+        'To become the most trusted multicultural supermarket in the Netherlands through freshness, variety, and value.',
+      displayOrder: 2,
+      isActive: true,
+    },
+    {
+      title: 'Our Promise',
+      icon: 'FiHeart',
+      description:
+        'Fresh quality, fair prices, and friendly service on every visit.',
+      displayOrder: 3,
+      isActive: true,
+    },
+  ],
   whatWeOffer: [
     {
       categoryName: 'Fresh Vegetables & Fruits',
@@ -167,10 +283,10 @@ export const getDefaultAboutCMS = () => ({
     },
   ],
   statistics: [
-    { value: 15, suffix: 'K+', label: 'Happy Customers', displayOrder: 1 },
-    { value: 500, suffix: '+', label: 'Products', displayOrder: 2 },
-    { value: 50, suffix: '+', label: 'Categories', displayOrder: 3 },
-    { value: 99, suffix: '%', label: 'Customer Satisfaction', displayOrder: 4 },
+    { value: 15, suffix: 'K+', label: 'Happy Customers', icon: 'FiUsers', displayOrder: 1, isActive: true },
+    { value: 500, suffix: '+', label: 'Products', icon: 'FiShoppingBag', displayOrder: 2, isActive: true },
+    { value: 50, suffix: '+', label: 'Categories', icon: 'FiGrid', displayOrder: 3, isActive: true },
+    { value: 99, suffix: '%', label: 'Customer Satisfaction', icon: 'FiStar', displayOrder: 4, isActive: true },
   ],
   ownerDetails: {
     ownerPhoto: '/images/owner-raguparan.png',
@@ -178,9 +294,12 @@ export const getDefaultAboutCMS = () => ({
     designation: 'Founder & Owner',
     phoneNumber: '+31659046526',
     location: 'Leeuwenstraat 36, 1211ev, Hilversum',
-    badgeText: 'Since 2022',
+    badgeText: 'Founder & Owner',
     ownerQuote:
       'Our goal is to provide quality products, fresh groceries, and excellent customer service to every customer.',
+    sinceYear: '2022',
+    experienceText: '5+ Years Serving Community',
+    isActive: true,
   },
 });
 

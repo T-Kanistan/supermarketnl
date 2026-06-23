@@ -44,15 +44,16 @@
 
 .nav-list {
   display: flex;
-  gap: 30px;
+  gap: 22px;
 }
 
 .nav-link {
   font-weight: 600;
   color: var(--dark-blue);
-  font-size: 0.95rem;
+  font-size: 0.88rem;
   position: relative;
   padding-bottom: 5px;
+  white-space: nowrap;
 }
 
 .nav-link-btn {
@@ -159,25 +160,35 @@
 
 .auth-nav-btn {
   font-weight: 600;
-  color: var(--primary-green);
-  background-color: var(--white);
-  border: 2px solid var(--primary-green);
-  padding: 6px 16px;
-  border-radius: 4px;
+  padding: 6px 14px;
+  border-radius: 6px;
   transition: all 0.3s ease;
   text-decoration: none;
   cursor: pointer;
   font-family: inherit;
-  font-size: 0.95rem;
+  font-size: 0.88rem;
+  white-space: nowrap;
 }
 
-.auth-nav-btn:hover {
-  background-color: #f0fdf4;
-  color: var(--primary-green);
+.auth-nav-login {
+  color: var(--dark-blue);
+  background-color: var(--white);
+  border: 2px solid var(--dark-blue);
 }
 
-.auth-nav-btn.active {
-  background-color: var(--primary-green);
+.auth-nav-login:hover {
+  background-color: #eff6ff;
+  color: var(--dark-blue);
+}
+
+.auth-nav-apply {
+  color: var(--white);
+  background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-green-dark) 100%);
+  border: 2px solid var(--primary-green-dark);
+}
+
+.auth-nav-apply:hover {
+  background: linear-gradient(135deg, var(--primary-green-dark) 0%, #219a52 100%);
   color: var(--white);
 }
 

@@ -1,5 +1,25 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import Manager from '../models/Manager.js';
+import { MANAGER_PERMISSIONS } from '../constants/managerPermissions.js';
+
+const ACCESS_DENIED_MESSAGE =
+  'Access Denied. You do not have permission to access this module.';
+
+const buildManagerUser = (manager) => ({
+  _id: manager._id,
+  id: manager._id.toString(),
+  fullName: manager.fullName,
+  name: manager.fullName,
+  email: manager.email,
+  username: manager.username,
+  phoneNumber: manager.phoneNumber,
+  profileImage: manager.profileImage || '',
+  role: 'manager',
+  status: manager.status,
+  accountType: 'manager',
+  permissions: MANAGER_PERMISSIONS,
+});
 
 export const protect = async (req, res, next) => {
   try {
@@ -16,15 +36,34 @@ export const protect = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.id).select('-password');
+    const isManagerAccount =
+      decoded.accountType === 'manager' || decoded.role === 'manager';
 
+    if (isManagerAccount) {
+      const manager = await Manager.findById(decoded.id);
+      if (!manager) {
+        return res.status(401).json({
+          success: false,
+          message: 'The user belonging to this token no longer exists',
+        });
+      }
+      if (!manager.status) {
+        return res.status(403).json({
+          success: false,
+          message: 'This user account has been deactivated',
+        });
+      }
+      req.user = buildManagerUser(manager);
+      return next();
+    }
+
+    const user = await User.findById(decoded.id).select('-password');
     if (!user) {
       return res.status(401).json({
         success: false,
         message: 'The user belonging to this token no longer exists',
       });
     }
-
     if (!user.isActive) {
       return res.status(403).json({
         success: false,
@@ -32,7 +71,11 @@ export const protect = async (req, res, next) => {
       });
     }
 
-    req.user = user;
+    req.user = {
+      ...user.toObject(),
+      accountType: 'admin',
+      permissions: ['*'],
+    };
     next();
   } catch (error) {
     return res.status(401).json({
@@ -47,9 +90,11 @@ export const restrictTo = (...roles) => {
     if (!roles.includes(req.user.role)) {
       return res.status(403).json({
         success: false,
-        message: 'You do not have permission to perform this action',
+        message: ACCESS_DENIED_MESSAGE,
       });
     }
     next();
   };
 };
+
+export const adminOnly = restrictTo('admin');

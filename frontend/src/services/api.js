@@ -46,7 +46,10 @@ api.interceptors.response.use(
   },
   (error) => {
     const requestUrl = error.config?.url || '';
-    const isAuthCheck = requestUrl.includes('/auth/me') || requestUrl.includes('/auth/login');
+    const isAuthCheck =
+      requestUrl.includes('/auth/me') ||
+      requestUrl.includes('/auth/login') ||
+      requestUrl.includes('/auth/manager-login');
 
     if (error.response?.status === 401 && !isAuthCheck) {
       localStorage.removeItem('supermarket_token');
@@ -102,7 +105,10 @@ export const getImageUrl = (imagePath) => {
   if (imagePath.startsWith('http://') || imagePath.startsWith('https://') || imagePath.startsWith('data:')) {
     return imagePath;
   }
-  if (imagePath.startsWith('/uploads')) {
+  if (imagePath.startsWith('/uploads') || imagePath.startsWith('/images')) {
+    if (imagePath.startsWith('/images')) {
+      return imagePath;
+    }
     return `${API_ORIGIN}${imagePath}`;
   }
   return imagePath;

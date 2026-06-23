@@ -1,4 +1,5 @@
 import api, { apiRequest } from './api';
+import enquiryService from './enquiryService';
 
 export const mapHomeResponse = (home) => ({
   storeName: home.storeName,
@@ -28,31 +29,62 @@ export const cmsService = {
     return mapHomeResponse(home);
   },
 
-  getContactMessages: async () => apiRequest(() => api.get('/cms/messages')),
+  getContactMessages: async (params = {}) => {
+    const { data } = await enquiryService.getEnquiries(params);
+    return data;
+  },
 
   submitContactMessage: async (messageData) =>
-    apiRequest(() => api.post('/enquiries', messageData)),
+    enquiryService.submitContactEnquiry({
+      name: messageData.name,
+      email: messageData.email,
+      phone: messageData.phone,
+      subject: messageData.subject,
+      message: messageData.message,
+    }),
 
-  markContactMessageRead: async (id, isRead) =>
-    apiRequest(() => api.put(`/cms/messages/${id}/read`, { isRead })),
+  markContactMessageRead: async (id) => enquiryService.markAsRead(id),
 
-  deleteContactMessage: async (id) => apiRequest(() => api.delete(`/cms/messages/${id}`)),
+  deleteContactMessage: async (id) => enquiryService.deleteEnquiry(id),
 
-  getAnnouncements: async () => apiRequest(() => api.get('/cms/announcements')),
+  getAnnouncements: async () => apiRequest(() => api.get('/storefront/announcements')),
 
-  getAllAnnouncements: async () => apiRequest(() => api.get('/cms/announcements/all')),
+  getAllAnnouncements: async (params = {}) => {
+    const result = await api.get('/announcements', { params });
+    const body = result.data;
+    if (body?.success && Array.isArray(body.data)) {
+      return body.data;
+    }
+    return body?.data ?? body ?? [];
+  },
 
   createAnnouncement: async (announcementData) => {
-    const config = announcementData instanceof FormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : {};
-    return apiRequest(() => api.post('/cms/announcements', announcementData, config));
+    const payload = {
+      title: announcementData.title,
+      description: announcementData.description,
+      discountPercentage: Number(announcementData.discountPercentage ?? announcementData.offerPercentage ?? 0),
+      bannerImage: announcementData.bannerImage || announcementData.image || '',
+      status: announcementData.status || 'active',
+      startDate: announcementData.startDate,
+      endDate: announcementData.endDate,
+    };
+    return apiRequest(() => api.post('/announcements', payload));
   },
 
   updateAnnouncement: async (id, announcementData) => {
-    const config = announcementData instanceof FormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : {};
-    return apiRequest(() => api.put(`/cms/announcements/${id}`, announcementData, config));
+    const payload = {
+      title: announcementData.title,
+      description: announcementData.description,
+      discountPercentage: Number(announcementData.discountPercentage ?? announcementData.offerPercentage ?? 0),
+      bannerImage: announcementData.bannerImage || announcementData.image || '',
+      status: announcementData.status || 'active',
+      startDate: announcementData.startDate,
+      endDate: announcementData.endDate,
+    };
+    return apiRequest(() => api.put(`/announcements/${id}`, payload));
   },
 
-  deleteAnnouncement: async (id) => apiRequest(() => api.delete(`/cms/announcements/${id}`)),
+  deleteAnnouncement: async (id) => apiRequest(() => api.delete(`/announcements/${id}`)),
 };
 
 export default cmsService;

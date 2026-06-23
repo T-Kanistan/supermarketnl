@@ -4,6 +4,39 @@ import homepageAboutService from '../services/homepageAboutService';
 import { getImageUrl } from '../services/api';
 import './About.css';
 
+const DEFAULT_ABOUT_PATH = '/about';
+const BLOCKED_HASH_TARGETS = new Set(['footer', 'contact']);
+
+const normalizeLearnMoreTarget = (link) => {
+  const raw = (link || '').trim() || DEFAULT_ABOUT_PATH;
+
+  if (raw.startsWith('http://') || raw.startsWith('https://')) {
+    return { type: 'external', href: raw };
+  }
+
+  if (raw.startsWith('#')) {
+    const sectionId = raw.slice(1).toLowerCase();
+    if (BLOCKED_HASH_TARGETS.has(sectionId)) {
+      return { type: 'route', path: DEFAULT_ABOUT_PATH };
+    }
+    if (sectionId === 'about') {
+      return { type: 'hash', id: 'about' };
+    }
+    return { type: 'route', path: DEFAULT_ABOUT_PATH };
+  }
+
+  let path = raw.startsWith('/') ? raw : `/${raw}`;
+  if (path === '/about-us') path = DEFAULT_ABOUT_PATH;
+  if (path === '/footer' || path === '/contact') path = DEFAULT_ABOUT_PATH;
+
+  const [routePath, hash] = path.split('#');
+  if (hash && BLOCKED_HASH_TARGETS.has(hash.toLowerCase())) {
+    return { type: 'route', path: DEFAULT_ABOUT_PATH };
+  }
+
+  return { type: 'route', path };
+};
+
 const About = () => {
   const navigate = useNavigate();
   const [content, setContent] = useState(null);
@@ -22,12 +55,22 @@ const About = () => {
   }, []);
 
   const handleButtonClick = (link) => {
-    const target = link || '/about-us';
-    if (target.startsWith('http://') || target.startsWith('https://')) {
-      window.location.href = target;
+    const target = normalizeLearnMoreTarget(link);
+
+    if (target.type === 'external') {
+      window.location.href = target.href;
       return;
     }
-    navigate(target.startsWith('/') ? target : `/${target}`);
+
+    if (target.type === 'hash') {
+      const section = document.getElementById(target.id);
+      if (section) {
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+    }
+
+    navigate(target.path);
   };
 
   if (loading) {
@@ -38,7 +81,7 @@ const About = () => {
     );
   }
 
-  if (error || content?.status === 'Inactive') {
+  if (error || !content) {
     return null;
   }
 

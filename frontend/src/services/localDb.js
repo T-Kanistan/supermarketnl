@@ -4,6 +4,7 @@ const STORAGE_KEYS = {
   SETTINGS: 'supermarket_settings',
   BANNERS: 'supermarket_banners',
   CATEGORIES: 'supermarket_categories',
+  FOOD_CORNER_CATEGORIES: 'supermarket_food_corner_categories',
   PRODUCTS: 'supermarket_products',
   FAQS: 'supermarket_faqs',
   TESTIMONIALS: 'supermarket_testimonials',
@@ -15,6 +16,7 @@ const STORAGE_KEYS = {
 import { defaultAboutPage } from '../constants/aboutPageDefaults';
 import { defaultContactPage } from '../constants/contactPageDefaults';
 import { defaultFooterPage } from '../constants/footerPageDefaults';
+import { buildDefaultFoodCornerProducts, DEFAULT_FOOD_CORNER_CATEGORIES } from '../constants/foodCornerMenu';
 
 // Seed data based on existing static UI structures
 const defaultSettings = {
@@ -88,62 +90,15 @@ const defaultProducts = [
   { id: '14', categoryId: 'frozen-ready-to-eat', name: 'Fresh Seer Fish', weight: '1KG', price: 14.99, oldPrice: 17.99, image: '/images/fresh_potatoes.png', stock: 10, status: 'active', isFeatured: true, type: 'grocery' },
 
   // Food Corner Items (mapped to food type)
-  { 
-    id: 'fc1', name: 'Classic English Breakfast', price: 12.99, categoryId: 'Breakfast', 
-    image: 'https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?auto=format&fit=crop&q=80&w=600',
-    rating: 4.8, reviews: 124, badge: 'Best Seller',
-    startTime: '07:00', endTime: '11:00', displayTime: '7:00 AM - 11:00 AM', status: 'active', isFeatured: true, type: 'food'
-  },
-  { 
-    id: 'fc2', name: 'Grilled Salmon Plate', price: 19.99, categoryId: 'Lunch', 
-    image: 'https://images.unsplash.com/photo-1467003909585-2f8a72700288?auto=format&fit=crop&q=80&w=600',
-    rating: 4.9, reviews: 89, badge: "Today's Special",
-    startTime: '11:30', endTime: '15:00', displayTime: '11:30 AM - 3:00 PM', status: 'active', isFeatured: true, type: 'food'
-  },
-  { 
-    id: 'fc3', name: 'Spicy Chicken Burger', price: 8.99, categoryId: 'Lunch', 
-    image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&q=80&w=600',
-    rating: 4.6, reviews: 215, badge: 'Popular',
-    startTime: '11:00', endTime: '22:00', displayTime: '11:00 AM - 10:00 PM', status: 'active', isFeatured: true, type: 'food'
-  },
-  { 
-    id: 'fc4', name: 'Steak & Garlic Mash', price: 24.99, categoryId: 'Dinner', 
-    image: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&q=80&w=600',
-    rating: 4.9, reviews: 67, badge: 'Premium',
-    startTime: '18:00', endTime: '23:00', displayTime: '6:00 PM - 11:00 PM', status: 'active', isFeatured: false, type: 'food'
-  },
-  { 
-    id: 'fc5', name: 'Margherita Pizza', price: 14.99, categoryId: 'Dinner', 
-    image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&q=80&w=600',
-    rating: 4.7, reviews: 342, badge: 'Limited Time Offer',
-    startTime: '16:00', endTime: '23:00', displayTime: '4:00 PM - 11:00 PM', status: 'active', isFeatured: false, type: 'food'
-  },
-  { 
-    id: 'fc6', name: 'Crispy French Fries', price: 4.99, categoryId: 'Snacks', 
-    image: 'https://images.unsplash.com/photo-1576107232684-1279f390859f?auto=format&fit=crop&q=80&w=600',
-    rating: 4.5, reviews: 430, badge: null,
-    startTime: '10:00', endTime: '22:00', displayTime: '10:00 AM - 10:00 PM', status: 'active', isFeatured: false, type: 'food'
-  },
-  { 
-    id: 'fc7', name: 'Fresh Orange Juice', price: 3.49, categoryId: 'Beverages', 
-    image: 'https://images.unsplash.com/photo-1600271886742-f049cd451bba?auto=format&fit=crop&q=80&w=600',
-    rating: 4.8, reviews: 156, badge: null,
-    startTime: '07:00', endTime: '22:00', displayTime: '7:00 AM - 10:00 PM', status: 'active', isFeatured: false, type: 'food'
-  },
-  { 
-    id: 'fc8', name: 'Chocolate Lava Cake', price: 6.99, categoryId: 'Desserts', 
-    image: 'https://images.unsplash.com/photo-1606890737304-57a1ca8a5b62?auto=format&fit=crop&q=80&w=600',
-    rating: 4.9, reviews: 201, badge: 'Best Seller',
-    startTime: '12:00', endTime: '23:00', displayTime: '12:00 PM - 11:00 PM', status: 'active', isFeatured: false, type: 'food'
-  }
+  ...buildDefaultFoodCornerProducts(),
 ];
 
 const defaultFaqs = [
-  { id: '1', question: '1. What are your store opening hours?', answer: 'Our store is open from Monday to Saturday 08:00 AM to 08:00 PM and on Sunday 10:00 AM to 06:00 PM.', status: 'active' },
-  { id: '2', question: '2. Do you offer home delivery?', answer: 'Yes, we offer home delivery within a 10km radius of our store. Delivery charges may apply based on the distance.', status: 'active' },
-  { id: '3', question: '3. What payment methods do you accept?', answer: 'We accept Cash, Debit/Credit Cards, Apple Pay, Google Pay, and other major contactless payment methods.', status: 'active' },
-  { id: '4', question: '4. Can I place an order online?', answer: 'Yes, you can place an order online through our website or mobile app for both pickup and home delivery.', status: 'active' },
-  { id: '5', question: '5. Do you have parking facilities?', answer: 'Yes, we have a dedicated parking lot for our customers right in front of the store.', status: 'active' },
+  { id: '1', question: 'What are your store opening hours?', answer: 'Our store is open from Monday to Saturday 08:00 AM to 08:00 PM and on Sunday 10:00 AM to 06:00 PM.', status: 'active', displayOrder: 1, order: 1 },
+  { id: '2', question: 'Do you offer home delivery?', answer: 'Yes, we offer home delivery within a 10km radius of our store. Delivery charges may apply based on the distance.', status: 'active', displayOrder: 2, order: 2 },
+  { id: '3', question: 'What payment methods do you accept?', answer: 'We accept Cash, Debit/Credit Cards, Apple Pay, Google Pay, and other major contactless payment methods.', status: 'active', displayOrder: 3, order: 3 },
+  { id: '4', question: 'Can I place an order online?', answer: 'Yes, you can place an order online through our website or mobile app for both pickup and home delivery.', status: 'active', displayOrder: 4, order: 4 },
+  { id: '5', question: 'Do you have parking facilities?', answer: 'Yes, we have a dedicated parking lot for our customers right in front of the store.', status: 'active', displayOrder: 5, order: 5 },
 ];
 
 const defaultTestimonials = [
@@ -175,6 +130,12 @@ const initDb = () => {
   }
   if (!localStorage.getItem(STORAGE_KEYS.CATEGORIES)) {
     localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(defaultCategories));
+  }
+  if (!localStorage.getItem(STORAGE_KEYS.FOOD_CORNER_CATEGORIES)) {
+    localStorage.setItem(
+      STORAGE_KEYS.FOOD_CORNER_CATEGORIES,
+      JSON.stringify(DEFAULT_FOOD_CORNER_CATEGORIES)
+    );
   }
   if (!localStorage.getItem(STORAGE_KEYS.PRODUCTS)) {
     localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(defaultProducts));
@@ -217,6 +178,10 @@ export const localDb = {
   // Categories
   getCategories: () => getCollection(STORAGE_KEYS.CATEGORIES),
   saveCategories: (data) => setCollection(STORAGE_KEYS.CATEGORIES, data),
+
+  // Food Corner Categories
+  getFoodCornerCategories: () => getCollection(STORAGE_KEYS.FOOD_CORNER_CATEGORIES),
+  saveFoodCornerCategories: (data) => setCollection(STORAGE_KEYS.FOOD_CORNER_CATEGORIES, data),
 
   // Products & Food Items
   getProducts: () => getCollection(STORAGE_KEYS.PRODUCTS),

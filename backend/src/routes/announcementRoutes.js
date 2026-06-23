@@ -1,45 +1,49 @@
 import express from 'express';
 import {
   getAnnouncements,
-  getAllAnnouncements,
   getAnnouncementById,
   createAnnouncement,
   updateAnnouncement,
   deleteAnnouncement,
+  searchAnnouncements,
 } from '../controllers/announcementController.js';
-import { protect, restrictTo } from '../middlewares/authMiddleware.js';
-import { upload } from '../middlewares/uploadMiddleware.js';
+import { protect, restrictTo, adminOnly } from '../middlewares/authMiddleware.js';
 import { validateRequest } from '../middlewares/validationMiddleware.js';
-import { createAnnouncementRules, updateAnnouncementRules } from '../validators/announcementValidator.js';
+import { announcementBannerUpload } from '../middlewares/announcementUploadMiddleware.js';
+import {
+  createAnnouncementRules,
+  updateAnnouncementRules,
+  announcementIdRules,
+  announcementListQueryRules,
+  searchAnnouncementRules,
+} from '../validators/announcementValidator.js';
 
 const router = express.Router();
+const auth = [protect, restrictTo('admin', 'manager')];
 
-// Public route to fetch active and current announcements
-router.get('/', getAnnouncements);
+router.get('/search', ...auth, searchAnnouncementRules, validateRequest, searchAnnouncements);
+router.get('/', ...auth, announcementListQueryRules, validateRequest, getAnnouncements);
+router.get('/all', ...auth, announcementListQueryRules, validateRequest, getAnnouncements);
+router.get('/:id', ...auth, announcementIdRules, validateRequest, getAnnouncementById);
 
-// Protected routes to fetch all and single announcement
-router.get('/all', protect, restrictTo('admin', 'manager'), getAllAnnouncements);
-router.get('/:id', protect, restrictTo('admin', 'manager'), getAnnouncementById);
-
-// Protected CRUD routes
 router.post(
   '/',
-  protect,
-  restrictTo('admin', 'manager'),
-  upload.single('image'),
+  ...auth,
+  announcementBannerUpload.single('image'),
   createAnnouncementRules,
   validateRequest,
   createAnnouncement
 );
+
 router.put(
   '/:id',
-  protect,
-  restrictTo('admin', 'manager'),
-  upload.single('image'),
+  ...auth,
+  announcementBannerUpload.single('image'),
   updateAnnouncementRules,
   validateRequest,
   updateAnnouncement
 );
-router.delete('/:id', protect, restrictTo('admin', 'manager'), deleteAnnouncement);
+
+router.delete('/:id', protect, adminOnly, announcementIdRules, validateRequest, deleteAnnouncement);
 
 export default router;

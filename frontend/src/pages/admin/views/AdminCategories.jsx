@@ -122,8 +122,8 @@ export const AdminCategories = () => {
     <div>
       <div className="view-header">
         <div className="view-title-wrap">
-          <h2>Catalog Categories</h2>
-          <p>Organize products and ready-to-eat meals into catalog sections.</p>
+          <h2>Product Categories</h2>
+          <p>Organize supermarket products for the Products page. Food Corner meals use separate menu sections.</p>
         </div>
         <button className="action-btn-primary" onClick={openAddModal}>
           <FaPlus /> Add Category

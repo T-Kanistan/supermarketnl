@@ -6,12 +6,12 @@ import { useToast } from '../../context/ToastContext';
 import '../Auth.css'; // Reuse the existing premium auth styles
 
 export const AdminLogin = () => {
-  const [email, setEmail] = useState('');
+  const [loginValue, setLoginValue] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const { login, user } = useAuth();
+  const { login: signIn, user } = useAuth();
   const { addToast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -25,15 +25,15 @@ export const AdminLogin = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!email || !password) {
-      addToast('Please enter both email and password', 'error');
+    if (!loginValue || !password) {
+      addToast('Please enter your email/username and password', 'error');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const loggedUser = await login(email, password);
-      addToast(`Welcome back, ${loggedUser.name}!`, 'success');
+      const loggedUser = await signIn(loginValue, password);
+      addToast(`Welcome back, ${loggedUser.name || loggedUser.fullName}!`, 'success');
       
       // Navigate to the page they tried to visit, or dashboard
       const origin = location.state?.from?.pathname || '/admin/dashboard';
@@ -57,9 +57,9 @@ export const AdminLogin = () => {
               <FaShieldAlt className="shield-icon" />
               <span>Supermarket Management Console</span>
             </div>
-            <h1 className="brand-heading animate-fade-in-up delay-1">Admin Portal</h1>
+            <h1 className="brand-heading animate-fade-in-up delay-1">Management Portal</h1>
             <p className="brand-subtext animate-fade-in-up delay-2">
-              Log in to update site catalogs, manage banner promotions, view client enquiries, and configure system CMS settings.
+              Super Admins and Managers can sign in to manage products, offers, enquiries, and content.
             </p>
           </div>
         </div>
@@ -74,16 +74,16 @@ export const AdminLogin = () => {
 
             <form className="modern-auth-form" onSubmit={handleSubmit}>
               <div className="form-group">
-                <label htmlFor="email">Email Address</label>
+                <label htmlFor="login">Email or Username</label>
                 <div className="input-with-icon">
                   <FaEnvelope className="input-icon" />
-                  <input 
-                    type="email" 
-                    id="email" 
-                    placeholder="admin@store.com" 
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required 
+                  <input
+                    type="text"
+                    id="login"
+                    placeholder="admin@store.com or manager username"
+                    value={loginValue}
+                    onChange={(e) => setLoginValue(e.target.value)}
+                    required
                   />
                 </div>
               </div>

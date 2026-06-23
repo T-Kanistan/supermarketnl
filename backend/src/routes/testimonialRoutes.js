@@ -6,40 +6,47 @@ import {
   createTestimonial,
   updateTestimonial,
   deleteTestimonial,
+  searchTestimonials,
+  getPublicTestimonials,
 } from '../controllers/testimonialController.js';
-import { protect, restrictTo } from '../middlewares/authMiddleware.js';
-import { upload } from '../middlewares/uploadMiddleware.js';
+import { protect, restrictTo, adminOnly } from '../middlewares/authMiddleware.js';
 import { validateRequest } from '../middlewares/validationMiddleware.js';
-import { createTestimonialRules, updateTestimonialRules } from '../validators/testimonialValidator.js';
+import { testimonialAvatarUpload } from '../middlewares/testimonialUploadMiddleware.js';
+import {
+  createTestimonialRules,
+  updateTestimonialRules,
+  testimonialIdRules,
+  searchTestimonialRules,
+} from '../validators/testimonialValidator.js';
 
 const router = express.Router();
+const auth = [protect, restrictTo('admin', 'manager')];
 
-// Public route to fetch active testimonials
-router.get('/', getTestimonials);
+router.get('/search', ...auth, searchTestimonialRules, validateRequest, searchTestimonials);
+router.get('/public', getPublicTestimonials);
 
-// Protected routes to fetch all and single testimonial
-router.get('/all', protect, restrictTo('admin', 'manager'), getAllTestimonials);
-router.get('/:id', protect, restrictTo('admin', 'manager'), getTestimonialById);
+router.get('/', ...auth, getTestimonials);
+router.get('/all', ...auth, getAllTestimonials);
+router.get('/:id', ...auth, testimonialIdRules, validateRequest, getTestimonialById);
 
-// Protected CRUD routes
 router.post(
   '/',
-  protect,
-  restrictTo('admin', 'manager'),
-  upload.single('image'),
+  ...auth,
+  testimonialAvatarUpload.single('image'),
   createTestimonialRules,
   validateRequest,
   createTestimonial
 );
+
 router.put(
   '/:id',
-  protect,
-  restrictTo('admin', 'manager'),
-  upload.single('image'),
+  ...auth,
+  testimonialAvatarUpload.single('image'),
   updateTestimonialRules,
   validateRequest,
   updateTestimonial
 );
-router.delete('/:id', protect, restrictTo('admin', 'manager'), deleteTestimonial);
+
+router.delete('/:id', protect, adminOnly, testimonialIdRules, validateRequest, deleteTestimonial);
 
 export default router;

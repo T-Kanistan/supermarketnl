@@ -1,27 +1,31 @@
 import express from 'express';
 import {
-  getMessages,
-  submitMessage,
-  markMessageRead,
-  deleteMessage,
-} from '../controllers/messageController.js';
-import { protect, restrictTo } from '../middlewares/authMiddleware.js';
+  submitContactEnquiry,
+  submitProductEnquiry,
+  submitFoodCornerEnquiry,
+} from '../controllers/enquiryController.js';
 import { validateRequest } from '../middlewares/validationMiddleware.js';
-import { submitMessageRules, markMessageReadRules } from '../validators/messageValidator.js';
 import { enquiryRateLimit } from '../middleware/enquiryRateLimit.js';
+import {
+  contactEnquiryRules,
+  productEnquiryRules,
+  foodCornerEnquiryRules,
+  legacySubmitMessageRules,
+} from '../validators/enquiryValidator.js';
 
 const router = express.Router();
 
-router.post('/', enquiryRateLimit, submitMessageRules, validateRequest, submitMessage);
-router.get('/', protect, restrictTo('admin', 'manager'), getMessages);
-router.put(
-  '/:id/read',
-  protect,
-  restrictTo('admin', 'manager'),
-  markMessageReadRules,
+router.post('/contact', enquiryRateLimit, contactEnquiryRules, validateRequest, submitContactEnquiry);
+router.post('/product', enquiryRateLimit, productEnquiryRules, validateRequest, submitProductEnquiry);
+router.post(
+  '/food-corner',
+  enquiryRateLimit,
+  foodCornerEnquiryRules,
   validateRequest,
-  markMessageRead
+  submitFoodCornerEnquiry
 );
-router.delete('/:id', protect, restrictTo('admin', 'manager'), deleteMessage);
+
+// Legacy single endpoint used by older frontend integrations
+router.post('/', enquiryRateLimit, legacySubmitMessageRules, validateRequest, submitContactEnquiry);
 
 export default router;

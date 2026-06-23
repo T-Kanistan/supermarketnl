@@ -1,7 +1,9 @@
+import { useState, useEffect } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { FiMapPin, FiPhone, FiMail, FiClock } from 'react-icons/fi';
 import { FaFacebook, FaInstagram, FaWhatsapp, FaTiktok, FaYoutube } from 'react-icons/fa';
 import { useCMS } from '../context/CMSContext';
+import categoryService from '../services/categoryService';
 import { getImageUrl } from '../services/api';
 import { mergeFooterPage } from '../constants/footerPageDefaults';
 import './Footer.css';
@@ -9,6 +11,27 @@ import './Footer.css';
 const Footer = () => {
   const location = useLocation();
   const { cmsData, loading, error } = useCMS();
+  const [catalogCategories, setCatalogCategories] = useState([]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadCategories = async () => {
+      try {
+        const list = await categoryService.getCategories();
+        if (!mounted) return;
+        const active = (Array.isArray(list) ? list : []).filter((c) => c.status === 'active');
+        setCatalogCategories(active);
+      } catch (err) {
+        console.error('Failed to load footer categories', err);
+      }
+    };
+
+    loadCategories();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   if (location.pathname.startsWith('/admin')) return null;
   if (loading) return null;
@@ -32,7 +55,14 @@ const Footer = () => {
   const mapsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
 
   const quickLinks = footer.quickLinks.filter((link) => link.enabled && link.label);
-  const categoryLinks = footer.categoryLinks.filter((link) => link.enabled && link.label);
+  const cmsCategoryLinks = footer.categoryLinks.filter((link) => link.enabled && link.label);
+  const footerCategoryLinks = catalogCategories.length
+    ? catalogCategories.map((cat) => ({
+        id: cat.id,
+        label: cat.name,
+        path: `/products?category=${encodeURIComponent(cat.id)}`,
+      }))
+    : cmsCategoryLinks;
   const legalLinks = footer.legalLinks.filter((link) => link.enabled && link.label);
   const copyrightName = footer.copyrightText || cmsData.storeName || 'Wins Wereld Winkel';
 
@@ -79,8 +109,17 @@ const Footer = () => {
           <div className="footer-main-col">
             <h4 className="footer-main-title">{footer.categoriesTitle}</h4>
             <div className="footer-main-links">
-              {categoryLinks.map((link) => (
-                <Link key={link.id} to={link.path}>{link.label}</Link>
+              {footerCategoryLinks.map((link) => (
+                <Link
+                  key={link.id}
+                  to={
+                    catalogCategories.length
+                      ? { pathname: '/products', search: `?category=${encodeURIComponent(link.id)}` }
+                      : (link.path || '/products')
+                  }
+                >
+                  {link.label}
+                </Link>
               ))}
             </div>
           </div>

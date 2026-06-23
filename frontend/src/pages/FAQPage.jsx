@@ -1,14 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { FiPlus, FiMinus, FiHelpCircle } from 'react-icons/fi';
 import faqService from '../services/faqService';
+import { formatFaqQuestionLabel, sortFaqsByOrder } from '../utils/faqUtils';
 import './FAQPage.css';
-
-const sortFaqs = (list) =>
-  [...list].sort((a, b) => {
-    const orderDiff = (a.order || 0) - (b.order || 0);
-    if (orderDiff !== 0) return orderDiff;
-    return new Date(a.createdAt) - new Date(b.createdAt);
-  });
 
 const formatFaqText = (text) =>
   String(text ?? '')
@@ -22,14 +16,16 @@ const FAQPage = () => {
   const [loading, setLoading] = useState(true);
   const [openId, setOpenId] = useState(null);
 
+  const sortedFaqs = useMemo(() => sortFaqsByOrder(faqs), [faqs]);
+
   useEffect(() => {
     window.scrollTo(0, 0);
     const fetchFaqs = async () => {
       try {
-        const data = await faqService.getFaqs();
-        const active = sortFaqs(data.filter((f) => f.status === 'active'));
-        setFaqs(active);
-        if (active.length) setOpenId(active[0].id);
+        const data = await faqService.getStorefrontFaqs();
+        const list = sortFaqsByOrder(Array.isArray(data) ? data : []);
+        setFaqs(list);
+        if (list.length) setOpenId(list[0].id);
       } catch (err) {
         console.error('Failed to load FAQs', err);
       } finally {
@@ -77,9 +73,9 @@ const FAQPage = () => {
                 <div key={i} className="faq-item faq-item-skeleton" />
               ))}
             </div>
-          ) : faqs.length > 0 ? (
+          ) : sortedFaqs.length > 0 ? (
             <div className="faq-accordion">
-              {faqs.map((faq) => {
+              {sortedFaqs.map((faq, index) => {
                 const isOpen = openId === faq.id;
                 return (
                   <article key={faq.id} className={`faq-item ${isOpen ? 'open' : ''}`}>
@@ -89,7 +85,7 @@ const FAQPage = () => {
                       onClick={() => toggleFAQ(faq.id)}
                       aria-expanded={isOpen}
                     >
-                      <h3>{formatFaqText(faq.question)}</h3>
+                      <h3>{formatFaqQuestionLabel(faq.question, index)}</h3>
                       <span className="faq-item-icon" aria-hidden="true">
                         {isOpen ? <FiMinus /> : <FiPlus />}
                       </span>

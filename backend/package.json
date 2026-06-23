@@ -16,7 +16,12 @@
     "db:banner": "node src/scripts/initBanner.js",
     "db:homepage-about": "node src/scripts/initHomepageAbout.js",
     "db:sync-home-about": "node src/scripts/syncHomeAbout.js",
-    "db:categories": "node src/scripts/initCategories.js"
+    "db:categories": "node src/scripts/initCategories.js",
+    "db:food-corner-categories": "node src/scripts/initFoodCornerCategories.js",
+    "db:food-corner": "node src/scripts/initFoodCorner.js",
+    "db:manager": "node src/scripts/initManager.js",
+    "db:vacancies": "node src/scripts/initVacancies.js",
+    "db:sync-careers": "node src/scripts/syncCareersCollections.js"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
@@ -27,7 +32,8 @@
     "express-validator": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.4.1",
-    "multer": "^1.4.5-lts.1"
+    "multer": "^1.4.5-lts.1",
+    "nodemailer": "^6.10.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.2"

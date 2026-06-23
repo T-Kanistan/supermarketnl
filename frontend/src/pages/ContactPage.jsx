@@ -92,6 +92,10 @@ const ContactPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!formData.phone?.trim()) {
+      addToast('Phone number is required', 'error');
+      return;
+    }
     setIsSubmitting(true);
     try {
       await cmsService.submitContactMessage(formData);
@@ -186,7 +190,9 @@ const ContactPage = () => {
                 </div>
 
                 <div className="form-group">
-                  <label>{contact.phoneLabel}</label>
+                  <label>
+                    {contact.phoneLabel} <span className="required">*</span>
+                  </label>
                   <div className="input-wrapper">
                     <FiPhone className="input-icon" />
                     <input
@@ -195,6 +201,7 @@ const ContactPage = () => {
                       value={formData.phone}
                       onChange={handleChange}
                       placeholder={contact.phonePlaceholder}
+                      required
                     />
                   </div>
                 </div>

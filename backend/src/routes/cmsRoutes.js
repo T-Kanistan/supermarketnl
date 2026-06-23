@@ -6,11 +6,11 @@ import {
   markMessageRead,
   deleteMessage,
 } from '../controllers/messageController.js';
-import { protect, restrictTo } from '../middlewares/authMiddleware.js';
+import { protect, restrictTo, adminOnly } from '../middlewares/authMiddleware.js';
 import { upload } from '../middlewares/uploadMiddleware.js';
 import { validateRequest } from '../middlewares/validationMiddleware.js';
 import { updateCmsRules } from '../validators/cmsValidator.js';
-import { submitMessageRules, markMessageReadRules } from '../validators/messageValidator.js';
+import { submitMessageRules, markMessageReadRules } from '../validators/enquiryValidator.js';
 import { enquiryRateLimit } from '../middleware/enquiryRateLimit.js';
 import announcementRoutes from './announcementRoutes.js';
 
@@ -21,7 +21,7 @@ router.get('/settings', getCMS);
 router.put(
   '/',
   protect,
-  restrictTo('admin', 'manager'),
+  adminOnly,
   upload.single('logo'),
   updateCmsRules,
   validateRequest,
@@ -30,7 +30,7 @@ router.put(
 router.put(
   '/settings',
   protect,
-  restrictTo('admin', 'manager'),
+  adminOnly,
   upload.single('logo'),
   updateCmsRules,
   validateRequest,
@@ -47,7 +47,7 @@ router.put(
   validateRequest,
   markMessageRead
 );
-router.delete('/messages/:id', protect, restrictTo('admin', 'manager'), deleteMessage);
+router.delete('/messages/:id', protect, adminOnly, deleteMessage);
 
 router.use('/announcements', announcementRoutes);
 

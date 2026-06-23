@@ -1,8 +1,13 @@
 import { useState, useEffect } from 'react';
 import { FiStar } from 'react-icons/fi';
-import feedbackService from '../services/feedbackService';
+import testimonialService, { DEFAULT_AVATAR } from '../services/testimonialService';
 import { getImageUrl } from '../services/api';
 import './Reviews.css';
+
+const resolveAvatarSrc = (path) => {
+  if (!path || path === DEFAULT_AVATAR) return DEFAULT_AVATAR;
+  return getImageUrl(path);
+};
 
 const Reviews = () => {
   const [reviews, setReviews] = useState([]);
@@ -11,8 +16,8 @@ const Reviews = () => {
   useEffect(() => {
     const fetchReviews = async () => {
       try {
-        const data = await feedbackService.getTestimonials();
-        setReviews(data.filter(r => r.status === 'active'));
+        const data = await testimonialService.getStorefrontTestimonials();
+        setReviews(data);
       } catch (err) {
         console.error('Failed to load testimonials', err);
       } finally {
@@ -43,25 +48,25 @@ const Reviews = () => {
         <h2 className="section-title">Customer Reviews</h2>
         {reviews.length > 0 ? (
           <div className="reviews-grid">
-            {reviews.map(review => (
-              <div className="review-card" key={review.id}>
+            {reviews.map((review) => (
+              <div className="review-card" key={review.id || `${review.customerName}-${review.review?.slice(0, 20)}`}>
                 <div className="review-header">
-                  <img 
-                    src={getImageUrl(review.image)} 
-                    alt={review.customerName} 
-                    className="reviewer-img" 
-                    onError={(e) => { e.target.src = 'https://i.pravatar.cc/150?img=9'; }}
+                  <img
+                    src={resolveAvatarSrc(review.avatarImage || review.image)}
+                    alt={review.customerName}
+                    className="reviewer-img"
+                    onError={(e) => { e.target.src = DEFAULT_AVATAR; }}
                   />
                   <div className="reviewer-info">
                     <h4 className="reviewer-name">{review.customerName}</h4>
                     <div className="review-rating">
                       {[...Array(5)].map((_, i) => (
-                        <FiStar key={i} className={i < (review.rating || 5) ? "star-icon filled" : "star-icon"} />
+                        <FiStar key={i} className={i < (review.rating || 5) ? 'star-icon filled' : 'star-icon'} />
                       ))}
                     </div>
                   </div>
                 </div>
-                <p className="review-text">"{review.review}"</p>
+                <p className="review-text">&ldquo;{review.review}&rdquo;</p>
               </div>
             ))}
           </div>

@@ -1,49 +1,91 @@
 import mongoose from 'mongoose';
 
-const featureItemSchema = new mongoose.Schema(
-  {
-    text: { type: String, trim: true, default: '' },
-    order: { type: Number, default: 0 },
-  },
-  { _id: true }
-);
+const STATUS_TYPES = ['active', 'inactive', 'draft', 'deleted'];
 
 const homepageAboutSectionSchema = new mongoose.Schema(
   {
-    useAboutUsContent: { type: Boolean, default: true },
-    sectionHeading: { type: String, required: true, trim: true },
-    shortDescription: { type: String, required: true },
-    features: { type: [featureItemSchema], default: [] },
-    buttonText: { type: String, default: 'Learn More', trim: true },
-    buttonLink: { type: String, default: '/about-us', trim: true },
-    aboutImage: { type: String, default: '' },
-    status: { type: String, enum: ['Active', 'Inactive'], default: 'Active' },
+    useAboutUsPageContent: {
+      type: Boolean,
+      default: false,
+    },
+    sectionHeading: {
+      type: String,
+      trim: true,
+      maxlength: 100,
+      default: '',
+    },
+    shortDescription: {
+      type: String,
+      trim: true,
+      maxlength: 1000,
+      default: '',
+    },
+    buttonText: {
+      type: String,
+      trim: true,
+      maxlength: 50,
+      default: 'Learn More',
+    },
+    buttonLink: {
+      type: String,
+      trim: true,
+      default: '/about',
+    },
+    aboutImage: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    status: {
+      type: String,
+      enum: STATUS_TYPES,
+      default: 'active',
+      index: true,
+    },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      default: null,
+    },
+    updatedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      default: null,
+    },
+    // Legacy field kept for backward compatibility
+    useAboutUsContent: { type: Boolean, default: false },
+    features: { type: [mongoose.Schema.Types.Mixed], default: [] },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    collection: 'homepage_about_sections',
+  }
 );
 
-export const getDefaultHomepageAbout = () => ({
-  useAboutUsContent: true,
-  sectionHeading: 'About Ins Wereld Winkel',
-  shortDescription:
-    'Since opening in July 2022, Wins Wereld Winkel has been serving the customers with quality groceries, fresh produce, and delicious homemade takeaway food. We offer a wide range of Asian, African, Arabic, and international products, ensuring our customers find everything they need under one roof.',
-  features: [
-    { text: 'Fresh fruits, vegetables, and quality meat', order: 1 },
-    { text: 'International groceries from around the world', order: 2 },
-    { text: 'Freshly prepared homemade takeaway meals', order: 3 },
-    { text: 'Affordable prices and excellent customer service', order: 4 },
-  ],
-  buttonText: 'Learn More',
-  buttonLink: '/about-us',
-  aboutImage:
-    'https://images.unsplash.com/photo-1534723452862-4c874018d66d?auto=format&fit=crop&q=80&w=1200',
-  status: 'Active',
+homepageAboutSectionSchema.index({ status: 1, updatedAt: -1 });
+
+homepageAboutSectionSchema.pre('save', function preSave(next) {
+  if (this.useAboutUsPageContent === undefined && this.useAboutUsContent !== undefined) {
+    this.useAboutUsPageContent = this.useAboutUsContent;
+  }
+  this.useAboutUsContent = this.useAboutUsPageContent;
+
+  if (this.status === 'Active') this.status = 'active';
+  if (this.status === 'Inactive') this.status = 'inactive';
+
+  next();
 });
 
-const HomepageAboutSection = mongoose.model(
-  'HomepageAboutSection',
-  homepageAboutSectionSchema,
-  'homepage_about_sections'
-);
+export const getDefaultHomepageAbout = () => ({
+  useAboutUsPageContent: false,
+  sectionHeading: 'About Ins Wereld Winkel',
+  shortDescription:
+    'Founded in July 2022, Wins Wereld Winkel Supermarket has become a trusted destination for quality groceries, fresh produce, international products, and delicious takeaway food.',
+  buttonText: 'Learn More',
+  buttonLink: '/about',
+  aboutImage: '',
+  status: 'active',
+});
 
+const HomepageAboutSection = mongoose.model('HomepageAboutSection', homepageAboutSectionSchema);
+
+export { STATUS_TYPES };
 export default HomepageAboutSection;

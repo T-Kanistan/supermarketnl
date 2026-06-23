@@ -1,6 +1,16 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect } from 'react';
 import authService from '../services/authService';
+import { hasPermission, isManagerRole, isSuperAdmin, normalizeRole } from '../constants/managerPermissions';
+
+const normalizeUser = (user) => {
+  if (!user) return null;
+  return {
+    ...user,
+    role: normalizeRole(user.role) || user.role,
+    displayRole: user.displayRole || user.role,
+  };
+};
 
 const AuthContext = createContext(null);
 
@@ -9,11 +19,10 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check session on mount
     const checkAuth = async () => {
       try {
         const currentUser = await authService.getCurrentUser();
-        setUser(currentUser);
+        setUser(normalizeUser(currentUser));
       } catch (err) {
         console.error('Auth verification failed:', err);
         setUser(null);
@@ -24,12 +33,13 @@ export const AuthProvider = ({ children }) => {
     checkAuth();
   }, []);
 
-  const login = async (email, password) => {
+  const login = async (loginValue, password) => {
     setLoading(true);
     try {
-      const loggedUser = await authService.login(email, password);
-      setUser(loggedUser);
-      return loggedUser;
+      const loggedUser = await authService.login(loginValue, password);
+      const normalizedUser = normalizeUser(loggedUser);
+      setUser(normalizedUser);
+      return normalizedUser;
     } finally {
       setLoading(false);
     }
@@ -40,12 +50,26 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
-  const changePassword = async (oldPassword, newPassword) => {
-    return await authService.changePassword(oldPassword, newPassword);
+  const changePassword = async (currentPassword, newPassword, confirmPassword) => {
+    return await authService.changePassword(currentPassword, newPassword, confirmPassword);
   };
 
+  const displayName = user?.name || user?.fullName || 'User';
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, changePassword, isAdmin: user?.role === 'admin' }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        login,
+        logout,
+        changePassword,
+        displayName,
+        isAdmin: isSuperAdmin(user),
+        isManager: isManagerRole(user),
+        can: (permission) => hasPermission(user, permission),
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

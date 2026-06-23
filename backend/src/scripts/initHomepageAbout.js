@@ -1,42 +1,34 @@
-import 'dotenv/config';
-import connectDB from '../config/mongo.js';
+import dotenv from 'dotenv';
+import connectMongo from '../config/mongo.js';
 import HomepageAboutSection, { getDefaultHomepageAbout } from '../models/HomepageAboutSection.js';
-import AboutUsCMS from '../models/AboutCMS.js';
-import HomeCMS from '../models/HomeCMS.js';
+import AboutUsCMS, { getDefaultAboutCMS } from '../models/AboutCMS.js';
 
-const init = async () => {
-  await connectDB();
+dotenv.config();
 
-  const existing = await HomepageAboutSection.findOne();
+const run = async () => {
+  await connectMongo();
+
+  const existing = await HomepageAboutSection.findOne({ status: { $ne: 'deleted' } });
   if (existing) {
-    console.log('homepage_about_sections already exists. Skipping seed.');
+    console.log('Homepage about section already exists:', existing.sectionHeading);
     process.exit(0);
   }
 
   const defaults = getDefaultHomepageAbout();
-  const aboutDoc = await AboutUsCMS.findOne();
-  const homeCms = await HomeCMS.findOne();
+  const aboutDoc = (await AboutUsCMS.findOne()) || getDefaultAboutCMS();
+  defaults.shortDescription =
+    aboutDoc.homepageShortDescription || defaults.shortDescription;
+  defaults.aboutImage =
+    aboutDoc.homepageAboutSection?.image ||
+    aboutDoc.heroSection?.heroImage ||
+    defaults.aboutImage;
 
-  if (aboutDoc) {
-    defaults.shortDescription = aboutDoc.homepageShortDescription || defaults.shortDescription;
-    defaults.buttonText = aboutDoc.homepageAboutSection?.buttonText || defaults.buttonText;
-    defaults.aboutImage = aboutDoc.homepageAboutSection?.image || defaults.aboutImage;
-    if (aboutDoc.homepageAboutSection?.features?.length) {
-      defaults.features = aboutDoc.homepageAboutSection.features.map((text, index) => ({
-        text,
-        order: index + 1,
-      }));
-    }
-  }
-
-  defaults.sectionHeading = `About ${homeCms?.storeName || 'Ins Wereld Winkel'}`;
-
-  await HomepageAboutSection.create(defaults);
-  console.log('homepage_about_sections seeded successfully.');
+  const doc = await HomepageAboutSection.create(defaults);
+  console.log('Default homepage about section created:', doc.sectionHeading);
   process.exit(0);
 };
 
-init().catch((err) => {
+run().catch((err) => {
   console.error('Failed to initialize homepage about section:', err.message);
   process.exit(1);
 });

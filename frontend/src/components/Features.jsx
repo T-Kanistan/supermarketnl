@@ -17,7 +17,7 @@ const Features = () => {
   if (!features.length) return null;
 
   return (
-    <section className="features section-padding bg-white">
+    <section className="features bg-white">
       <div className="container">
         <div className="features-grid">
           {features.map((feature, index) => (

@@ -1,20 +1,29 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { FaPlus, FaEdit, FaTrash, FaSearch, FaBoxOpen, FaStar, FaRegStar } from 'react-icons/fa';
 import productService from '../../../services/productService';
-import categoryService from '../../../services/categoryService';
+import foodCornerCategoryService from '../../../services/foodCornerCategoryService';
 import { getImageUrl } from '../../../services/api';
 import { useToast } from '../../../context/ToastContext';
+import { useAuth } from '../../../context/AuthContext';
 
 export const AdminProducts = () => {
+  const { isAdmin } = useAuth();
+  const [searchParams] = useSearchParams();
+  // Route-driven type view:
+  // - /admin/dashboard/products            => grocery only
+  // - /admin/dashboard/products?type=food-corner => food-corner only
+  const initialType = searchParams.get('type') === 'food-corner' ? 'food-corner' : 'grocery';
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [foodCornerCategories, setFoodCornerCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [typeFilter, setTypeFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState(initialType);
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
@@ -22,49 +31,103 @@ export const AdminProducts = () => {
   const { addToast } = useToast();
 
   const [formData, setFormData] = useState({
-    name: '',
-    categoryId: 'vegetables-fruits',
-    price: 0.00,
-    stock: 1,
-    weight: '1KG',
-    image: '',
-    type: 'grocery',
-    isFeatured: false,
-    // Food corner specific fields
-    rating: 4.5,
-    reviews: 0,
-    badge: '',
-    startTime: '11:00',
-    endTime: '22:00',
-    displayTime: '11:00 AM - 10:00 PM',
+    productName: '',
+    categoryId: '',
+    price: 0,
+    stockStatus: 'in_stock',
+    weightUnit: '',
+    imageUrl: '',
+    productType: 'grocery',
+    featuredProduct: false,
+    menuDisplayTiming: '',
   });
+
+  const mapProductType = (value) => {
+    const raw = value == null ? '' : String(value).trim().toLowerCase();
+    if (!raw) return 'grocery';
+    if (raw === 'food' || raw === 'food-corner' || raw === 'food corner' || raw === 'foodcorner') return 'food-corner';
+    if (raw === 'grocery' || raw === 'supermarket' || raw === 'supermarket section') return 'grocery';
+    return 'grocery';
+  };
+
+  const loadModalCategories = useCallback(async (productType) => {
+    try {
+      const cats = await productService.getProductCategories(productType);
+      if (mapProductType(productType) === 'food-corner') {
+        setFoodCornerCategories(Array.isArray(cats) ? cats : []);
+      } else {
+        setCategories(Array.isArray(cats) ? cats : []);
+      }
+      return cats;
+    } catch (err) {
+      console.error('Failed to load categories', err);
+      return [];
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isModalOpen) {
+      loadModalCategories(formData.productType);
+    }
+  }, [isModalOpen, formData.productType, loadModalCategories]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const prodData = await productService.getProducts({ admin: true });
-      const catData = await categoryService.getCategories({ admin: true });
+
+      const [catData, fcCatData] = await Promise.all([
+        productService.getProductCategories('grocery'),
+        foodCornerCategoryService.getCategories({ public: true }),
+      ]);
+
       setProducts(Array.isArray(prodData) ? prodData : []);
       setCategories(Array.isArray(catData) ? catData : []);
+      setFoodCornerCategories(Array.isArray(fcCatData) ? fcCatData : []);
     } catch (err) {
       console.error('Failed to load catalog details', err);
-      addToast('Failed to load catalog details', 'error');
+      addToast(err.response?.data?.message || 'Failed to load catalog details', 'error');
     } finally {
       setLoading(false);
     }
   }, [addToast]);
 
   useEffect(() => {
-    let isMounted = true;
-    const initProducts = async () => {
-      await Promise.resolve();
-      if (isMounted) {
-        fetchData();
-      }
-    };
-    initProducts();
-    return () => { isMounted = false; };
+    setTypeFilter(searchParams.get('type') === 'food-corner' ? 'food-corner' : 'grocery');
+  }, [searchParams]);
+
+  useEffect(() => {
+    fetchData();
   }, [fetchData]);
+
+  useEffect(() => {
+    if (!isModalOpen) return undefined;
+
+    const scrollY = window.scrollY;
+    document.body.classList.add('modal-open');
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.left = '0';
+    document.body.style.right = '0';
+    document.body.style.width = '100%';
+
+    return () => {
+      document.body.classList.remove('modal-open');
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
+      document.body.style.width = '';
+      window.scrollTo(0, scrollY);
+    };
+  }, [isModalOpen]);
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setEditingProduct(null);
+  };
 
   const handleStatusToggle = async (product) => {
     const nextStatus = product.status === 'active' ? 'inactive' : 'active';
@@ -76,7 +139,7 @@ export const AdminProducts = () => {
       addToast(`Product "${product.name}" status updated to ${nextStatus}`, 'success');
     } catch (e) {
       console.error('Failed to update status', e);
-      addToast('Failed to update status', 'error');
+      addToast(e.message || e.response?.data?.message || 'Failed to update status', 'error');
     }
   };
 
@@ -90,77 +153,97 @@ export const AdminProducts = () => {
       addToast(`Product "${product.name}" featured state updated`, 'success');
     } catch (e) {
       console.error('Failed to update featured state', e);
-      addToast('Failed to update featured state', 'error');
+      addToast(e.message || e.response?.data?.message || 'Failed to update featured state', 'error');
     }
   };
 
-  const openAddModal = () => {
+  const openAddModal = async () => {
     setEditingProduct(null);
+    const selectedProductType = typeFilter === 'food-corner' ? 'food-corner' : 'grocery';
+    const cats = await loadModalCategories(selectedProductType);
     setFormData({
-      name: '',
-      categoryId: categories[0]?.id || 'vegetables-fruits',
+      productName: '',
+      categoryId: cats[0]?.categoryId || cats[0]?.id || '',
       price: 0,
-      stock: 1,
-      weight: '',
-      image: '',
-      type: 'grocery',
-      isFeatured: false,
-      rating: 4.8,
-      reviews: 20,
-      badge: '',
-      startTime: '08:00',
-      endTime: '22:00',
-      displayTime: '8:00 AM - 10:00 PM',
+      stockStatus: 'in_stock',
+      weightUnit: '',
+      imageUrl: '',
+      productType: selectedProductType,
+      featuredProduct: false,
+      menuDisplayTiming: '',
     });
     setIsModalOpen(true);
   };
 
+  const resolveFormCategoryId = (product, productType) => {
+    const rawId = product.categoryId || '';
+    const rawName = product.categoryName || '';
+    const options = mapProductType(productType) === 'food-corner' ? foodCornerCategories : categories;
+    const match = options.find(
+      (cat) =>
+        [cat.categoryId, cat.id, cat.slug, cat._id].filter(Boolean).some((value) => value === rawId) ||
+        cat.name === rawName ||
+        cat.categoryName === rawName
+    );
+    return match?.categoryId || match?.id || match?.slug || rawId || '';
+  };
+
   const openEditModal = (product) => {
+    const productType = mapProductType(product.productType || product.type);
     setEditingProduct(product);
     setFormData({
-      name: product.name || '',
-      categoryId: product.categoryId || 'vegetables-fruits',
+      productName: product.productName || product.name || '',
+      categoryId: resolveFormCategoryId(product, productType),
       price: product.price || 0,
-      stock: product.stock > 0 ? 1 : 0,
-      weight: product.weight || '',
-      image: product.image || '',
-      type: product.type || 'grocery',
-      isFeatured: Boolean(product.isFeatured),
-      rating: product.rating || 4.8,
-      reviews: product.reviews || 20,
-      badge: product.badge || '',
-      startTime: product.startTime || '08:00',
-      endTime: product.endTime || '22:00',
-      displayTime: product.displayTime || '8:00 AM - 10:00 PM',
+      stockStatus: product.stockStatus || (product.stock > 0 ? 'in_stock' : 'out_of_stock'),
+      weightUnit: product.weightUnit || product.weight || '',
+      imageUrl: product.imageUrl || product.image || '',
+      productType,
+      featuredProduct: Boolean(product.featuredProduct ?? product.isFeatured),
+      menuDisplayTiming: product.menuDisplayTiming || product.displayTime || '',
     });
     setIsModalOpen(true);
   };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    if (name === 'stock') {
-      setFormData((prev) => ({ ...prev, stock: value === 'in_stock' ? 1 : 0 }));
-      return;
-    }
     if (type === 'checkbox') {
       setFormData((prev) => ({ ...prev, [name]: checked }));
+      return;
+    }
+    if (name === 'productType') {
+      setFormData((prev) => ({
+        ...prev,
+        productType: value,
+        categoryId: '',
+      }));
       return;
     }
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleImageUpload = (e) => {
+  const handleImageUpload = async (e) => {
     const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData((prev) => ({ ...prev, image: reader.result }));
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    const previewUrl = URL.createObjectURL(file);
+    setFormData((prev) => ({ ...prev, imageUrl: previewUrl }));
+
+    try {
+      const uploadedUrl = await productService.uploadProductImage(file);
+      setFormData((prev) => ({ ...prev, imageUrl: uploadedUrl }));
+      addToast('Image uploaded successfully', 'success');
+    } catch (err) {
+      console.error('Image upload failed', err);
+      addToast(err.response?.data?.message || 'Failed to upload image', 'error');
     }
   };
 
   const handleDelete = async (id) => {
+    if (!isAdmin) {
+      addToast('Only administrators can permanently delete products', 'error');
+      return;
+    }
     if (!window.confirm('Delete this product permanently?')) return;
     try {
       await productService.deleteProduct(id);
@@ -174,8 +257,12 @@ export const AdminProducts = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.name) {
+    if (!formData.productName) {
       addToast('Product name is required', 'error');
+      return;
+    }
+    if (!formData.imageUrl?.trim() || formData.imageUrl.startsWith('blob:')) {
+      addToast('Please upload a product image before saving', 'error');
       return;
     }
 
@@ -188,21 +275,22 @@ export const AdminProducts = () => {
         await productService.createProduct(formData);
         addToast('New product added successfully', 'success');
       }
-      setIsModalOpen(false);
+      closeModal();
       fetchData();
     } catch (err) {
       console.error('Failed to save product', err);
-      addToast('Failed to save product', 'error');
+      addToast(err.message || err.response?.data?.message || 'Failed to save product', 'error');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Filter & Search Logic
   const filteredProducts = useMemo(() => {
     return products.filter((prod) => {
-      const matchesSearch = prod.name.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesType = typeFilter === 'all' || prod.type === typeFilter;
+      const name = prod.productName || prod.name || '';
+      const productType = mapProductType(prod.productType || prod.type);
+      const matchesSearch = name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesType = productType === mapProductType(typeFilter);
       const matchesCategory = categoryFilter === 'all' || prod.categoryId === categoryFilter;
       return matchesSearch && matchesType && matchesCategory;
     });
@@ -216,12 +304,22 @@ export const AdminProducts = () => {
 
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage) || 1;
 
-  const getCategoryName = (catId) => {
-    // Check main categories first
+  const getCategoryName = (catId, productType = 'grocery') => {
+    if (mapProductType(productType) === 'food-corner') {
+      const fcCat = foodCornerCategories.find(
+        (c) =>
+          c.slug === catId ||
+          c.id === catId ||
+          c._id === catId ||
+          c.categoryName === catId ||
+          c.name === catId
+      );
+      if (fcCat) return fcCat.categoryName || fcCat.name;
+    }
+
     const cat = categories.find((c) => c.id === catId);
     if (cat) return cat.name;
-    // Otherwise return capitalized catId (e.g. Breakfast, Lunch for food corner)
-    return catId ? catId.charAt(0).toUpperCase() + catId.slice(1) : 'General';
+    return catId || 'General';
   };
 
   return (
@@ -252,11 +350,11 @@ export const AdminProducts = () => {
           <select 
             className="filter-select-admin" 
             value={typeFilter} 
-            onChange={(e) => { setTypeFilter(e.target.value); setCategoryFilter('all'); setCurrentPage(1); }}
+            disabled
           >
-            <option value="all">All Types</option>
-            <option value="grocery">Grocery (Supermarket)</option>
-            <option value="food">Food Corner (Kitchen)</option>
+            <option value={typeFilter}>
+              {typeFilter === 'food-corner' ? 'Food Corner (Kitchen)' : 'Grocery (Supermarket)'}
+            </option>
           </select>
 
           <select 
@@ -265,18 +363,15 @@ export const AdminProducts = () => {
             onChange={(e) => { setCategoryFilter(e.target.value); setCurrentPage(1); }}
           >
             <option value="all">All Categories</option>
-            {typeFilter !== 'food' && categories.map(cat => (
+            {typeFilter !== 'food-corner' && categories.map(cat => (
               <option key={cat.id} value={cat.id}>{cat.name}</option>
             ))}
-            {typeFilter === 'food' && (
-              <>
-                <option value="Breakfast">Breakfast</option>
-                <option value="Lunch">Lunch</option>
-                <option value="Dinner">Dinner</option>
-                <option value="Snacks">Snacks</option>
-                <option value="Beverages">Beverages</option>
-                <option value="Desserts">Desserts</option>
-              </>
+            {typeFilter === 'food-corner' && (
+              foodCornerCategories.map((cat) => (
+                <option key={cat.id || cat.slug} value={cat.id || cat.slug}>
+                  {cat.categoryName || cat.name}
+                </option>
+              ))
             )}
           </select>
         </div>
@@ -309,31 +404,33 @@ export const AdminProducts = () => {
                 <tr key={prod.id}>
                   <td>
                     <img 
-                      src={getImageUrl(prod.image)} 
-                      alt={prod.name} 
+                      src={getImageUrl(prod.imageUrl || prod.image)} 
+                      alt={prod.productName || prod.name} 
                       className="table-image-preview" 
                       onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=800'; }}
                     />
                   </td>
                   <td>
-                    <div style={{ fontWeight: 600 }}>{prod.name}</div>
-                    {prod.weight && <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{prod.weight}</span>}
+                    <div style={{ fontWeight: 600 }}>{prod.productName || prod.name}</div>
+                    {(prod.weightUnit || prod.weight) && (
+                      <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{prod.weightUnit || prod.weight}</span>
+                    )}
                   </td>
                   <td>
-                    <span style={{ fontSize: '0.8rem', background: prod.type === 'food' ? '#fef3c7' : '#dcfce7', color: prod.type === 'food' ? '#b45309' : '#15803d', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
-                      {prod.type === 'food' ? 'Food Corner' : 'Grocery'}
+                    <span style={{ fontSize: '0.8rem', background: mapProductType(prod.productType || prod.type) === 'food-corner' ? '#fef3c7' : '#dcfce7', color: mapProductType(prod.productType || prod.type) === 'food-corner' ? '#b45309' : '#15803d', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
+                      {mapProductType(prod.productType || prod.type) === 'food-corner' ? 'Food Corner' : 'Grocery'}
                     </span>
                   </td>
-                  <td>{getCategoryName(prod.categoryId)}</td>
+                  <td>{getCategoryName(prod.categoryId, prod.productType || prod.type)}</td>
                   <td style={{ fontWeight: 600 }}>€{(prod.price || 12.99).toFixed(2)}</td>
                   <td>
-                    {prod.type === 'food' ? (
+                    {mapProductType(prod.productType || prod.type) === 'food-corner' ? (
                       <span style={{ fontSize: '0.85rem', color: '#475569' }}>
-                        🕒 {prod.displayTime || 'Always'}
+                        🕒 {prod.menuDisplayTiming || prod.displayTime || 'Always'}
                       </span>
                     ) : (
-                      <span style={{ color: prod.stock > 0 ? '#15803d' : '#b91c1c', fontWeight: 600 }}>
-                        {prod.stock > 0 ? 'In Stock' : 'Out of Stock'}
+                      <span style={{ color: (prod.stockStatus === 'in_stock' || prod.stock > 0) ? '#15803d' : '#b91c1c', fontWeight: 600 }}>
+                        {(prod.stockStatus === 'in_stock' || prod.stock > 0) ? 'In Stock' : 'Out of Stock'}
                       </span>
                     )}
                   </td>
@@ -341,9 +438,9 @@ export const AdminProducts = () => {
                     <button 
                       onClick={() => handleFeaturedToggle(prod)} 
                       style={{ cursor: 'pointer', fontSize: '1.2rem', color: '#eab308' }}
-                      title={prod.isFeatured ? 'Unmark Featured' : 'Mark Featured'}
+                      title={(prod.featuredProduct || prod.isFeatured) ? 'Unmark Featured' : 'Mark Featured'}
                     >
-                      {prod.isFeatured ? <FaStar /> : <FaRegStar />}
+                      {(prod.featuredProduct || prod.isFeatured) ? <FaStar /> : <FaRegStar />}
                     </button>
                   </td>
                   <td>
@@ -361,9 +458,11 @@ export const AdminProducts = () => {
                       <button className="btn-action-cell edit" onClick={() => openEditModal(prod)} title="Edit Product">
                         <FaEdit />
                       </button>
-                      <button className="btn-action-cell delete" onClick={() => handleDelete(prod.id)} title="Delete Product">
-                        <FaTrash />
-                      </button>
+                      {isAdmin && (
+                        <button className="btn-action-cell delete" onClick={() => handleDelete(prod.id)} title="Delete Product">
+                          <FaTrash />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -406,20 +505,28 @@ export const AdminProducts = () => {
 
       {/* Add / Edit Product Modal */}
       {isModalOpen && (
-        <div className="admin-modal-overlay">
-          <div className="admin-modal-container" style={{ maxWidth: '650px' }}>
+        <div
+          className="admin-modal-overlay"
+          onClick={closeModal}
+          role="presentation"
+        >
+          <div
+            className="admin-modal-container admin-product-modal"
+            style={{ maxWidth: '650px' }}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="modal-header">
               <h3>{editingProduct ? 'Edit Product Item' : 'Add Catalog Product'}</h3>
-              <button className="modal-close-btn" onClick={() => setIsModalOpen(false)}>&times;</button>
+              <button type="button" className="modal-close-btn" onClick={closeModal} aria-label="Close modal">&times;</button>
             </div>
             
             <form onSubmit={handleSubmit}>
               <div className="modal-body">
                 <div className="admin-form-group">
                   <label>Product Catalog Type</label>
-                  <select name="type" value={formData.type} onChange={handleChange}>
+                  <select name="productType" value={formData.productType} onChange={handleChange}>
                     <option value="grocery">Grocery (Supermarket Section)</option>
-                    <option value="food">Food Corner (Kitchen Section)</option>
+                    <option value="food-corner">Food Corner (Kitchen Section)</option>
                   </select>
                 </div>
 
@@ -427,8 +534,8 @@ export const AdminProducts = () => {
                   <label>Product Name</label>
                   <input 
                     type="text" 
-                    name="name" 
-                    value={formData.name} 
+                    name="productName" 
+                    value={formData.productName} 
                     onChange={handleChange} 
                     placeholder="e.g. Farm Fresh Apples" 
                     required 
@@ -438,14 +545,16 @@ export const AdminProducts = () => {
                 <div className="admin-form-group row-split">
                   <div>
                     <label>Category Section</label>
-                    <select name="categoryId" value={formData.categoryId} onChange={handleChange}>
-                      {formData.type !== 'food' ? (
+                    <select name="categoryId" value={formData.categoryId} onChange={handleChange} required>
+                      {formData.productType !== 'food-corner' ? (
                         categories.map((cat) => (
-                          <option key={cat.id} value={cat.id}>{cat.name}</option>
+                          <option key={cat.id || cat.categoryId} value={cat.categoryId || cat.id}>{cat.name || cat.categoryName}</option>
                         ))
                       ) : (
-                        ['Breakfast', 'Lunch', 'Dinner', 'Snacks', 'Beverages', 'Desserts'].map((cat) => (
-                          <option key={cat} value={cat}>{cat}</option>
+                        foodCornerCategories.map((cat) => (
+                          <option key={cat.id || cat.slug} value={cat.categoryId || cat.id || cat.slug}>
+                            {cat.categoryName || cat.name}
+                          </option>
                         ))
                       )}
                     </select>
@@ -463,13 +572,13 @@ export const AdminProducts = () => {
                   </div>
                 </div>
 
-                {formData.type === 'grocery' ? (
+                {formData.productType === 'grocery' ? (
                   <div className="admin-form-group row-split">
                     <div>
                       <label>Stock Status</label>
                       <select
-                        name="stock"
-                        value={formData.stock > 0 ? 'in_stock' : 'out_of_stock'}
+                        name="stockStatus"
+                        value={formData.stockStatus}
                         onChange={handleChange}
                         required
                       >
@@ -481,60 +590,25 @@ export const AdminProducts = () => {
                       <label>Weight / Unit Size</label>
                       <input 
                         type="text" 
-                        name="weight" 
-                        value={formData.weight} 
+                        name="weightUnit" 
+                        value={formData.weightUnit} 
                         onChange={handleChange} 
                         placeholder="e.g. 5KG or 1L" 
                       />
                     </div>
                   </div>
-                ) : (
-                  <div className="admin-form-group row-split">
-                    <div>
-                      <label>Cooking Start Time</label>
-                      <input 
-                        type="text" 
-                        name="startTime" 
-                        value={formData.startTime} 
-                        onChange={handleChange} 
-                        placeholder="e.g. 11:30" 
-                      />
-                    </div>
-                    <div>
-                      <label>Cooking End Time</label>
-                      <input 
-                        type="text" 
-                        name="endTime" 
-                        value={formData.endTime} 
-                        onChange={handleChange} 
-                        placeholder="e.g. 15:00" 
-                      />
-                    </div>
-                  </div>
-                )}
+                ) : null}
 
-                {formData.type === 'food' && (
-                  <div className="admin-form-group row-split">
-                    <div>
-                      <label>Menu Display Timings text</label>
-                      <input 
-                        type="text" 
-                        name="displayTime" 
-                        value={formData.displayTime} 
-                        onChange={handleChange} 
-                        placeholder="e.g. 11:30 AM - 3:00 PM" 
-                      />
-                    </div>
-                    <div>
-                      <label>Special Pill Badge</label>
-                      <input 
-                        type="text" 
-                        name="badge" 
-                        value={formData.badge} 
-                        onChange={handleChange} 
-                        placeholder="e.g. Best Seller / Popular" 
-                      />
-                    </div>
+                {formData.productType === 'food-corner' && (
+                  <div className="admin-form-group">
+                    <label>Menu Display Timings</label>
+                    <input
+                      type="text"
+                      name="menuDisplayTiming"
+                      value={formData.menuDisplayTiming}
+                      onChange={handleChange}
+                      placeholder="06:00 PM - 10:00 PM"
+                    />
                   </div>
                 )}
 
@@ -543,10 +617,10 @@ export const AdminProducts = () => {
                     <label>Image URL</label>
                     <input 
                       type="text" 
-                      name="image" 
-                      value={formData.image} 
+                      name="imageUrl" 
+                      value={formData.imageUrl} 
                       onChange={handleChange} 
-                      placeholder="https://..." 
+                      placeholder="/uploads/products/..." 
                       required 
                     />
                   </div>
@@ -569,11 +643,11 @@ export const AdminProducts = () => {
                   </div>
                 </div>
 
-                {formData.image && (
+                {formData.imageUrl && (
                   <div className="upload-preview-container">
                     <p style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>Preview:</p>
                     <img 
-                      src={getImageUrl(formData.image)} 
+                      src={formData.imageUrl.startsWith('blob:') ? formData.imageUrl : getImageUrl(formData.imageUrl)} 
                       alt="Product Preview" 
                       className="upload-preview-img"
                       onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=800'; }}
@@ -585,8 +659,8 @@ export const AdminProducts = () => {
                   <label className="admin-checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontWeight: 600, color: '#334155' }}>
                     <input
                       type="checkbox"
-                      name="isFeatured"
-                      checked={formData.isFeatured}
+                      name="featuredProduct"
+                      checked={formData.featuredProduct}
                       onChange={handleChange}
                     />
                     Show on homepage (Featured Products)
@@ -595,7 +669,7 @@ export const AdminProducts = () => {
               </div>
 
               <div className="modal-footer">
-                <button type="button" className="action-btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
+                <button type="button" className="action-btn-secondary" onClick={closeModal}>Cancel</button>
                 <button type="submit" className="action-btn-primary" disabled={isSubmitting}>
                   {isSubmitting ? 'Saving...' : 'Save Product'}
                 </button>

@@ -71,14 +71,33 @@ export const updateManagerRules = [
 ];
 
 export const changePasswordRules = [
-  body('oldPassword')
+  body('currentPassword')
+    .optional()
     .notEmpty()
-    .withMessage('Old password is required'),
+    .withMessage('Current password is required'),
+  body('oldPassword')
+    .optional()
+    .notEmpty()
+    .withMessage('Current password is required'),
+  body().custom((_, { req }) => {
+    if (!req.body.currentPassword && !req.body.oldPassword) {
+      throw new Error('Current password is required');
+    }
+    return true;
+  }),
   body('newPassword')
     .notEmpty()
     .withMessage('New password is required')
-    .isLength({ min: 6 })
-    .withMessage('New password must be at least 6 characters long'),
+    .isLength({ min: 6, max: 50 })
+    .withMessage('New password must be between 6 and 50 characters'),
+  body('confirmPassword')
+    .optional()
+    .custom((value, { req }) => {
+      if (value !== undefined && value !== req.body.newPassword) {
+        throw new Error('New password and confirm password do not match');
+      }
+      return true;
+    }),
 ];
 
 export const resetPasswordRules = [

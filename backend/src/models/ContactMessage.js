@@ -38,6 +38,8 @@ const contactMessageSchema = new mongoose.Schema(
   }
 );
 
+contactMessageSchema.index({ isRead: 1, createdAt: -1 });
+
 const ContactMessage = mongoose.model('ContactMessage', contactMessageSchema);
 
 export default ContactMessage;
