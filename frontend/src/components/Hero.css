@@ -260,14 +260,15 @@
   }
 }
 
-@media (max-width: 1024px) {
-  .hero-title { font-size: 3.2rem; }
-  .hero { height: 600px; }
+@media (max-width: 1023px) {
+  .hero-title { font-size: clamp(2rem, 5vw, 3.2rem); }
+  .hero { height: auto; min-height: 520px; }
   .hero-layout {
     gap: 24px;
   }
   .hero-timings-card {
-    min-width: 360px;
+    min-width: unset;
+    width: 100%;
     padding: 22px 36px 12px;
   }
   .btn-large {
@@ -276,9 +277,9 @@
   }
 }
 
-@media (max-width: 768px) {
-  .hero-title { font-size: 2.35rem; }
-  .hero-subtitle { font-size: 1rem; }
+@media (max-width: 767px) {
+  .hero-title { font-size: clamp(1.65rem, 7vw, 2.35rem); }
+  .hero-subtitle { font-size: 0.95rem; }
   .hero-buttons {
     flex-direction: column;
     flex-wrap: wrap;
@@ -288,12 +289,12 @@
     width: 100%;
     white-space: normal;
   }
-  .hero { height: auto; min-height: 600px; margin-top: 85px; padding: 40px 0; }
+  .hero { height: auto; min-height: auto; margin-top: 72px; padding: 28px 0; }
   .hero-overlay {
     background: linear-gradient(180deg, rgba(0, 0, 0, 0.25) 0%, rgba(0, 0, 0, 0.15) 100%);
   }
   .hero-text {
-    padding: 28px 24px;
+    padding: 22px 18px;
     width: 100%;
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -306,10 +307,6 @@
     width: 100%;
     min-width: unset;
     margin-top: 10px;
+    padding: 20px 18px 10px;
   }
-}
-
-@media (max-width: 400px) {
-  .hero-title { font-size: 1.9rem; }
-  .hero-subtitle { font-size: 0.95rem; }
 }

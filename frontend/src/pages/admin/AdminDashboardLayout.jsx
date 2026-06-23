@@ -8,7 +8,7 @@ import {
 } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
 import AccessDenied from '../../components/AccessDenied';
-import { canManagerAccessRoute, getDashboardRouteSegment } from '../../constants/managerPermissions';
+import { canManagerAccessRoute, getDashboardBase, getDashboardRouteSegment } from '../../constants/managerPermissions';
 import { useCMS } from '../../context/CMSContext';
 import { useToast } from '../../context/ToastContext';
 import { getImageUrl } from '../../services/api';
@@ -24,6 +24,8 @@ export const AdminDashboardLayout = () => {
   const contentBodyRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const dashboardBase = getDashboardBase(location.pathname);
+  const dashboardPath = (suffix = '') => `${dashboardBase}${suffix}`;
 
   const scrollDashboardToTop = () => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
@@ -38,7 +40,7 @@ export const AdminDashboardLayout = () => {
     try {
       await logout();
       addToast('Logged out successfully', 'success');
-      navigate('/admin/login');
+      navigate('/login');
     } catch (e) {
       console.error('Logout failed', e);
       addToast('Logout failed', 'error');
@@ -49,9 +51,9 @@ export const AdminDashboardLayout = () => {
 
   useEffect(() => {
     if (location.pathname.includes('/food-corner-items')) {
-      navigate('/admin/dashboard/products?type=food-corner', { replace: true });
+      navigate(`${dashboardBase}/products?type=food-corner`, { replace: true });
     }
-  }, [location.pathname, navigate]);
+  }, [location.pathname, navigate, dashboardBase]);
 
   const getHeaderTitle = () => {
     const path = location.pathname;
@@ -78,40 +80,40 @@ export const AdminDashboardLayout = () => {
   const renderAdminSidebar = () => (
     <>
       <div className="menu-section-title">CMS Management</div>
-      <NavLink to="/admin/dashboard/about-us" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+      <NavLink to={dashboardPath('/about-us')} className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
         <FaGlobe className="sidebar-link-icon" />
         <span>About Us Management</span>
       </NavLink>
-      <NavLink to="/admin/dashboard/site-settings" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+      <NavLink to={dashboardPath('/site-settings')} className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
         <FaGlobe className="sidebar-link-icon" />
         <span>Site Settings</span>
       </NavLink>
-      <NavLink to="/admin/dashboard/banners" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+      <NavLink to={dashboardPath('/banners')} className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
         <FaImages className="sidebar-link-icon" />
         <span>Home Banner</span>
       </NavLink>
-      <NavLink to="/admin/dashboard/homepage-about" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+      <NavLink to={dashboardPath('/homepage-about')} className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
         <FaHome className="sidebar-link-icon" />
         <span>Homepage About Section</span>
       </NavLink>
 
       <div className="menu-section-title">Catalog</div>
-      <NavLink to="/admin/dashboard/categories" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+      <NavLink to={dashboardPath('/categories')} className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
         <FaTags className="sidebar-link-icon" />
         <span>Categories</span>
       </NavLink>
-      <NavLink to="/admin/dashboard/products" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+      <NavLink to={dashboardPath('/products')} className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
         <FaBoxOpen className="sidebar-link-icon" />
         <span>Products</span>
       </NavLink>
 
       <div className="menu-section-title">Food Corner</div>
-      <NavLink to="/admin/dashboard/food-corner-categories" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+      <NavLink to={dashboardPath('/food-corner-categories')} className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
         <FaUtensils className="sidebar-link-icon" />
         <span>Food Corner Categories</span>
       </NavLink>
       <NavLink
-        to="/admin/dashboard/products?type=food-corner"
+        to={dashboardPath('/products?type=food-corner')}
         className={({ active }) => `sidebar-link ${active ? 'active' : ''}`}
         onClick={closeMobileMenu}
       >
@@ -120,35 +122,35 @@ export const AdminDashboardLayout = () => {
       </NavLink>
 
       <div className="menu-section-title">Content</div>
-      <NavLink to="/admin/dashboard/faqs" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+      <NavLink to={dashboardPath('/faqs')} className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
         <FaQuestionCircle className="sidebar-link-icon" />
         <span>FAQ</span>
       </NavLink>
-      <NavLink to="/admin/dashboard/testimonials" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+      <NavLink to={dashboardPath('/testimonials')} className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
         <FaCommentDots className="sidebar-link-icon" />
         <span>Testimonials</span>
       </NavLink>
-      <NavLink to="/admin/dashboard/announcements" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+      <NavLink to={dashboardPath('/announcements')} className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
         <FaBullhorn className="sidebar-link-icon" />
         <span>Announcements</span>
       </NavLink>
 
       <div className="menu-section-title">Messages</div>
-      <NavLink to="/admin/dashboard/messages" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+      <NavLink to={dashboardPath('/messages')} className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
         <FaEnvelopeOpenText className="sidebar-link-icon" />
         <span>Contact Messages</span>
       </NavLink>
-      <NavLink to="/admin/dashboard/vacancies" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+      <NavLink to={dashboardPath('/vacancies')} className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
         <FaBriefcase className="sidebar-link-icon" />
         <span>Vacancy Management</span>
       </NavLink>
-      <NavLink to="/admin/dashboard/job-applications" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+      <NavLink to={dashboardPath('/job-applications')} className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
         <FaBriefcase className="sidebar-link-icon" />
         <span>Job Applications</span>
       </NavLink>
 
       <div className="menu-section-title">User Management</div>
-      <NavLink to="/admin/dashboard/managers" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+      <NavLink to={dashboardPath('/managers')} className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
         <FaUsers className="sidebar-link-icon" />
         <span>Managers</span>
       </NavLink>
@@ -163,7 +165,7 @@ export const AdminDashboardLayout = () => {
     <>
       <div className="menu-section-title">Catalog</div>
       <NavLink
-        to="/admin/dashboard/products"
+        to={dashboardPath('/products')}
         className={`sidebar-link ${location.pathname.includes('/products') && !isFoodCornerProducts ? 'active' : ''}`}
         onClick={closeMobileMenu}
       >
@@ -173,7 +175,7 @@ export const AdminDashboardLayout = () => {
 
       <div className="menu-section-title">Food Corner</div>
       <NavLink
-        to="/admin/dashboard/products?type=food-corner"
+        to={dashboardPath('/products?type=food-corner')}
         className={`sidebar-link ${isFoodCornerProducts ? 'active' : ''}`}
         onClick={closeMobileMenu}
       >
@@ -182,43 +184,43 @@ export const AdminDashboardLayout = () => {
       </NavLink>
 
       <div className="menu-section-title">Offers</div>
-      <NavLink to="/admin/dashboard/announcements" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+      <NavLink to={dashboardPath('/announcements')} className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
         <FaBullhorn className="sidebar-link-icon" />
         <span>Offers Management</span>
       </NavLink>
-      <NavLink to="/admin/dashboard/announcements" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+      <NavLink to={dashboardPath('/announcements')} className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
         <FaBullhorn className="sidebar-link-icon" />
         <span>Announcements</span>
       </NavLink>
 
       <div className="menu-section-title">Messages</div>
-      <NavLink to="/admin/dashboard/messages" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+      <NavLink to={dashboardPath('/messages')} className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
         <FaEnvelopeOpenText className="sidebar-link-icon" />
         <span>Customer Enquiries</span>
       </NavLink>
-      <NavLink to="/admin/dashboard/vacancies" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+      <NavLink to={dashboardPath('/vacancies')} className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
         <FaBriefcase className="sidebar-link-icon" />
         <span>Vacancy Management</span>
       </NavLink>
-      <NavLink to="/admin/dashboard/job-applications" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+      <NavLink to={dashboardPath('/job-applications')} className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
         <FaBriefcase className="sidebar-link-icon" />
         <span>Job Applications</span>
       </NavLink>
 
       <div className="menu-section-title">Content</div>
-      <NavLink to="/admin/dashboard/banners" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+      <NavLink to={dashboardPath('/banners')} className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
         <FaImages className="sidebar-link-icon" />
         <span>Homepage Banner</span>
       </NavLink>
-      <NavLink to="/admin/dashboard/homepage-about" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+      <NavLink to={dashboardPath('/homepage-about')} className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
         <FaHome className="sidebar-link-icon" />
         <span>Homepage About Section</span>
       </NavLink>
-      <NavLink to="/admin/dashboard/faqs" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+      <NavLink to={dashboardPath('/faqs')} className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
         <FaQuestionCircle className="sidebar-link-icon" />
         <span>FAQ</span>
       </NavLink>
-      <NavLink to="/admin/dashboard/testimonials" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+      <NavLink to={dashboardPath('/testimonials')} className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
         <FaCommentDots className="sidebar-link-icon" />
         <span>Testimonials</span>
       </NavLink>
@@ -227,6 +229,14 @@ export const AdminDashboardLayout = () => {
 
   return (
     <div className="admin-layout">
+      {mobileMenuOpen && (
+        <button
+          type="button"
+          className="admin-sidebar-backdrop"
+          aria-label="Close navigation menu"
+          onClick={closeMobileMenu}
+        />
+      )}
       <aside className={`admin-sidebar ${mobileMenuOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
           <img src={storeLogo} alt="Store Logo" className="sidebar-logo" onError={(e) => { e.target.src = '/logo.png'; }} />
@@ -234,7 +244,7 @@ export const AdminDashboardLayout = () => {
         </div>
 
         <nav className="sidebar-menu">
-          <NavLink to="/admin/dashboard" end className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+          <NavLink to={dashboardBase} end className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
             <FaChartBar className="sidebar-link-icon" />
             <span>Dashboard</span>
           </NavLink>
@@ -242,11 +252,11 @@ export const AdminDashboardLayout = () => {
           {isManager ? renderManagerSidebar() : renderAdminSidebar()}
 
           <div className="menu-section-title">Account</div>
-          <NavLink to="/admin/dashboard/profile" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+          <NavLink to={dashboardPath('/profile')} className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
             <FaUser className="sidebar-link-icon" />
             <span>My Profile</span>
           </NavLink>
-          <NavLink to="/admin/dashboard/change-password" className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
+          <NavLink to={dashboardPath('/change-password')} className={({ active }) => `sidebar-link ${active ? 'active' : ''}`} onClick={closeMobileMenu}>
             <FaKey className="sidebar-link-icon" />
             <span>Change Password</span>
           </NavLink>

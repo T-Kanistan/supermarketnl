@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import * as FiIcons from 'react-icons/fi';
-import { FaLeaf } from 'react-icons/fa';
+import { FaLeaf, FaFacebook, FaInstagram, FaWhatsapp, FaTiktok, FaYoutube } from 'react-icons/fa';
 import { useCMS } from '../context/CMSContext';
 import aboutUsService from '../services/aboutUsService';
 import { getImageUrl } from '../services/api';
@@ -9,7 +9,7 @@ import { ABOUT_STORY_IMAGE, mergeAboutPage } from '../constants/aboutPageDefault
 import './AboutPage.css';
 
 const {
-  FiArrowRight, FiEye, FiHeart, FiMapPin, FiPhone, FiShoppingBag, FiTarget, FiUsers,
+  FiArrowRight, FiEye, FiHeart, FiMapPin, FiPhone, FiMail, FiShoppingBag, FiTarget, FiUsers,
   FiCheck, FiStar, FiGrid, FiGlobe, FiCoffee, FiHeadphones, FiCalendar, FiAward,
 } = FiIcons;
 
@@ -152,9 +152,13 @@ const AboutPage = () => {
   useEffect(() => { window.scrollTo(0, 0); }, []);
 
   const phone = about.owner.phone || cmsData?.contactPhone || '+31659046526';
+  const email = cmsData?.contactEmail || 'info@winswereldwinkel.nl';
   const address = about.owner.location || cmsData?.address || 'Leeuwenstraat 36, 1211 EV, Hilversum';
   const phoneHref = `tel:${phone.replace(/[^\d+]/g, '')}`;
+  const emailHref = `mailto:${email}`;
   const mapsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+  const socials = cmsData?.socials || {};
+  const ownerBadge = about.owner.badge || 'Founder & Owner';
   const activeOfferings = (about.offerings || []).filter((item) => item.isActive !== false);
   const highlightWords = about.heroHighlights || [];
 
@@ -333,35 +337,88 @@ const AboutPage = () => {
       {showOwner && (
       <section className="about-owner">
         <div className="container">
+          <div className="about-section-head">
+            <h2 className="about-section-title">Meet Our Founder</h2>
+            <div className="about-title-line" />
+          </div>
           <article className="founder-panel">
-            <div className="founder-photo-wrap">
-              <img
-                src={getImageUrl(about.owner.photo)}
-                alt={about.owner.name}
-                className="founder-photo"
-              />
+            <div className="founder-visual">
+              <div className="founder-photo-card">
+                <img
+                  src={getImageUrl(about.owner.photo)}
+                  alt={about.owner.name}
+                  className="founder-photo"
+                  loading="lazy"
+                />
+                <span className="founder-photo-badge">{ownerBadge}</span>
+              </div>
             </div>
-            <div className="founder-body">
-              {about.owner.badge && <span className="founder-badge">{about.owner.badge}</span>}
+            <div className="founder-details">
               <h2 className="founder-name">{about.owner.name}</h2>
               <p className="founder-role">{about.owner.designation}</p>
-              <p className="founder-tenure">
-                {about.owner.yearsServing || '5+ Years Serving Community'}
-                <span>Since {about.owner.sinceYear || '2022'}</span>
-              </p>
+              <div className="founder-badges-row">
+                <span className="founder-meta-badge since">
+                  Since {about.owner.sinceYear || '2022'}
+                </span>
+                <span className="founder-meta-badge experience">
+                  {about.owner.yearsServing || '5+ Years Serving Community'}
+                </span>
+              </div>
               {about.owner.quote && (
-                <blockquote className="founder-quote">
-                  &ldquo;{about.owner.quote}&rdquo;
+                <blockquote className="founder-quote-card">
+                  <span className="founder-quote-mark" aria-hidden="true">&ldquo;</span>
+                  <p>{about.owner.quote}</p>
                 </blockquote>
               )}
-              <div className="founder-contact-col">
-                <a href={phoneHref} className="founder-contact-item">
-                  <FiPhone /> {phone}
-                </a>
-                <a href={mapsHref} target="_blank" rel="noreferrer" className="founder-contact-item">
-                  <FiMapPin /> {address}
-                </a>
-              </div>
+              <ul className="founder-contact-list">
+                <li>
+                  <a href={phoneHref} className="founder-contact-item">
+                    <span className="founder-contact-icon"><FiPhone /></span>
+                    <span>{phone}</span>
+                  </a>
+                </li>
+                <li>
+                  <a href={emailHref} className="founder-contact-item">
+                    <span className="founder-contact-icon"><FiMail /></span>
+                    <span>{email}</span>
+                  </a>
+                </li>
+                <li>
+                  <a href={mapsHref} target="_blank" rel="noreferrer" className="founder-contact-item">
+                    <span className="founder-contact-icon"><FiMapPin /></span>
+                    <span>{address}</span>
+                  </a>
+                </li>
+              </ul>
+              {(socials.facebook || socials.instagram || socials.whatsapp || socials.tiktok || socials.youtube) && (
+                <div className="founder-social-row">
+                  {socials.facebook && (
+                    <a href={socials.facebook} target="_blank" rel="noreferrer" aria-label="Facebook" className="founder-social-link">
+                      <FaFacebook />
+                    </a>
+                  )}
+                  {socials.instagram && (
+                    <a href={socials.instagram} target="_blank" rel="noreferrer" aria-label="Instagram" className="founder-social-link">
+                      <FaInstagram />
+                    </a>
+                  )}
+                  {socials.whatsapp && (
+                    <a href={socials.whatsapp} target="_blank" rel="noreferrer" aria-label="WhatsApp" className="founder-social-link">
+                      <FaWhatsapp />
+                    </a>
+                  )}
+                  {socials.tiktok && (
+                    <a href={socials.tiktok} target="_blank" rel="noreferrer" aria-label="TikTok" className="founder-social-link">
+                      <FaTiktok />
+                    </a>
+                  )}
+                  {socials.youtube && (
+                    <a href={socials.youtube} target="_blank" rel="noreferrer" aria-label="YouTube" className="founder-social-link">
+                      <FaYoutube />
+                    </a>
+                  )}
+                </div>
+              )}
             </div>
           </article>
         </div>

@@ -6,7 +6,43 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 100px 20px 40px; /* offset for fixed header */
+  padding: 40px 20px;
+}
+
+.login-page-enter {
+  animation: loginPageEnter 0.45s ease forwards;
+}
+
+@keyframes loginPageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.login-brand-logo {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.login-brand-logo img {
+  max-height: 72px;
+  width: auto;
+  object-fit: contain;
+}
+
+.brand-login-btn {
+  background: linear-gradient(135deg, #004e89 0%, #003a66 100%);
+  box-shadow: 0 10px 20px rgba(0, 78, 137, 0.25);
+}
+
+.brand-login-btn:hover {
+  box-shadow: 0 15px 25px rgba(0, 78, 137, 0.35);
 }
 
 .auth-split-layout {

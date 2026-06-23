@@ -674,7 +674,6 @@
   }
 
   .fc-grid {
-    grid-template-columns: 1fr;
-    gap: 18px;
+    /* column tiers in styles/responsive.css */
   }
 }

@@ -18,6 +18,19 @@
   --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
   --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
   --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+
+  /* Responsive breakpoints (reference — use in media queries) */
+  --bp-mobile-max: 767px;
+  --bp-tablet-min: 768px;
+  --bp-tablet-max: 1023px;
+  --bp-laptop-min: 1024px;
+  --bp-laptop-max: 1439px;
+  --bp-desktop-min: 1440px;
+  --container-max: 1440px;
+  --header-height: 90px;
+  --header-height-tablet: 80px;
+  --header-height-mobile: 72px;
+  --touch-min: 44px;
 }
 
 * {
@@ -54,7 +67,7 @@ button {
 
 .container {
   width: 100%;
-  max-width: 1600px;
+  max-width: var(--container-max);
   margin: 0 auto;
   padding: 0 20px;
 }
@@ -66,7 +79,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .section-title {
-  font-size: 2.5rem;
+  font-size: clamp(1.75rem, 3.5vw, 2.5rem);
   font-weight: 700;
   text-align: center;
   margin-bottom: 20px;
@@ -137,29 +150,35 @@ h1, h2, h3, h4, h5, h6 {
   background-color: var(--white);
 }
 
-/* Responsive Grid Utilities */
+/* Responsive Grid Utilities — 4 / 2 / 1 tier system */
 .grid {
   display: grid;
   gap: 24px;
 }
 
-.grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
-.grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
-.grid-cols-4 { grid-template-columns: repeat(4, 1fr); }
+.grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 
-@media (max-width: 1024px) {
-  .grid-cols-4 { grid-template-columns: repeat(2, 1fr); }
+@media (min-width: 1440px) {
+  .grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
-@media (max-width: 768px) {
-  .grid-cols-3, .grid-cols-4 { grid-template-columns: repeat(2, 1fr); }
-  .grid-cols-2 { grid-template-columns: 1fr; }
-  .section-padding { padding: 40px 0; }
-  .section-title { font-size: 2rem; }
+@media (min-width: 1024px) and (max-width: 1439px) {
+  .grid-cols-4 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
-@media (max-width: 480px) {
-  .grid-cols-2, .grid-cols-3, .grid-cols-4 { grid-template-columns: 1fr; }
+@media (min-width: 768px) and (max-width: 1023px) {
+  .grid-cols-4,
+  .grid-cols-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 767px) {
+  .grid-cols-2,
+  .grid-cols-3,
+  .grid-cols-4 { grid-template-columns: 1fr; }
+  .section-padding { padding: 32px 0; }
 }
 
 /* Toast Notification Styles */

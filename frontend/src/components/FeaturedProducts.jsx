@@ -120,11 +120,15 @@ const FeaturedProducts = () => {
                   : false
               }
               breakpoints={{
-                641: {
+                768: {
                   slidesPerView: 2,
                   spaceBetween: 16,
                 },
-                1025: {
+                1024: {
+                  slidesPerView: 3,
+                  spaceBetween: 18,
+                },
+                1440: {
                   slidesPerView: 4,
                   spaceBetween: 20,
                 },

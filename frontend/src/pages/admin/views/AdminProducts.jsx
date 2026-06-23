@@ -402,7 +402,7 @@ export const AdminProducts = () => {
             <tbody>
               {paginatedProducts.map((prod) => (
                 <tr key={prod.id}>
-                  <td>
+                  <td data-label="Image">
                     <img 
                       src={getImageUrl(prod.imageUrl || prod.image)} 
                       alt={prod.productName || prod.name} 
@@ -410,20 +410,20 @@ export const AdminProducts = () => {
                       onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=800'; }}
                     />
                   </td>
-                  <td>
+                  <td data-label="Product Name">
                     <div style={{ fontWeight: 600 }}>{prod.productName || prod.name}</div>
                     {(prod.weightUnit || prod.weight) && (
                       <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{prod.weightUnit || prod.weight}</span>
                     )}
                   </td>
-                  <td>
+                  <td data-label="Type">
                     <span style={{ fontSize: '0.8rem', background: mapProductType(prod.productType || prod.type) === 'food-corner' ? '#fef3c7' : '#dcfce7', color: mapProductType(prod.productType || prod.type) === 'food-corner' ? '#b45309' : '#15803d', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
                       {mapProductType(prod.productType || prod.type) === 'food-corner' ? 'Food Corner' : 'Grocery'}
                     </span>
                   </td>
-                  <td>{getCategoryName(prod.categoryId, prod.productType || prod.type)}</td>
-                  <td style={{ fontWeight: 600 }}>€{(prod.price || 12.99).toFixed(2)}</td>
-                  <td>
+                  <td data-label="Category">{getCategoryName(prod.categoryId, prod.productType || prod.type)}</td>
+                  <td data-label="Price" style={{ fontWeight: 600 }}>€{(prod.price || 12.99).toFixed(2)}</td>
+                  <td data-label="Stock / Availability">
                     {mapProductType(prod.productType || prod.type) === 'food-corner' ? (
                       <span style={{ fontSize: '0.85rem', color: '#475569' }}>
                         🕒 {prod.menuDisplayTiming || prod.displayTime || 'Always'}
@@ -434,7 +434,7 @@ export const AdminProducts = () => {
                       </span>
                     )}
                   </td>
-                  <td>
+                  <td data-label="Featured">
                     <button 
                       onClick={() => handleFeaturedToggle(prod)} 
                       style={{ cursor: 'pointer', fontSize: '1.2rem', color: '#eab308' }}
@@ -443,7 +443,7 @@ export const AdminProducts = () => {
                       {(prod.featuredProduct || prod.isFeatured) ? <FaStar /> : <FaRegStar />}
                     </button>
                   </td>
-                  <td>
+                  <td data-label="Status">
                     <label className="toggle-switch-admin">
                       <input 
                         type="checkbox" 
@@ -453,7 +453,7 @@ export const AdminProducts = () => {
                       <span className="toggle-slider-admin"></span>
                     </label>
                   </td>
-                  <td>
+                  <td data-label="Actions" className="admin-actions-cell">
                     <div className="cell-actions">
                       <button className="btn-action-cell edit" onClick={() => openEditModal(prod)} title="Edit Product">
                         <FaEdit />

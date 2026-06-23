@@ -41,20 +41,37 @@ export const protect = async (req, res, next) => {
 
     if (isManagerAccount) {
       const manager = await Manager.findById(decoded.id);
-      if (!manager) {
-        return res.status(401).json({
-          success: false,
-          message: 'The user belonging to this token no longer exists',
-        });
+      if (manager) {
+        if (!manager.status) {
+          return res.status(403).json({
+            success: false,
+            message: 'Account inactive. Please contact the administrator.',
+          });
+        }
+        req.user = buildManagerUser(manager);
+        return next();
       }
-      if (!manager.status) {
-        return res.status(403).json({
-          success: false,
-          message: 'This user account has been deactivated',
-        });
+
+      const userAsManager = await User.findById(decoded.id).select('-password');
+      if (userAsManager && userAsManager.role === 'manager') {
+        if (!userAsManager.isActive) {
+          return res.status(403).json({
+            success: false,
+            message: 'Account inactive. Please contact the administrator.',
+          });
+        }
+        req.user = {
+          ...userAsManager.toObject(),
+          accountType: 'manager',
+          permissions: MANAGER_PERMISSIONS,
+        };
+        return next();
       }
-      req.user = buildManagerUser(manager);
-      return next();
+
+      return res.status(401).json({
+        success: false,
+        message: 'The user belonging to this token no longer exists',
+      });
     }
 
     const user = await User.findById(decoded.id).select('-password');
@@ -67,14 +84,14 @@ export const protect = async (req, res, next) => {
     if (!user.isActive) {
       return res.status(403).json({
         success: false,
-        message: 'This user account has been deactivated',
+        message: 'Account inactive. Please contact the administrator.',
       });
     }
 
     req.user = {
       ...user.toObject(),
-      accountType: 'admin',
-      permissions: ['*'],
+      accountType: user.role === 'manager' ? 'manager' : 'admin',
+      permissions: user.role === 'manager' ? MANAGER_PERMISSIONS : ['*'],
     };
     next();
   } catch (error) {

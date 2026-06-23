@@ -181,6 +181,14 @@
   color: var(--dark-blue);
 }
 
+.auth-nav-dashboard {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.auth-nav-dashboard:hover {
+  transform: translateY(-1px);
+}
+
 .auth-nav-apply {
   color: var(--white);
   background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-green-dark) 100%);
@@ -202,7 +210,7 @@
   margin-left: 10px;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1023px) {
   .navigation {
     position: fixed;
     top: 90px;
@@ -242,16 +250,15 @@
   }
 }
 
-@media (max-width: 768px) {
-  .logo { height: 55px; }
+@media (max-width: 767px) {
+  .logo { height: 48px; }
 }
 
-@media (max-width: 576px) {
+@media (max-width: 767px) {
   .auth-buttons {
-    display: none; /* Hide auth buttons on very small screens to fit search and menu */
+    display: none;
   }
   .mobile-only-link {
     display: block;
   }
-  .logo { height: 45px; }
 }

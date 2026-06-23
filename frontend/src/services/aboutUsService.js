@@ -1,110 +1,184 @@
 import api, { apiRequest } from './api';
 
-const isMongoId = (id) => typeof id === 'string' && /^[a-f\d]{24}$/i.test(id);
+const mapIntroduction = (intro = {}) => ({
+  heroEyebrow: intro.badge_text || '',
+  heroHeading: intro.main_heading || '',
+  heroHighlight: intro.highlight_heading || '',
+  heroParagraphs: [
+    intro.description_1,
+    intro.description_2,
+    intro.description_3,
+    intro.description_4,
+  ].filter(Boolean),
+  heroDescription: [intro.description_1, intro.description_2].filter(Boolean).join('\n\n'),
+  heroBadge: intro.serving_badge_text || '',
+  heroImage: intro.image || '',
+  button1Text: intro.button1_text || 'Explore Products',
+  button1Url: intro.button1_url || '/products',
+  button2Text: intro.button2_text || 'Contact Us',
+  button2Url: intro.button2_url || '/contact',
+  heroDisplayOrder: intro.display_order ?? 1,
+  heroIsActive: intro.is_active !== false,
+});
+
+const mapStory = (story = {}) => ({
+  storyTitle: story.title || '',
+  storyDescription: story.description || '',
+  storyImage: story.image || '',
+});
 
 const mapTimeline = (items = []) =>
   items.map((item) => ({
-    id: String(item.id),
-    marker: item.marker || '',
+    id: String(item.id || item._id || ''),
+    marker: item.subtitle || '',
     title: item.title || '',
     description: item.description || '',
     icon: item.icon || 'FiCalendar',
-    displayOrder: item.displayOrder ?? 0,
-    isActive: item.isActive !== false,
-    isDeleted: item.isDeleted === true,
+    displayOrder: item.display_order ?? 0,
+    isActive: item.is_active !== false,
   }));
 
-const mapMvpCards = (cards = []) =>
-  cards.map((card) => ({
-    id: String(card.id),
-    title: card.title || '',
-    icon: card.icon || 'FiTarget',
-    description: card.description || '',
-    displayOrder: card.displayOrder ?? 0,
-    isActive: card.isActive !== false,
-    isDeleted: card.isDeleted === true,
+const mapValues = (items = []) =>
+  items.map((item) => ({
+    id: String(item.id || item._id || ''),
+    title: item.title || '',
+    icon: item.icon || 'FiTarget',
+    description: item.description || '',
+    displayOrder: item.display_order ?? 0,
+    isActive: item.is_active !== false,
   }));
 
-const mapOffers = (offers = []) =>
-  offers.map((o) => ({
-    id: String(o.id),
-    title: o.categoryName,
-    description: o.description,
-    image: o.imageUrl || '',
-    displayOrder: o.displayOrder ?? 0,
-    isActive: o.isActive !== false,
-    isDeleted: o.isDeleted === true,
+const mapOffers = (items = []) =>
+  items.map((item) => ({
+    id: String(item.id || item._id || ''),
+    title: item.title || '',
+    description: item.description || '',
+    image: item.image || '',
+    displayOrder: item.display_order ?? 0,
+    isActive: item.is_active !== false,
   }));
 
-const mapStats = (stats = []) =>
-  stats.map((s) => ({
-    id: String(s.id),
-    value: s.value,
-    suffix: s.suffix,
-    label: s.label,
-    icon: s.icon || 'FiUsers',
-    displayOrder: s.displayOrder ?? 0,
-    isActive: s.isActive !== false,
-    isDeleted: s.isDeleted === true,
+const mapStatistics = (items = []) =>
+  items.map((item) => ({
+    id: String(item.id || item._id || ''),
+    label: item.title || '',
+    value: item.value ?? 0,
+    suffix: item.suffix || '',
+    icon: item.icon || 'FiUsers',
+    displayOrder: item.display_order ?? 0,
+    isActive: item.is_active !== false,
   }));
 
-export const mapApiToFrontend = (data) => {
+const mapOwner = (owner = {}) => ({
+  name: owner.owner_name || '',
+  designation: owner.designation || '',
+  phone: owner.phone || '',
+  location: owner.address || '',
+  badge: owner.badge_text || '',
+  quote: owner.quote || '',
+  photo: owner.profile_photo || '',
+  sinceYear: owner.since_year || '2022',
+  yearsServing: owner.experience_text || '',
+  isActive: owner.is_active !== false,
+});
+
+export const mapModulePageToFrontend = (data) => {
   if (!data) return null;
-
-  const hero = data.heroSection || {};
-  const story = data.storySection || {};
-  const mvp = data.missionVisionPromise || {};
-  const owner = data.ownerDetails || {};
-
+  const intro = mapIntroduction(data.introduction);
+  const story = mapStory(data.story);
   return {
-    aboutUs: data.homepageShortDescription || '',
-    aboutSection: {
-      buttonText: data.homepageAboutSection?.buttonText || '',
-      bulletPoints: data.homepageAboutSection?.features || [],
-      image: data.homepageAboutSection?.image || '',
-    },
     aboutPage: {
-      heroEyebrow: hero.eyebrowTag || '',
-      heroHeading: hero.pageHeading || '',
-      heroHighlight: hero.highlightedWord || '',
-      heroDescription: hero.description || '',
-      heroParagraphs: hero.descriptionParagraphs?.length ? hero.descriptionParagraphs : [],
-      heroBadge: hero.imageBadgeText || '',
-      heroImage: hero.heroImage || '',
-      button1Text: hero.button1Text || 'Explore Products',
-      button1Url: hero.button1Url || '/products',
-      button2Text: hero.button2Text || 'Contact Us',
-      button2Url: hero.button2Url || '/contact',
-      heroDisplayOrder: hero.displayOrder ?? 1,
-      heroIsActive: hero.isActive !== false,
-      storyTitle: story.title || '',
-      storyDescription: story.description || '',
-      storyImage: story.image || '',
+      ...intro,
+      ...story,
       storyTimeline: mapTimeline(data.storyTimeline),
-      missionTitle: mvp.missionTitle || '',
-      missionDescription: mvp.missionDescription || '',
-      visionTitle: mvp.visionTitle || '',
-      visionDescription: mvp.visionDescription || '',
-      promiseTitle: mvp.promiseTitle || '',
-      promiseDescription: mvp.promiseDescription || '',
-      mvpCards: mapMvpCards(data.mvpCards),
-      stats: mapStats(data.statistics),
-      offerings: mapOffers(data.whatWeOffer),
-      owner: {
-        name: owner.ownerName || '',
-        designation: owner.designation || '',
-        phone: owner.phoneNumber || '',
-        location: owner.location || '',
-        badge: owner.badgeText || '',
-        quote: owner.ownerQuote || '',
-        photo: owner.ownerPhoto || '',
-        sinceYear: owner.sinceYear || '2022',
-        yearsServing: owner.experienceText || '',
-        isActive: owner.isActive !== false,
-      },
+      mvpCards: mapValues(data.values),
+      offerings: mapOffers(data.offers),
+      stats: mapStatistics(data.statistics),
+      owner: mapOwner(data.owner),
     },
     raw: data,
   };
+};
+
+const buildSyncPayload = (ap = {}) => ({
+  introduction: {
+    badge_text: ap.heroEyebrow || '',
+    main_heading: ap.heroHeading || '',
+    highlight_heading: ap.heroHighlight || '',
+    description_1: ap.heroParagraphs?.[0] || '',
+    description_2: ap.heroParagraphs?.[1] || '',
+    description_3: ap.heroParagraphs?.[2] || '',
+    description_4: ap.heroParagraphs?.[3] || '',
+    button1_text: ap.button1Text || '',
+    button1_url: ap.button1Url || '',
+    button2_text: ap.button2Text || '',
+    button2_url: ap.button2Url || '',
+    serving_badge_text: ap.heroBadge || '',
+    image: ap.heroImage || '',
+    display_order: ap.heroDisplayOrder ?? 1,
+    is_active: ap.heroIsActive !== false,
+  },
+  story: {
+    title: ap.storyTitle || '',
+    description: ap.storyDescription || '',
+    image: ap.storyImage || '',
+    is_active: true,
+  },
+  storyTimeline: (ap.storyTimeline || []).map((item, index) => ({
+    id: item.id,
+    title: item.title || '',
+    subtitle: item.marker || '',
+    description: item.description || '',
+    icon: item.icon || 'FiCalendar',
+    display_order: item.displayOrder ?? index + 1,
+    is_active: item.isActive !== false,
+  })),
+  values: (ap.mvpCards || []).map((card, index) => ({
+    id: card.id,
+    title: card.title || '',
+    description: card.description || '',
+    icon: card.icon || 'FiTarget',
+    display_order: card.displayOrder ?? index + 1,
+    is_active: card.isActive !== false,
+  })),
+  offers: (ap.offerings || []).map((item, index) => ({
+    id: item.id,
+    title: item.title || '',
+    description: item.description || '',
+    image: item.image || '',
+    display_order: item.displayOrder ?? index + 1,
+    is_active: item.isActive !== false,
+  })),
+  statistics: (ap.stats || []).map((stat, index) => ({
+    id: stat.id,
+    title: stat.label || '',
+    value: Number(stat.value) || 0,
+    suffix: stat.suffix || '',
+    icon: stat.icon || 'FiUsers',
+    display_order: stat.displayOrder ?? index + 1,
+    is_active: stat.isActive !== false,
+  })),
+  owner: {
+    owner_name: ap.owner?.name || '',
+    designation: ap.owner?.designation || '',
+    quote: ap.owner?.quote || '',
+    phone: ap.owner?.phone || '',
+    address: ap.owner?.location || '',
+    since_year: ap.owner?.sinceYear || '2022',
+    experience_text: ap.owner?.yearsServing || '',
+    badge_text: ap.owner?.badge || '',
+    profile_photo: ap.owner?.photo || '',
+    is_active: ap.owner?.isActive !== false,
+  },
+});
+
+const uploadFile = async (endpoint, file) => {
+  const formData = new FormData();
+  formData.append('image', file);
+  const result = await apiRequest(() =>
+    api.post(endpoint, formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+  );
+  return result.imageUrl || result.image || result.profile_photo || result.story?.image || result.introduction?.image;
 };
 
 const dataUrlToFile = async (dataUrl, filename) => {
@@ -113,180 +187,92 @@ const dataUrlToFile = async (dataUrl, filename) => {
   return new File([blob], filename, { type: blob.type || 'image/png' });
 };
 
-const uploadImageIfNeeded = async (endpoint, value, filename) => {
-  if (!value || !value.startsWith('data:image')) return value || '';
-  const file = await dataUrlToFile(value, filename);
-  const formData = new FormData();
-  formData.append('image', file);
-  const result = await apiRequest(() =>
-    api.post(endpoint, formData, { headers: { 'Content-Type': 'multipart/form-data' } })
-  );
-  return result.imageUrl || value;
-};
-
-export const buildUpdatePayload = (ap = {}, imageUrls = {}) => {
-  const owner = ap.owner || {};
-  return {
-    heroSection: {
-      eyebrowTag: ap.heroEyebrow || '',
-      pageHeading: ap.heroHeading || '',
-      highlightedWord: ap.heroHighlight || '',
-      description: ap.heroDescription || '',
-      descriptionParagraphs: ap.heroParagraphs || [],
-      button1Text: ap.button1Text || 'Explore Products',
-      button1Url: ap.button1Url || '/products',
-      button2Text: ap.button2Text || 'Contact Us',
-      button2Url: ap.button2Url || '/contact',
-      imageBadgeText: ap.heroBadge || '',
-      heroImage: imageUrls.hero || ap.heroImage || '',
-      displayOrder: ap.heroDisplayOrder ?? 1,
-      isActive: ap.heroIsActive !== false,
-    },
-    storySection: {
-      title: ap.storyTitle || '',
-      description: ap.storyDescription || '',
-      image: imageUrls.story || ap.storyImage || '',
-    },
-    storyTimeline: (ap.storyTimeline || []).map((item, index) => ({
-      ...(isMongoId(item.id) ? { id: item.id } : {}),
-      marker: item.marker || '',
-      title: item.title || '',
-      description: item.description || '',
-      icon: item.icon || 'FiCalendar',
-      displayOrder: item.displayOrder ?? index + 1,
-      isActive: item.isActive !== false,
-      isDeleted: item.isDeleted === true,
-    })),
-    mvpCards: (ap.mvpCards || []).map((card, index) => ({
-      ...(isMongoId(card.id) ? { id: card.id } : {}),
-      title: card.title || '',
-      icon: card.icon || 'FiTarget',
-      description: card.description || '',
-      displayOrder: card.displayOrder ?? index + 1,
-      isActive: card.isActive !== false,
-      isDeleted: card.isDeleted === true,
-    })),
-    missionVisionPromise: {
-      missionTitle: ap.missionTitle || '',
-      missionDescription: ap.missionDescription || '',
-      visionTitle: ap.visionTitle || '',
-      visionDescription: ap.visionDescription || '',
-      promiseTitle: ap.promiseTitle || '',
-      promiseDescription: ap.promiseDescription || '',
-    },
-    whatWeOffer: (ap.offerings || []).map((item, index) => ({
-      ...(isMongoId(item.id) ? { id: item.id } : {}),
-      categoryName: item.title || '',
-      description: item.description || '',
-      imageUrl: item.image || '',
-      displayOrder: item.displayOrder ?? index + 1,
-      isActive: item.isActive !== false,
-      isDeleted: item.isDeleted === true,
-    })),
-    statistics: (ap.stats || []).map((stat, index) => ({
-      ...(isMongoId(stat.id) ? { id: stat.id } : {}),
-      value: Number(stat.value) || 0,
-      suffix: stat.suffix || '',
-      label: stat.label || '',
-      icon: stat.icon || 'FiUsers',
-      displayOrder: stat.displayOrder ?? index + 1,
-      isActive: stat.isActive !== false,
-      isDeleted: stat.isDeleted === true,
-    })),
-    ownerDetails: {
-      ownerName: owner.name || '',
-      designation: owner.designation || '',
-      phoneNumber: owner.phone || '',
-      location: owner.location || '',
-      badgeText: owner.badge || '',
-      ownerQuote: owner.quote || '',
-      ownerPhoto: imageUrls.owner || owner.photo || '',
-      sinceYear: owner.sinceYear || '2022',
-      experienceText: owner.yearsServing || '',
-      isActive: owner.isActive !== false,
-    },
-  };
-};
+export const mapApiToFrontend = mapModulePageToFrontend;
 
 export const aboutUsService = {
   getAboutUs: async () => {
-    const data = await apiRequest(() => api.get('/about-us'));
-    return mapApiToFrontend(data);
+    const data = await apiRequest(() => api.get('/about'));
+    return mapModulePageToFrontend(data);
   },
 
   getAboutUsAdmin: async () => {
-    const data = await apiRequest(() => api.get('/about-us/admin'));
-    return mapApiToFrontend(data);
+    const data = await apiRequest(() => api.get('/about/admin'));
+    return mapModulePageToFrontend(data);
   },
 
   updateAboutUs: async (formDataOrPage, imageUrls = {}) => {
-    const aboutPage = formDataOrPage?.aboutPage || formDataOrPage;
-    const data = await apiRequest(() => api.put('/about-us', buildUpdatePayload(aboutPage, imageUrls)));
-    return mapApiToFrontend(data);
+    const ap = { ...(formDataOrPage?.aboutPage || formDataOrPage) };
+
+    if (ap.heroImage?.startsWith('data:image')) {
+      const file = await dataUrlToFile(ap.heroImage, 'hero.jpg');
+      ap.heroImage = await uploadFile('/about/introduction/image', file);
+    } else if (imageUrls.hero) {
+      ap.heroImage = imageUrls.hero;
+    }
+
+    if (ap.storyImage?.startsWith('data:image')) {
+      const file = await dataUrlToFile(ap.storyImage, 'story.jpg');
+      ap.storyImage = await uploadFile('/about/story/image', file);
+    } else if (imageUrls.story) {
+      ap.storyImage = imageUrls.story;
+    }
+
+    if (ap.owner?.photo?.startsWith('data:image')) {
+      const file = await dataUrlToFile(ap.owner.photo, 'owner.jpg');
+      ap.owner.photo = await uploadFile('/about/owner/photo', file);
+    } else if (imageUrls.owner) {
+      ap.owner.photo = imageUrls.owner;
+    }
+
+    const payload = buildSyncPayload(ap);
+    const data = await apiRequest(() => api.put('/about/admin/sync', payload));
+    return mapModulePageToFrontend(data);
   },
 
-  uploadHeroImage: async (file) => {
+  uploadImage: async (file) => {
     const formData = new FormData();
     formData.append('image', file);
     const result = await apiRequest(() =>
-      api.post('/about-us/upload/hero-image', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+      api.post('/upload/image', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
     );
     return result.imageUrl;
   },
 
-  uploadStoryImage: async (file) => {
-    const formData = new FormData();
-    formData.append('image', file);
-    const result = await apiRequest(() =>
-      api.post('/about-us/upload/story-image', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
-    );
-    return result.imageUrl;
-  },
+  getIntroduction: () => apiRequest(() => api.get('/about/introduction')),
+  updateIntroduction: (body) => apiRequest(() => api.put('/about/introduction', body)),
 
-  uploadOwnerPhoto: async (file) => {
-    const formData = new FormData();
-    formData.append('image', file);
-    const result = await apiRequest(() =>
-      api.post('/about-us/upload/owner-photo', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
-    );
-    return result.imageUrl;
-  },
+  getStory: () => apiRequest(() => api.get('/about/story')),
+  updateStory: (body) => apiRequest(() => api.put('/about/story', body)),
 
-  uploadOfferImage: async (id, file) => {
-    const formData = new FormData();
-    formData.append('image', file);
-    return apiRequest(() =>
-      api.post(`/about-us/offers/${id}/image`, formData, { headers: { 'Content-Type': 'multipart/form-data' } })
-    );
-  },
+  getTimeline: (search = '') =>
+    apiRequest(() => api.get('/about/story/timeline', { params: { search } })),
+  createTimelineItem: (body) => apiRequest(() => api.post('/about/story/timeline', body)),
+  updateTimelineItem: (id, body) => apiRequest(() => api.put(`/about/story/timeline/${id}`, body)),
+  deleteTimelineItem: (id) => apiRequest(() => api.delete(`/about/story/timeline/${id}`)),
+  reorderTimeline: (orders) => apiRequest(() => api.put('/about/story/timeline/reorder', { orders })),
 
-  reorderOffers: async (orders) =>
-    apiRequest(() => api.put('/about-us/offers/reorder', { orders })),
+  getValues: (search = '') => apiRequest(() => api.get('/about/values', { params: { search } })),
+  createMvpCard: (body) => apiRequest(() => api.post('/about/values', body)),
+  updateMvpCard: (id, body) => apiRequest(() => api.put(`/about/values/${id}`, body)),
+  deleteMvpCard: (id) => apiRequest(() => api.delete(`/about/values/${id}`)),
+  reorderMvpCards: (orders) => apiRequest(() => api.put('/about/values/reorder', { orders })),
 
-  reorderStatistics: async (orders) =>
-    apiRequest(() => api.put('/about-us/statistics/reorder', { orders })),
+  getOffers: (search = '') => apiRequest(() => api.get('/about/offers', { params: { search } })),
+  createOffer: (body) => apiRequest(() => api.post('/about/offers', body)),
+  updateOffer: (id, body) => apiRequest(() => api.put(`/about/offers/${id}`, body)),
+  deleteOffer: (id) => apiRequest(() => api.delete(`/about/offers/${id}`)),
+  uploadOfferImage: (id, file) => uploadFile(`/about/offers/${id}/image`, file),
+  reorderOffers: (orders) => apiRequest(() => api.put('/about/offers/reorder', { orders })),
 
-  reorderTimeline: async (orders) =>
-    apiRequest(() => api.put('/about-us/timeline/reorder', { orders })),
+  getStatistics: (search = '') =>
+    apiRequest(() => api.get('/about/statistics', { params: { search } })),
+  createStatistic: (body) => apiRequest(() => api.post('/about/statistics', body)),
+  updateStatistic: (id, body) => apiRequest(() => api.put(`/about/statistics/${id}`, body)),
+  deleteStatistic: (id) => apiRequest(() => api.delete(`/about/statistics/${id}`)),
+  reorderStatistics: (orders) => apiRequest(() => api.put('/about/statistics/reorder', { orders })),
 
-  reorderMvpCards: async (orders) =>
-    apiRequest(() => api.put('/about-us/mvp-cards/reorder', { orders })),
-
-  createOffer: async (body) => apiRequest(() => api.post('/about-us/offers', body)),
-  updateOffer: async (id, body) => apiRequest(() => api.put(`/about-us/offers/${id}`, body)),
-  deleteOffer: async (id) => apiRequest(() => api.delete(`/about-us/offers/${id}`)),
-
-  createStatistic: async (body) => apiRequest(() => api.post('/about-us/statistics', body)),
-  updateStatistic: async (id, body) => apiRequest(() => api.put(`/about-us/statistics/${id}`, body)),
-  deleteStatistic: async (id) => apiRequest(() => api.delete(`/about-us/statistics/${id}`)),
-
-  createTimelineItem: async (body) => apiRequest(() => api.post('/about-us/timeline', body)),
-  updateTimelineItem: async (id, body) => apiRequest(() => api.put(`/about-us/timeline/${id}`, body)),
-  deleteTimelineItem: async (id) => apiRequest(() => api.delete(`/about-us/timeline/${id}`)),
-
-  createMvpCard: async (body) => apiRequest(() => api.post('/about-us/mvp-cards', body)),
-  updateMvpCard: async (id, body) => apiRequest(() => api.put(`/about-us/mvp-cards/${id}`, body)),
-  deleteMvpCard: async (id) => apiRequest(() => api.delete(`/about-us/mvp-cards/${id}`)),
+  getOwner: () => apiRequest(() => api.get('/about/owner')),
+  updateOwner: (body) => apiRequest(() => api.put('/about/owner', body)),
 };
 
 export default aboutUsService;

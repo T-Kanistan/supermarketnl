@@ -33,10 +33,10 @@ export const AuthProvider = ({ children }) => {
     checkAuth();
   }, []);
 
-  const login = async (loginValue, password) => {
+  const login = async (loginValue, password, rememberMe = true) => {
     setLoading(true);
     try {
-      const loggedUser = await authService.login(loginValue, password);
+      const loggedUser = await authService.login(loginValue, password, rememberMe);
       const normalizedUser = normalizeUser(loggedUser);
       setUser(normalizedUser);
       return normalizedUser;

@@ -10,6 +10,7 @@
     "seed-admin": "node src/scripts/seedAdmin.js",
     "db:contact-settings": "node src/scripts/initContactSettings.js",
     "db:about-us": "node src/scripts/initAboutUs.js",
+    "db:about-module": "node src/scripts/initAboutModule.js",
     "db:footer": "node src/scripts/initFooter.js",
     "db:home": "node src/scripts/initHomeCMS.js",
     "db:normalize-faqs": "node src/scripts/normalizeFaqOrder.js",

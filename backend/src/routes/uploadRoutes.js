@@ -13,6 +13,9 @@ import { homeBannerUpload } from '../middlewares/homeBannerUploadMiddleware.js';
 import { homepageAboutUpload } from '../middlewares/homepageAboutUploadMiddleware.js';
 import { testimonialAvatarUpload } from '../middlewares/testimonialUploadMiddleware.js';
 
+import { genericImageUpload, toPublicUrl } from '../middleware/upload.js';
+import { successResponse } from '../utils/apiResponse.js';
+
 const router = express.Router();
 
 router.post(
@@ -53,6 +56,24 @@ router.post(
   restrictTo('admin', 'manager'),
   testimonialAvatarUpload.single('image'),
   uploadTestimonialAvatar
+);
+
+router.post(
+  '/image',
+  protect,
+  restrictTo('admin'),
+  genericImageUpload.single('image'),
+  (req, res, next) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ success: false, message: 'Image file is required' });
+      }
+      const imageUrl = toPublicUrl(req.file);
+      return successResponse(res, 200, 'Image uploaded successfully', { imageUrl });
+    } catch (error) {
+      next(error);
+    }
+  }
 );
 
 export default router;

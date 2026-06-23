@@ -1,0 +1,853 @@
+/**
+ * Wins Wereld Winkel — Responsive Design System
+ * Breakpoints:
+ *   Mobile:  320px – 767px   (max-width: 767px)
+ *   Tablet:  768px – 1023px  (min-width: 768px) and (max-width: 1023px)
+ *   Laptop:  1024px – 1439px (min-width: 1024px) and (max-width: 1439px)
+ *   Desktop: 1440px+         (min-width: 1440px)
+ */
+
+/* ─── Global layout & overflow ─── */
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+.app {
+  width: 100%;
+  min-width: 0;
+  overflow-x: clip;
+}
+
+.app main {
+  width: 100%;
+  min-width: 0;
+}
+
+img,
+video,
+svg {
+  max-width: 100%;
+  height: auto;
+}
+
+iframe {
+  max-width: 100%;
+  border: 0;
+}
+
+/* ─── Container tiers ─── */
+@media (min-width: 1440px) {
+  .container {
+    max-width: 1440px;
+    padding-left: 32px;
+    padding-right: 32px;
+  }
+}
+
+@media (max-width: 767px) {
+  .container {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .section-padding {
+    padding: 32px 0;
+  }
+
+  .section-title {
+    font-size: clamp(1.5rem, 5vw, 2rem);
+  }
+}
+
+/* ─── Touch-friendly controls (mobile) ─── */
+@media (max-width: 767px) {
+  .btn-primary,
+  .btn-secondary,
+  .auth-nav-btn,
+  .hero-btn,
+  .fc-tab,
+  .careers-dept-btn,
+  .careers-view-btn,
+  .store-product-enquiry-btn,
+  .primary-login-btn {
+    min-height: 44px;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font-size: 16px; /* prevents iOS zoom on focus */
+  }
+}
+
+/* ─── Standard 4 / 2 / 1 product & card grids ─── */
+.store-product-grid,
+.products-page-grid.store-product-grid,
+.fc-grid {
+  display: grid;
+  gap: 22px;
+  align-items: stretch;
+}
+
+@media (min-width: 1440px) {
+  .store-product-grid,
+  .products-page-grid.store-product-grid,
+  .fc-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1439px) {
+  .store-product-grid,
+  .products-page-grid.store-product-grid,
+  .fc-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .store-product-grid,
+  .products-page-grid.store-product-grid,
+  .fc-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+  }
+}
+
+@media (max-width: 767px) {
+  .store-product-grid,
+  .products-page-grid.store-product-grid,
+  .fc-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+/* Equal-height product cards */
+.store-product-card {
+  height: 100%;
+}
+
+/* ─── Header / Navbar ─── */
+@media (max-width: 1023px) {
+  .main-header {
+    height: 80px;
+  }
+
+  .navigation {
+    top: 80px;
+    height: calc(100vh - 80px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .logo {
+    height: 58px;
+  }
+}
+
+@media (max-width: 767px) {
+  .main-header {
+    height: 72px;
+  }
+
+  .navigation {
+    top: 72px;
+    height: calc(100dvh - 72px);
+    padding-top: 24px;
+    padding-bottom: 32px;
+  }
+
+  .nav-list {
+    gap: 20px;
+    width: 100%;
+    padding: 0 24px;
+  }
+
+  .nav-link {
+    font-size: 1.05rem;
+    width: 100%;
+    text-align: center;
+    padding: 8px 0;
+  }
+
+  .logo {
+    height: 48px;
+    max-width: min(180px, 45vw);
+  }
+
+  .logo-container {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+
+  .header-utils {
+    flex: 0 0 auto;
+    gap: 8px;
+  }
+
+  .search-input {
+    width: min(160px, 38vw);
+  }
+
+  .auth-buttons {
+    display: none;
+  }
+
+  .mobile-only-link {
+    display: block;
+  }
+
+  .auth-nav-btn {
+    padding: 8px 12px;
+    font-size: 0.82rem;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .auth-buttons {
+    gap: 8px;
+    margin-left: 4px;
+  }
+
+  .auth-nav-btn {
+    padding: 6px 10px;
+    font-size: 0.8rem;
+  }
+}
+
+/* ─── Hero sections (home + page heroes) ─── */
+@media (max-width: 1023px) {
+  .hero,
+  .hero-loading {
+    height: auto;
+    min-height: 520px;
+    margin-top: 80px;
+    padding: 36px 0;
+  }
+
+  .hero-title {
+    font-size: clamp(2rem, 5vw, 3rem);
+  }
+
+  .hero-layout {
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .hero-timings-card {
+    width: 100%;
+    min-width: unset;
+    max-width: 100%;
+  }
+
+  .products-hero,
+  .fc-hero,
+  .contact-hero,
+  .careers-hero {
+    min-height: auto;
+  }
+
+  .products-hero-grid,
+  .fc-hero-grid,
+  .careers-hero-grid {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+}
+
+@media (max-width: 767px) {
+  .hero,
+  .hero-loading {
+    margin-top: 72px;
+    min-height: auto;
+    padding: 28px 0;
+  }
+
+  .hero-text {
+    padding: 22px 18px;
+    width: 100%;
+  }
+
+  .hero-title {
+    font-size: clamp(1.65rem, 7vw, 2.2rem);
+  }
+
+  .hero-subtitle {
+    font-size: 0.95rem;
+  }
+
+  .hero-buttons {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .hero-btn,
+  .hero-buttons .btn-primary,
+  .hero-buttons .btn-secondary {
+    width: 100%;
+    white-space: normal;
+  }
+
+  .hero-timings-card {
+    padding: 20px 18px 10px;
+    border-radius: 16px;
+  }
+
+  .timing-item {
+    padding: 18px 0;
+    gap: 14px;
+  }
+}
+
+/* ─── Food Corner category tabs ─── */
+@media (max-width: 767px) {
+  .fc-category-tabs {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 8px;
+    margin-bottom: 20px;
+    padding-bottom: 4px;
+    mask-image: linear-gradient(to right, #000 92%, transparent 100%);
+  }
+
+  .fc-category-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .fc-tab {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  .fc-toolbar {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+/* ─── About Us ─── */
+@media (max-width: 1023px) {
+  .about-story-panel,
+  .about-intro-card,
+  .founder-panel {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .about-story-image-wrap img {
+    width: 100%;
+    object-fit: cover;
+    min-height: 220px;
+    max-height: 360px;
+  }
+
+  .founder-panel {
+    text-align: center;
+  }
+
+  .founder-photo-card {
+    margin: 0 auto;
+  }
+
+  .about-mvp-grid,
+  .about-offer-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 767px) {
+  .about-page {
+    --ab-section-y: 24px;
+  }
+
+  .about-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .about-intro-pillars,
+  .about-intro-features,
+  .about-mvp-grid,
+  .about-offer-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .about-intro-actions {
+    flex-direction: column;
+  }
+
+  .about-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .about-stats-grid .about-stat-value {
+    font-size: clamp(1.4rem, 6vw, 1.8rem);
+  }
+}
+
+/* ─── Vacancies ─── */
+@media (max-width: 1023px) {
+  .careers-main-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .careers-details-card {
+    position: static;
+    max-height: none;
+  }
+
+  .careers-dept-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 767px) {
+  .vacancies-page {
+    padding-top: 72px;
+  }
+
+  .careers-list-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .careers-sort {
+    width: 100%;
+  }
+
+  .careers-sort select {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .careers-job-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+
+  .careers-job-card-main {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .careers-view-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .careers-job-meta {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .careers-why-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .careers-pagination {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+  }
+}
+
+/* ─── Contact page ─── */
+@media (max-width: 1023px) {
+  .contact-align-grid,
+  .contact-location-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .contact-location-side-col {
+    grid-template-columns: 1fr;
+  }
+
+  .contact-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 767px) {
+  .contact-page-shell {
+    padding: 0;
+  }
+
+  .contact-card {
+    padding: 20px 16px;
+    border-radius: 14px;
+  }
+
+  .contact-form-grid .contact-field,
+  .contact-form-grid input,
+  .contact-form-grid select,
+  .contact-form-grid textarea {
+    width: 100%;
+  }
+
+  .map-container {
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .map-container,
+  .map-container iframe {
+    width: 100%;
+    min-height: 260px;
+    height: 50vw;
+    max-height: 360px;
+  }
+}
+
+/* ─── Footer ─── */
+@media (min-width: 1024px) and (max-width: 1439px) {
+  .footer-main-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 28px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .footer-main-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 32px 24px;
+  }
+}
+
+@media (max-width: 767px) {
+  .footer-main {
+    padding: 32px 0 16px;
+  }
+
+  .footer-main-grid {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+
+  .footer-legal-links {
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .social-row {
+    flex-wrap: wrap;
+  }
+}
+
+/* ─── Home sections ─── */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .features-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .promotions-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 767px) {
+  .features-grid,
+  .promotions-grid,
+  .reviews-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .featured-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .featured-nav-btn {
+    display: none;
+  }
+}
+
+/* ─── Products page layout ─── */
+@media (max-width: 1023px) {
+  .products-layout {
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .sidebar {
+    width: 100%;
+  }
+
+  .category-mobile-dropdown {
+    display: flex;
+  }
+
+  .category-list {
+    display: none;
+  }
+
+  .products-toolbar {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 767px) {
+  .products-hero-grid {
+    padding: 28px 16px;
+  }
+
+  .products-hero-features {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .products-sort-wrap {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+}
+
+.admin-sidebar-backdrop {
+  display: none;
+}
+
+@media (max-width: 1023px) {
+  .admin-sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 1050;
+    border: none;
+    padding: 0;
+    margin: 0;
+    background: rgba(15, 23, 42, 0.45);
+    cursor: pointer;
+  }
+
+  .admin-sidebar {
+    position: fixed;
+    left: -280px;
+    height: 100dvh;
+    z-index: 1100;
+    transition: left 0.3s ease;
+  }
+
+  .admin-sidebar.open {
+    left: 0;
+    box-shadow: 8px 0 32px rgba(15, 23, 42, 0.18);
+  }
+
+  .menu-toggle-btn {
+    display: flex;
+  }
+
+  .dashboard-grid-two-col,
+  .admin-form-grid-2,
+  .settings-tabs-container {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 767px) {
+  .admin-header {
+    padding: 0 16px;
+    height: auto;
+    min-height: 56px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .admin-header-title {
+    font-size: 1rem;
+  }
+
+  .admin-content-body {
+    padding: 16px;
+  }
+
+  .stats-row {
+    grid-template-columns: 1fr;
+  }
+
+  .table-controls,
+  .filter-group-admin,
+  .admin-pagination {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .search-box-admin {
+    max-width: none;
+    width: 100%;
+  }
+
+  .admin-modal-overlay {
+    padding: 8px;
+    align-items: flex-end;
+  }
+
+  .admin-modal-container {
+    width: 100%;
+    max-width: 100%;
+    max-height: 92dvh;
+    border-radius: 16px 16px 0 0;
+    margin: 0;
+  }
+
+  .admin-form-group.row-split {
+    grid-template-columns: 1fr;
+  }
+
+  .store-live-btn span {
+    display: none;
+  }
+
+  /* Admin tables: smooth horizontal scroll (card mode needs data-label on td) */
+  .table-responsive-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 12px;
+    max-width: 100%;
+  }
+
+  .admin-table {
+    min-width: 640px;
+  }
+
+  .admin-table td[data-label]::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--admin-text-sub, #64748b);
+    display: block;
+    margin-bottom: 4px;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  /* Card layout when cells have data-label */
+  .admin-table:has(td[data-label]) thead {
+    display: none;
+  }
+
+  .admin-table:has(td[data-label]) tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .admin-table:has(td[data-label]) tr {
+    display: block;
+    background: #fff;
+    border: 1px solid var(--admin-border, #e2e8f0);
+    border-radius: 12px;
+    padding: 12px;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+  }
+
+  .admin-table:has(td[data-label]) td {
+    display: block;
+    padding: 8px 0;
+    border: none;
+    text-align: left;
+  }
+
+  .admin-table:has(td[data-label]) {
+    min-width: unset;
+    border: none;
+  }
+
+  .table-responsive-wrapper:has(.admin-table td[data-label]) {
+    overflow: visible;
+  }
+}
+
+/* ─── Auth / Login ─── */
+@media (max-width: 767px) {
+  .modern-auth-page {
+    padding: 16px;
+    min-height: 100dvh;
+  }
+
+  .auth-split-layout {
+    border-radius: 16px;
+    min-height: auto;
+  }
+
+  .auth-brand-side {
+    min-height: 200px;
+    padding: 28px 20px;
+  }
+
+  .brand-heading {
+    font-size: clamp(1.6rem, 6vw, 2.2rem);
+  }
+
+  .auth-form-side {
+    padding: 24px 20px;
+  }
+
+  .form-options {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+}
+
+/* ─── FAQ, Offers, Terms ─── */
+@media (max-width: 767px) {
+  .faq-page,
+  .offers-page,
+  .terms-page {
+    padding-top: 72px;
+  }
+}
+
+/* ─── Enquiry modal ─── */
+@media (max-width: 767px) {
+  .enquiry-modal-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .enquiry-modal {
+    width: 100%;
+    max-width: 100%;
+    max-height: 94dvh;
+    border-radius: 16px 16px 0 0;
+    margin: 0;
+  }
+}
+
+/* ─── Utility: hide on mobile / tablet ─── */
+@media (max-width: 767px) {
+  .hide-mobile {
+    display: none !important;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .hide-tablet {
+    display: none !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .show-mobile-only {
+    display: none !important;
+  }
+}

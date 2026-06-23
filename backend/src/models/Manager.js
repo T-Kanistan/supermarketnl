@@ -55,6 +55,10 @@ const managerSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    lastLogin: {
+      type: Date,
+      default: null,
+    },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',

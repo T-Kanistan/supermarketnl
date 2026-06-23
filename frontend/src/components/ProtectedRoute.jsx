@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import AccessDenied from './AccessDenied';
 import {
   canManagerAccessRoute,
+  getDashboardHome,
   getDashboardRouteSegment,
   isManagerRole,
   isSuperAdmin,
@@ -44,22 +45,30 @@ export const ProtectedRoute = ({ children, adminOnly = false, allowedRoles }) =>
   }
 
   if (!user) {
-    return <Navigate to="/admin/login" state={{ from: location }} replace />;
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (isSuperAdmin(user)) {
-    return children;
-  }
-
-  if (adminOnly) {
-    return <AccessDenied />;
-  }
-
-  if (allowedRoles) {
+  if (allowedRoles?.length) {
     const role = normalizeRole(user.role);
-    if (!allowedRoles.map(normalizeRole).includes(role)) {
-      return <AccessDenied />;
+    const normalizedAllowed = allowedRoles.map(normalizeRole);
+    if (!normalizedAllowed.includes(role)) {
+      return <Navigate to={getDashboardHome(user)} replace />;
     }
+  }
+
+  const onAdminDashboard = location.pathname.startsWith('/admin/dashboard');
+  const onManagerDashboard = location.pathname.startsWith('/manager/dashboard');
+
+  if (onAdminDashboard && isManagerRole(user)) {
+    return <Navigate to="/manager/dashboard" replace />;
+  }
+
+  if (onManagerDashboard && isSuperAdmin(user)) {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+
+  if (adminOnly && !isSuperAdmin(user)) {
+    return <AccessDenied />;
   }
 
   if (isManagerRole(user)) {

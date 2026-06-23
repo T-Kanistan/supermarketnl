@@ -10,6 +10,9 @@ const normalizeApiOrigin = (value) => {
 export const API_ORIGIN = normalizeApiOrigin(import.meta.env.VITE_API_URL);
 export const API_BASE_URL = `${API_ORIGIN}/api`;
 
+const readAuthToken = () =>
+  localStorage.getItem('supermarket_token') || sessionStorage.getItem('supermarket_token');
+
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
@@ -17,7 +20,7 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('supermarket_token');
+    const token = readAuthToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -54,8 +57,17 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !isAuthCheck) {
       localStorage.removeItem('supermarket_token');
       localStorage.removeItem('supermarket_user');
-      if (window.location.pathname.startsWith('/admin') && !window.location.pathname.startsWith('/admin/login')) {
-        window.location.href = '/admin/login';
+      localStorage.removeItem('supermarket_permissions');
+      sessionStorage.removeItem('supermarket_token');
+      sessionStorage.removeItem('supermarket_user');
+      sessionStorage.removeItem('supermarket_permissions');
+
+      const path = window.location.pathname;
+      const isProtectedDashboard =
+        path.startsWith('/admin/dashboard') || path.startsWith('/manager/dashboard');
+
+      if (isProtectedDashboard) {
+        window.location.href = '/login?expired=1';
       }
     }
     return Promise.reject(error);

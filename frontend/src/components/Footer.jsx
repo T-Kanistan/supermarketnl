@@ -33,7 +33,13 @@ const Footer = () => {
     };
   }, []);
 
-  if (location.pathname.startsWith('/admin')) return null;
+  if (
+    location.pathname.startsWith('/admin') ||
+    location.pathname.startsWith('/manager') ||
+    location.pathname === '/login'
+  ) {
+    return null;
+  }
   if (loading) return null;
   if (error || !cmsData) {
     return (

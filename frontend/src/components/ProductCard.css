@@ -1,23 +1,9 @@
-/* Shared product grid — 4 / 2 / 1 columns */
+/* Shared product grid — responsive tiers in styles/responsive.css */
 .store-product-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 22px;
   align-items: stretch;
-}
-
-@media (max-width: 1024px) {
-  .store-product-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
-  }
-}
-
-@media (max-width: 640px) {
-  .store-product-grid {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
 }
 
 /* Product card */

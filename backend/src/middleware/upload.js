@@ -48,7 +48,13 @@ const createStorage = (subdir) =>
 
 export const aboutImageUpload = multer({
   storage: createStorage('about'),
-  limits: { fileSize: 3 * 1024 * 1024 },
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: imageFilter,
+});
+
+export const genericImageUpload = multer({
+  storage: createStorage('about'),
+  limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: imageFilter,
 });
 
@@ -127,6 +133,7 @@ export default {
   introImageUpload,
   storyImageUpload,
   ownerPhotoUpload,
+  genericImageUpload,
   toPublicUrl,
   deleteLocalImage,
 };

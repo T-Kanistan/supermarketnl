@@ -5,6 +5,7 @@ import { useCMS } from '../context/CMSContext';
 import { useAuth } from '../context/AuthContext';
 import { useEnquiry } from '../context/EnquiryContext';
 import { getImageUrl } from '../services/api';
+import { getDashboardHome } from '../constants/managerPermissions';
 import './Header.css';
 
 const Header = () => {
@@ -20,7 +21,7 @@ const Header = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  if (path.startsWith('/admin')) return null;
+  if (path.startsWith('/admin') || path.startsWith('/manager') || path === '/login') return null;
   if (!cmsData) return null;
 
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
@@ -72,11 +73,15 @@ const Header = () => {
                   Enquiry Now
                 </button>
               </li>
-              {!user && (
-                <li className="mobile-only-link">
-                  <Link to="/admin/login" onClick={closeMobileMenu} className="nav-link">Login</Link>
-                </li>
-              )}
+              <li className="mobile-only-link">
+                <Link
+                  to={user ? getDashboardHome(user) : '/login'}
+                  onClick={closeMobileMenu}
+                  className="nav-link nav-link-dashboard"
+                >
+                  Dashboard
+                </Link>
+              </li>
             </ul>
           </nav>
 
@@ -102,13 +107,13 @@ const Header = () => {
               </button>
             )}
             <div className="auth-buttons">
-              {user ? (
-                <Link to="/admin/dashboard" className="auth-nav-btn auth-nav-login">Dashboard</Link>
-              ) : (
-                <Link to="/admin/login" className="auth-nav-btn auth-nav-login" onClick={closeMobileMenu}>
-                  Login
-                </Link>
-              )}
+              <Link
+                to={user ? getDashboardHome(user) : '/login'}
+                className="auth-nav-btn auth-nav-login auth-nav-dashboard"
+                onClick={closeMobileMenu}
+              >
+                Dashboard
+              </Link>
               <button
                 type="button"
                 className="auth-nav-btn auth-nav-apply"

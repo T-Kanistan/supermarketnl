@@ -2,6 +2,11 @@ import api, { request } from './api';
 import { localDb } from './localDb';
 import { normalizeRole } from '../constants/managerPermissions';
 
+const TOKEN_KEY = 'supermarket_token';
+const USER_KEY = 'supermarket_user';
+const PERMISSIONS_KEY = 'supermarket_permissions';
+const REMEMBER_KEY = 'supermarket_remember_me';
+
 const normalizeAuthUser = (user) => {
   if (!user) return null;
   return {
@@ -11,59 +16,59 @@ const normalizeAuthUser = (user) => {
   };
 };
 
-const persistSession = (token, user, permissions = []) => {
-  localStorage.setItem('supermarket_token', token);
-  localStorage.setItem('supermarket_user', JSON.stringify(user));
-  localStorage.setItem('supermarket_permissions', JSON.stringify(permissions));
+const getActiveStorage = () => {
+  if (localStorage.getItem(TOKEN_KEY)) return localStorage;
+  if (sessionStorage.getItem(TOKEN_KEY)) return sessionStorage;
+  return localStorage;
+};
+
+export const readAuthToken = () =>
+  localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY);
+
+const clearStorage = (storage) => {
+  storage.removeItem(TOKEN_KEY);
+  storage.removeItem(USER_KEY);
+  storage.removeItem(PERMISSIONS_KEY);
+};
+
+const persistSession = (token, user, permissions = [], rememberMe = true) => {
+  const storage = rememberMe ? localStorage : sessionStorage;
+  const other = rememberMe ? sessionStorage : localStorage;
+
+  clearStorage(other);
+  storage.setItem(TOKEN_KEY, token);
+  storage.setItem(USER_KEY, JSON.stringify(user));
+  storage.setItem(PERMISSIONS_KEY, JSON.stringify(permissions));
+  localStorage.setItem(REMEMBER_KEY, rememberMe ? '1' : '0');
 };
 
 const clearSession = () => {
-  localStorage.removeItem('supermarket_token');
-  localStorage.removeItem('supermarket_user');
-  localStorage.removeItem('supermarket_permissions');
+  clearStorage(localStorage);
+  clearStorage(sessionStorage);
+  localStorage.removeItem(REMEMBER_KEY);
 };
 
 export const authService = {
-  login: async (login, password) => {
-    await new Promise((resolve) => setTimeout(resolve, 200));
-
+  login: async (login, password, rememberMe = true) => {
     try {
       const response = await api.post('/auth/login', { email: login, password });
       const data = response.data;
       if (data?.token) {
         const normalizedUser = normalizeAuthUser(data.user);
-        persistSession(data.token, normalizedUser, data.permissions || ['*']);
+        persistSession(data.token, normalizedUser, data.permissions || ['*'], rememberMe);
         return normalizedUser;
       }
       return normalizeAuthUser(data.user);
-    } catch (adminError) {
-      if (adminError.response?.status === 401) {
-        try {
-          const mgrResponse = await api.post('/auth/manager-login', { login, password });
-          const data = mgrResponse.data;
-          if (data?.token) {
-            const normalizedUser = normalizeAuthUser(data.user);
-            persistSession(data.token, normalizedUser, data.permissions || []);
-            return normalizedUser;
-          }
-          return normalizeAuthUser(data.user);
-        } catch (managerError) {
-          if (managerError.response?.data?.message) {
-            throw new Error(managerError.response.data.message);
-          }
-          throw managerError;
-        }
-      }
-
-      if (adminError.response?.data?.message) {
-        throw new Error(adminError.response.data.message);
+    } catch (error) {
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
       }
 
       if (
-        !adminError.response ||
-        adminError.code === 'ERR_NETWORK' ||
-        adminError.response.status >= 500 ||
-        adminError.response.status === 404
+        !error.response ||
+        error.code === 'ERR_NETWORK' ||
+        error.response?.status >= 500 ||
+        error.response?.status === 404
       ) {
         const managers = localDb.getManagers();
         const user = managers.find(
@@ -73,24 +78,22 @@ export const authService = {
           throw new Error('Invalid email or password');
         }
         const token = `mock_jwt_token_for_${user.role}`;
-        persistSession(token, user, user.role === 'admin' ? ['*'] : ['products', 'offers', 'enquiries', 'content']);
+        persistSession(
+          token,
+          user,
+          user.role === 'admin' ? ['*'] : ['products', 'offers', 'enquiries', 'content'],
+          rememberMe
+        );
         return normalizeAuthUser(user);
       }
 
-      throw adminError;
+      throw error;
     }
   },
 
   logout: async () => {
-    const userJson = localStorage.getItem('supermarket_user');
-    const user = userJson ? JSON.parse(userJson) : null;
-
     try {
-      if (normalizeRole(user?.role) === 'manager') {
-        await api.post('/auth/manager-logout');
-      } else {
-        await api.post('/auth/logout');
-      }
+      await api.post('/auth/logout');
     } catch (e) {
       console.error('Logout request failed:', e);
     } finally {
@@ -99,7 +102,7 @@ export const authService = {
   },
 
   getCurrentUser: async () => {
-    const token = localStorage.getItem('supermarket_token');
+    const token = readAuthToken();
     if (!token) {
       return null;
     }
@@ -109,9 +112,10 @@ export const authService = {
       const data = response.data;
       if (data?.user) {
         const normalizedUser = normalizeAuthUser(data.user);
-        localStorage.setItem('supermarket_user', JSON.stringify(normalizedUser));
+        const storage = getActiveStorage();
+        storage.setItem(USER_KEY, JSON.stringify(normalizedUser));
         if (data.user.permissions) {
-          localStorage.setItem('supermarket_permissions', JSON.stringify(data.user.permissions));
+          storage.setItem(PERMISSIONS_KEY, JSON.stringify(data.user.permissions));
         }
         return normalizedUser;
       }
@@ -125,10 +129,11 @@ export const authService = {
       if (
         !error.response ||
         error.code === 'ERR_NETWORK' ||
-        error.response.status >= 500 ||
-        error.response.status === 404
+        error.response?.status >= 500 ||
+        error.response?.status === 404
       ) {
-        const userJson = localStorage.getItem('supermarket_user');
+        const storage = getActiveStorage();
+        const userJson = storage.getItem(USER_KEY);
         return userJson ? normalizeAuthUser(JSON.parse(userJson)) : null;
       }
 
