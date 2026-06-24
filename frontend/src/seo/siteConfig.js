@@ -1,7 +1,7 @@
 export const SITE_NAME = 'Wins Wereld Winkel';
 
 export const SITE_URL =
-  (import.meta.env.VITE_SITE_URL || 'https://wins-wereld-winkel.netlify.app').replace(/\/$/, '');
+  (import.meta.env.VITE_SITE_URL || 'http://localhost:5173').replace(/\/$/, '');
 
 export const DEFAULT_OG_IMAGE = `${SITE_URL}/images/premium_supermarket_hero.png`;
 

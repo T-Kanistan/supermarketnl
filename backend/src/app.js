@@ -55,7 +55,6 @@ const defaultCorsOrigins = [
   'http://localhost:5173',
   'http://127.0.0.1:5173',
   'http://localhost:3000',
-  'https://wins-wereld-winkel.netlify.app',
 ];
 
 const corsOrigins = new Set(
@@ -68,13 +67,7 @@ const corsOrigins = new Set(
 app.use(
   cors({
     origin(origin, callback) {
-      if (
-        !origin ||
-        corsOrigins.has(origin) ||
-        origin.endsWith('.netlify.app') ||
-        origin.endsWith('.railway.app') ||
-        origin.endsWith('.up.railway.app')
-      ) {
+      if (!origin || corsOrigins.has(origin)) {
         callback(null, true);
         return;
       }

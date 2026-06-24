@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const publicDir = resolve(__dirname, '../public');
 
-const SITE_URL = (process.env.VITE_SITE_URL || 'https://wins-wereld-winkel.netlify.app').replace(/\/$/, '');
+const SITE_URL = (process.env.VITE_SITE_URL || 'http://localhost:5173').replace(/\/$/, '');
 
 const routes = [
   { path: '/', changefreq: 'weekly', priority: '1.0' },
