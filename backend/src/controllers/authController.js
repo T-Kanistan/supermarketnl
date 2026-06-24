@@ -51,8 +51,13 @@ export const forgotPassword = async (req, res, next) => {
  */
 export const resetPassword = async (req, res, next) => {
   try {
-    const { email, token, newPassword } = req.body;
-    const result = await portalAuthService.resetPasswordWithToken({ email, token, newPassword });
+    const { email, token, newPassword, confirmPassword } = req.body;
+    const result = await portalAuthService.resetPasswordWithToken({
+      email,
+      token,
+      newPassword,
+      confirmPassword,
+    });
     return res.status(200).json(result);
   } catch (error) {
     if (error.statusCode) {

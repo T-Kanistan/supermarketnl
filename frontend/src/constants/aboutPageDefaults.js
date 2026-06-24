@@ -57,7 +57,7 @@ export const defaultAboutPage = {
   button1Text: 'Explore Products',
   button1Url: '/products',
   button2Text: 'Contact Us',
-  button2Url: '/contact',
+  button2Url: '/contact-us',
   heroDisplayOrder: 1,
   heroIsActive: true,
   storyTitle: 'Our Story',

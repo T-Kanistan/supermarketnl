@@ -41,8 +41,6 @@ const FeaturedProducts = () => {
             mapProductType(product.productType || product.type) === 'grocery'
         );
 
-        console.log('Featured Products:', list);
-
         const categories = (Array.isArray(categoryData) ? categoryData : []).filter(
           (c) => c.status === 'active'
         );

@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { useCMS } from '../context/CMSContext';
 import announcementService from '../services/announcementService';
 import { getImageUrl } from '../services/api';
+import { buildPromoAlt } from '../utils/seoImageAlt';
 import './Promotions.css';
 
 const Promotions = () => {
@@ -53,10 +54,14 @@ const Promotions = () => {
               </Link>
             </div>
             <div className="modern-promo-image-wrapper">
-              <img 
-                src={promoImage} 
-                alt="Grocery Basket" 
+              <img
+                src={promoImage}
+                alt={buildPromoAlt('Weekly grocery deals')}
                 className="modern-promo-img"
+                loading="lazy"
+                decoding="async"
+                width="400"
+                height="300"
                 onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1518843875459-f738682238a6?auto=format&fit=crop&w=800&q=80'; }}
               />
             </div>
@@ -82,8 +87,12 @@ const Promotions = () => {
             <div className="modern-promo-image-wrapper">
               <img
                 src={getImageUrl(promo.image)}
-                alt="Food Corner"
+                alt={buildPromoAlt('Food Corner takeaway meals')}
                 className="modern-promo-img"
+                loading="lazy"
+                decoding="async"
+                width="400"
+                height="300"
               />
             </div>
           </div>

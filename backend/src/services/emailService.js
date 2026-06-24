@@ -1,3 +1,12 @@
+import nodemailer from 'nodemailer';
+import {
+  buildNodemailerTransportOptions,
+  getMissingSmtpVars,
+  getSmtpConfig,
+  getSmtpConfigurationError,
+  isSmtpConfigured,
+  logSmtpEnvironment,
+} from '../config/smtp.js';
 import { buildWhatsAppLink } from '../utils/whatsapp.js';
 
 const truncate = (text, max = 120) => {
@@ -6,46 +15,43 @@ const truncate = (text, max = 120) => {
 };
 
 let cachedTransporter = null;
+let cachedConfigKey = '';
 
-export const isSmtpConfigured = () =>
-  Boolean(
-    process.env.SMTP_HOST?.trim() &&
-      process.env.SMTP_USER?.trim() &&
-      process.env.SMTP_PASS?.trim()
-  );
+const getConfigCacheKey = (config) =>
+  `${config.host}|${config.port}|${config.user}|${config.secure}|${config.pass}`;
 
 const createTransporter = async () => {
-  if (!isSmtpConfigured()) {
+  const configError = getSmtpConfigurationError();
+  if (configError) {
     return null;
   }
 
-  if (cachedTransporter) {
+  const config = getSmtpConfig();
+  const configKey = getConfigCacheKey(config);
+
+  if (cachedTransporter && cachedConfigKey === configKey) {
     return cachedTransporter;
   }
 
-  const nodemailer = await import('nodemailer');
-  const port = Number(process.env.SMTP_PORT) || 587;
-  const secure = process.env.SMTP_SECURE === 'true' || port === 465;
+  const transportOptions = buildNodemailerTransportOptions(config);
+  console.log(
+    `[email-service] Creating SMTP transporter → ${config.host}:${config.port} (secure=${config.secure}, user=${config.user})`
+  );
 
-  cachedTransporter = nodemailer.default.createTransport({
-    host: process.env.SMTP_HOST.trim(),
-    port,
-    secure,
-    auth: {
-      user: process.env.SMTP_USER.trim(),
-      pass: process.env.SMTP_PASS.trim(),
-    },
-  });
-
+  cachedTransporter = nodemailer.createTransport(transportOptions);
+  cachedConfigKey = configKey;
   return cachedTransporter;
 };
 
+export { isSmtpConfigured, getMissingSmtpVars, getSmtpConfigurationError, logSmtpEnvironment };
+
 export const verifySmtpConnection = async () => {
-  if (!isSmtpConfigured()) {
-    console.warn(
-      '[email-service] SMTP not configured. Email features will log only until SMTP_HOST, SMTP_USER, and SMTP_PASS are set.'
-    );
-    return { configured: false, verified: false };
+  logSmtpEnvironment();
+
+  const configError = getSmtpConfigurationError();
+  if (configError) {
+    console.warn('[email-service] SMTP verification skipped — configuration incomplete.');
+    return { configured: false, verified: false, missingVars: configError.missingVars };
   }
 
   try {
@@ -54,32 +60,80 @@ export const verifySmtpConnection = async () => {
     console.log('[email-service] SMTP connection verified successfully.');
     return { configured: true, verified: true };
   } catch (error) {
-    console.error(`[email-service] SMTP verification failed: ${error.message}`);
-    console.warn('[email-service] Email sending will be attempted but may fail until SMTP is fixed.');
+    console.error('[email-service] SMTP verification failed.');
+    console.error(`[email-service]   Message: ${error.message}`);
+    if (error.code) console.error(`[email-service]   Code: ${error.code}`);
+    if (error.response) console.error(`[email-service]   Response: ${error.response}`);
+    if (error.responseCode) console.error(`[email-service]   Response code: ${error.responseCode}`);
+    if (error.command) console.error(`[email-service]   Command: ${error.command}`);
+    if (error.stack) console.error(error.stack);
+
+    const config = getSmtpConfig();
+    if (config.isGmail) {
+      console.error(
+        '[email-service] Gmail tip: enable 2-Step Verification and create an App Password at https://myaccount.google.com/apppasswords'
+      );
+      console.error('[email-service] Use the 16-character App Password as SMTP_PASS (no spaces).');
+    }
+
     return { configured: true, verified: false, error: error.message };
   }
 };
 
 const getMailDefaults = () => {
-  const smtpUser = process.env.SMTP_USER;
-  const fromEmail = process.env.SMTP_FROM || smtpUser || 'noreply@winswereldwinkel.nl';
+  const config = getSmtpConfig();
+  const fromEmail = config.from || config.user || 'noreply@winswereldwinkel.nl';
   const fromName = process.env.STORE_NAME || 'Wins Wereld Winkel';
-  const adminEmail = process.env.ADMIN_EMAIL || smtpUser;
+  const adminEmail = process.env.ADMIN_EMAIL?.trim() || config.user;
   return { fromEmail, fromName, adminEmail };
 };
 
+const logSmtpSendError = (error, mailOptions) => {
+  console.error('[email-service] Failed to send email.');
+  console.error(`[email-service]   To: ${mailOptions.to}`);
+  console.error(`[email-service]   Subject: ${mailOptions.subject}`);
+  console.error(`[email-service]   Message: ${error.message}`);
+  if (error.code) console.error(`[email-service]   Code: ${error.code}`);
+  if (error.response) console.error(`[email-service]   Response: ${error.response}`);
+  if (error.responseCode) console.error(`[email-service]   Response code: ${error.responseCode}`);
+  if (error.command) console.error(`[email-service]   Command: ${error.command}`);
+  if (error.stack) console.error(error.stack);
+};
+
 const sendMailSafe = async (mailOptions) => {
+  const configError = getSmtpConfigurationError();
+  if (configError) {
+    return {
+      sent: false,
+      simulated: true,
+      missingVars: configError.missingVars,
+      error: configError.message,
+    };
+  }
+
   const transporter = await createTransporter();
   if (!transporter) {
-    return { sent: false, simulated: true };
+    const fallbackError = getSmtpConfigurationError();
+    return {
+      sent: false,
+      simulated: true,
+      missingVars: fallbackError?.missingVars || [],
+      error: fallbackError?.message || 'SMTP transporter could not be created',
+    };
   }
 
   try {
-    await transporter.sendMail(mailOptions);
-    return { sent: true, simulated: false };
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`[email-service] Email sent successfully to ${mailOptions.to} (messageId=${info.messageId})`);
+    return { sent: true, simulated: false, messageId: info.messageId };
   } catch (error) {
-    console.error(`[email-service] Failed to send email to ${mailOptions.to}: ${error.message}`);
-    return { sent: false, simulated: false, error: error.message };
+    logSmtpSendError(error, mailOptions);
+    return {
+      sent: false,
+      simulated: false,
+      error: error.message,
+      code: error.code,
+    };
   }
 };
 
@@ -88,7 +142,7 @@ const logSimulatedEmail = (label, details) => {
     console.warn(`[email-service] ${label} — SMTP unavailable, email not sent.`);
     return;
   }
-  console.log(`[email-service] ${label} (simulated)`);
+  console.log(`[email-service] ${label} (simulated — SMTP not configured)`);
   Object.entries(details).forEach(([key, value]) => {
     console.log(`[email-service] ${key}: ${value}`);
   });
@@ -170,25 +224,35 @@ export const sendJobApplicationApplicantEmail = async (application) => {
   });
 };
 
-export const sendPasswordResetEmail = async ({ to, name, resetUrl }) => {
+export const sendPasswordResetEmail = async ({ to, resetUrl }) => {
   const { fromEmail, fromName } = getMailDefaults();
-  const subject = 'Reset Your Password';
+  const subject = 'Reset Your Password - Wins Wereld Winkel';
   const textBody = [
-    `Hi ${name || 'there'},`,
+    'Hello,',
     '',
-    'We received a request to reset your password for the Wins Wereld Winkel Admin Portal.',
+    'We received a request to reset your password.',
     '',
-    'Click the link below to choose a new password (valid for 1 hour):',
+    'Click the link below to reset your password:',
+    '',
     resetUrl,
     '',
-    'If you did not request this, you can safely ignore this email.',
+    'This link will expire in 15 minutes.',
     '',
-    fromName,
+    'If you did not request a password reset, please ignore this email.',
+    '',
+    'Regards,',
+    'Wins Wereld Winkel Team',
   ].join('\n');
 
   if (!isSmtpConfigured()) {
+    const configError = getSmtpConfigurationError();
     logSimulatedEmail('Password reset', { To: to, Subject: subject, 'Reset URL': resetUrl });
-    return { sent: false, simulated: true };
+    return {
+      sent: false,
+      simulated: true,
+      missingVars: configError?.missingVars || [],
+      error: configError?.message,
+    };
   }
 
   return sendMailSafe({
@@ -197,11 +261,13 @@ export const sendPasswordResetEmail = async ({ to, name, resetUrl }) => {
     subject,
     text: textBody,
     html: `
-      <p>Hi ${name || 'there'},</p>
-      <p>We received a request to reset your password for the Wins Wereld Winkel Admin Portal.</p>
-      <p><a href="${resetUrl}">Reset your password</a> (link valid for 1 hour)</p>
-      <p>If you did not request this, you can safely ignore this email.</p>
-      <p>${fromName}</p>
+      <p>Hello,</p>
+      <p>We received a request to reset your password.</p>
+      <p>Click the link below to reset your password:</p>
+      <p><a href="${resetUrl}">${resetUrl}</a></p>
+      <p>This link will expire in 15 minutes.</p>
+      <p>If you did not request a password reset, please ignore this email.</p>
+      <p>Regards,<br/>Wins Wereld Winkel Team</p>
     `,
   });
 };

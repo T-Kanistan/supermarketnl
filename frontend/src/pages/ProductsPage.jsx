@@ -12,6 +12,7 @@ import ProductCard from '../components/ProductCard';
 import { PRODUCTS_PAGE_HERO_IMAGE } from '../constants/productsPageDefaults';
 import usePageBanner from '../hooks/usePageBanner';
 import { getBannerOverlayStyle } from '../utils/bannerOverlay';
+import { buildCategoryAlt } from '../utils/seoImageAlt';
 import '../components/ProductCard.css';
 import './ProductsPage.css';
 
@@ -366,7 +367,7 @@ const ProductsPage = () => {
             </div>
 
             <div className="promo-box">
-              <img src="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=200" alt="Basket" className="promo-img"/>
+              <img src="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=200" alt={buildCategoryAlt('Fresh vegetables and fruits')} className="promo-img" loading="lazy" decoding="async"/>
               <div className="promo-content">
                 <strong>Best Quality</strong>
                 <span className="promo-highlight">Fresh Products</span>

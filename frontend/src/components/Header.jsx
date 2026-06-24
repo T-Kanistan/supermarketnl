@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useCMS } from '../context/CMSContext';
 import { useEnquiry } from '../context/EnquiryContext';
 import { getImageUrl } from '../services/api';
+import { buildStoreLogoAlt } from '../utils/seoImageAlt';
 import './Header.css';
 
 const Header = () => {
@@ -18,7 +19,7 @@ const Header = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  if (path.startsWith('/admin') || path.startsWith('/manager') || path === '/login') return null;
+  if (path.startsWith('/admin') || path.startsWith('/manager') || path === '/login' || path === '/forgot-password' || path === '/reset-password') return null;
   if (!cmsData) return null;
 
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
@@ -55,7 +56,16 @@ const Header = () => {
           {/* Logo */}
           <div className="logo-container">
             <Link to="/">
-              <img src={getImageUrl(cmsData.logo) || '/logo.png'} alt={cmsData.storeName || 'Ins Wereld Winkel'} className="logo" onError={(e) => { e.target.src = '/logo.png'; }} />
+              <img
+                src={getImageUrl(cmsData.logo) || '/logo.png'}
+                alt={buildStoreLogoAlt()}
+                className="logo"
+                width="180"
+                height="60"
+                loading="eager"
+                decoding="async"
+                onError={(e) => { e.target.src = '/logo.png'; }}
+              />
             </Link>
           </div>
 
@@ -67,9 +77,9 @@ const Header = () => {
               <li><Link to="/food-corner" onClick={closeMobileMenu} className={`nav-link ${path === '/food-corner' ? 'active' : ''}`}>Food Corner</Link></li>
               <li><Link to="/offers" onClick={closeMobileMenu} className={`nav-link ${path === '/offers' ? 'active' : ''}`}>Offers</Link></li>
               <li><Link to="/vacancies" onClick={closeMobileMenu} className={`nav-link ${path === '/vacancies' ? 'active' : ''}`}>Vacancies</Link></li>
-              <li><Link to="/about" onClick={closeMobileMenu} className={`nav-link ${path === '/about' ? 'active' : ''}`}>About Us</Link></li>
+              <li><Link to="/about-us" onClick={closeMobileMenu} className={`nav-link ${path === '/about-us' || path === '/about' ? 'active' : ''}`}>About Us</Link></li>
               <li><Link to="/faq" onClick={closeMobileMenu} className={`nav-link ${path === '/faq' ? 'active' : ''}`}>FAQ</Link></li>
-              <li><Link to="/contact" onClick={closeMobileMenu} className={`nav-link ${path === '/contact' ? 'active' : ''}`}>Contact Us</Link></li>
+              <li><Link to="/contact-us" onClick={closeMobileMenu} className={`nav-link ${path === '/contact-us' || path === '/contact' ? 'active' : ''}`}>Contact Us</Link></li>
               <li className="mobile-only-link">
                 <button type="button" onClick={handleEnquiryClick} className="nav-link nav-link-btn">
                   Enquiry Now

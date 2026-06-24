@@ -1,6 +1,7 @@
 import { FiStar } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
 import { getImageUrl } from '../services/api';
+import { buildProductAlt } from '../utils/seoImageAlt';
 import './ProductCard.css';
 
 const FALLBACK_IMAGE =
@@ -23,9 +24,12 @@ const ProductCard = ({
       <div className="store-product-image-wrap">
         <img
           src={getImageUrl(product.image)}
-          alt={product.name}
+          alt={buildProductAlt(product.name)}
           className="store-product-image"
           loading="lazy"
+          decoding="async"
+          width="320"
+          height="240"
           onError={(e) => {
             e.target.onerror = null;
             e.target.src = FALLBACK_IMAGE;

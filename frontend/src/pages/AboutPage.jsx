@@ -201,13 +201,13 @@ const AboutPage = () => {
                 <Link to={about.button1Url || '/products'} className="about-btn about-btn-primary">
                   {about.button1Text || 'Explore Products'} <FiArrowRight />
                 </Link>
-                <Link to={about.button2Url || '/contact'} className="about-btn about-btn-outline">
+                <Link to={about.button2Url || '/contact-us'} className="about-btn about-btn-outline">
                   {about.button2Text || 'Contact Us'}
                 </Link>
               </div>
             </div>
             <div className="about-intro-visual">
-              <img src={getImageUrl(about.heroImage)} alt={about.heroHighlight} />
+              <img src={getImageUrl(about.heroImage)} alt={`${about.heroHighlight || 'About'} at Wins Wereld Winkel`} loading="lazy" decoding="async" />
               {about.heroBadge && (
                 <span className="about-intro-badge">{about.heroBadge}</span>
               )}

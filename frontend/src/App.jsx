@@ -4,6 +4,7 @@ import { lazy, Suspense } from 'react';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import ScrollToTop from './components/ScrollToTop';
+import SeoHead from './components/SeoHead';
 import AdminRoute from './components/AdminRoute';
 import ManagerRoute from './components/ManagerRoute';
 import { dashboardChildRoutes } from './routes/dashboardChildRoutes';
@@ -41,6 +42,7 @@ function App() {
           <EnquiryProvider>
             <Router>
               <ScrollToTop />
+              <SeoHead />
               <div className="app">
                 <Header />
                 <main>
@@ -49,9 +51,10 @@ function App() {
                       <Route path="/" element={<Home />} />
                       <Route path="/products" element={<ProductsPage />} />
                       <Route path="/food-corner" element={<FoodCorner />} />
-                      <Route path="/contact" element={<ContactPage />} />
-                      <Route path="/about" element={<AboutPage />} />
-                      <Route path="/about-us" element={<Navigate to="/about" replace />} />
+                      <Route path="/contact-us" element={<ContactPage />} />
+                      <Route path="/contact" element={<Navigate to="/contact-us" replace />} />
+                      <Route path="/about-us" element={<AboutPage />} />
+                      <Route path="/about" element={<Navigate to="/about-us" replace />} />
                       <Route path="/faq" element={<FAQPage />} />
                       <Route path="/offers" element={<OffersPage />} />
                       <Route path="/vacancies" element={<VacanciesPage />} />

@@ -1,5 +1,6 @@
 import { body } from 'express-validator';
 import User from '../models/User.js';
+import { validatePasswordStrength } from '../utils/passwordPolicy.js';
 
 export const loginRules = [
   body('email')
@@ -125,6 +126,20 @@ export const resetPasswordRules = [
   body('newPassword')
     .notEmpty()
     .withMessage('New password is required')
-    .isLength({ min: 6 })
-    .withMessage('New password must be at least 6 characters long'),
+    .custom((value) => {
+      const result = validatePasswordStrength(value);
+      if (!result.valid) {
+        throw new Error(result.message);
+      }
+      return true;
+    }),
+  body('confirmPassword')
+    .notEmpty()
+    .withMessage('Please confirm your new password')
+    .custom((value, { req }) => {
+      if (value !== req.body.newPassword) {
+        throw new Error('Passwords do not match');
+      }
+      return true;
+    }),
 ];

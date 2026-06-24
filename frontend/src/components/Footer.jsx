@@ -5,6 +5,7 @@ import { FaFacebook, FaInstagram, FaWhatsapp, FaTiktok, FaYoutube } from 'react-
 import { useCMS } from '../context/CMSContext';
 import categoryService from '../services/categoryService';
 import { getImageUrl } from '../services/api';
+import { buildStoreLogoAlt } from '../utils/seoImageAlt';
 import { mergeFooterPage } from '../constants/footerPageDefaults';
 import './Footer.css';
 
@@ -36,7 +37,9 @@ const Footer = () => {
   if (
     location.pathname.startsWith('/admin') ||
     location.pathname.startsWith('/manager') ||
-    location.pathname === '/login'
+    location.pathname === '/login' ||
+    location.pathname === '/forgot-password' ||
+    location.pathname === '/reset-password'
   ) {
     return null;
   }
@@ -79,8 +82,12 @@ const Footer = () => {
           <div className="footer-main-col brand-col">
             <img
               src={getImageUrl(cmsData.logo) || '/logo.png'}
-              alt={cmsData.storeName || 'Store Logo'}
+              alt={buildStoreLogoAlt()}
               className="footer-main-logo"
+              width="160"
+              height="54"
+              loading="lazy"
+              decoding="async"
               onError={(e) => { e.target.src = '/logo.png'; }}
             />
             <p className="footer-brand-desc">{cmsData.footerDescription}</p>

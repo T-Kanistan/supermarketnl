@@ -4,7 +4,7 @@ import homepageAboutService from '../services/homepageAboutService';
 import { getImageUrl } from '../services/api';
 import './About.css';
 
-const DEFAULT_ABOUT_PATH = '/about';
+const DEFAULT_ABOUT_PATH = '/about-us';
 const BLOCKED_HASH_TARGETS = new Set(['footer', 'contact']);
 
 const normalizeLearnMoreTarget = (link) => {
@@ -27,7 +27,8 @@ const normalizeLearnMoreTarget = (link) => {
 
   let path = raw.startsWith('/') ? raw : `/${raw}`;
   if (path === '/about-us') path = DEFAULT_ABOUT_PATH;
-  if (path === '/footer' || path === '/contact') path = DEFAULT_ABOUT_PATH;
+  if (path === '/about') path = DEFAULT_ABOUT_PATH;
+  if (path === '/footer' || path === '/contact' || path === '/contact-us') path = DEFAULT_ABOUT_PATH;
 
   const [routePath, hash] = path.split('#');
   if (hash && BLOCKED_HASH_TARGETS.has(hash.toLowerCase())) {

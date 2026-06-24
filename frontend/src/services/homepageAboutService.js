@@ -13,7 +13,7 @@ const mapAdminToForm = (data) => ({
   sectionHeading: data.sectionHeading || '',
   shortDescription: data.shortDescription || '',
   buttonText: data.buttonText || 'Learn More',
-  buttonLink: data.buttonLink || '/about',
+  buttonLink: data.buttonLink || '/about-us',
   aboutImage: data.aboutImage || '',
   status: normalizeStatus(data.status),
   resolvedContent: data.resolvedContent || null,

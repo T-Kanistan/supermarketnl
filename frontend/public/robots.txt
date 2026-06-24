@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+
+Disallow: /admin/
+Disallow: /manager/
+Disallow: /login
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /careers/apply/
+
+Sitemap: https://wins-wereld-winkel.netlify.app/sitemap.xml

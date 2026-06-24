@@ -33,7 +33,11 @@ export const LoginPage = () => {
     if (searchParams.get('expired') === '1') {
       addToast('Session expired. Please sign in again.', 'error');
     }
-  }, [searchParams, addToast]);
+    if (location.state?.resetSuccess) {
+      addToast('Password reset successfully. Please login with your new password.', 'success');
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [searchParams, addToast, location.state, location.pathname, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

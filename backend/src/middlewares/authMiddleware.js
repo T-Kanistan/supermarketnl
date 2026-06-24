@@ -1,6 +1,5 @@
 import { verifyToken } from './verifyToken.js';
 import { adminOnly as adminOnlyMiddleware } from './adminOnly.js';
-import { managerOrAdmin as managerOrAdminMiddleware } from './managerOrAdmin.js';
 
 export const protect = verifyToken;
 
@@ -18,6 +17,5 @@ export const restrictTo = (...roles) => {
 };
 
 export const adminOnly = adminOnlyMiddleware;
-export const managerOrAdmin = managerOrAdminMiddleware;
 
 export { verifyToken } from './verifyToken.js';

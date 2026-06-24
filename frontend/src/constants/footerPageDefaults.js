@@ -9,12 +9,12 @@ export const defaultFooterPage = {
   copyrightText: '',
   quickLinks: [
     { id: 'ql-1', label: 'Home', path: '/', enabled: true },
-    { id: 'ql-2', label: 'About Us', path: '/about', enabled: true },
+    { id: 'ql-2', label: 'About Us', path: '/about-us', enabled: true },
     { id: 'ql-3', label: 'Products', path: '/products', enabled: true },
     { id: 'ql-4', label: 'Food Corner', path: '/food-corner', enabled: true },
     { id: 'ql-5', label: 'Offers', path: '/offers', enabled: true },
     { id: 'ql-6', label: 'FAQ', path: '/faq', enabled: true },
-    { id: 'ql-7', label: 'Contact Us', path: '/contact', enabled: true },
+    { id: 'ql-7', label: 'Contact Us', path: '/contact-us', enabled: true },
   ],
   categoryLinks: [
     { id: 'cl-1', label: 'Beverages & Tea', path: '/products?category=beverages-tea', enabled: true },

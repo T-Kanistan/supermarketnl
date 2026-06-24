@@ -12,7 +12,7 @@ const defaultForm = {
   sectionHeading: 'About Ins Wereld Winkel',
   shortDescription: '',
   buttonText: 'Learn More',
-  buttonLink: '/about',
+  buttonLink: '/about-us',
   aboutImage: '',
   status: 'active',
   resolvedContent: null,

@@ -184,8 +184,13 @@ export const authService = {
       const response = await api.post('/auth/forgot-password', { email });
       return response.data;
     } catch (error) {
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
+      const message = error.response?.data?.message;
+      const validationErrors = error.response?.data?.errors;
+      if (validationErrors?.length) {
+        throw new Error(validationErrors[0].message || validationErrors[0]);
+      }
+      if (message) {
+        throw new Error(message);
       }
       if (!error.response || error.code === 'ERR_NETWORK' || error.response?.status >= 500) {
         throw new Error('Unable to send reset email. Please check your connection and try again.');
@@ -194,17 +199,23 @@ export const authService = {
     }
   },
 
-  resetPassword: async ({ email, token, newPassword }) => {
+  resetPassword: async ({ email, token, newPassword, confirmPassword }) => {
     try {
       const response = await api.post('/auth/reset-password', {
         email,
         token,
         newPassword,
+        confirmPassword,
       });
       return response.data;
     } catch (error) {
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
+      const message = error.response?.data?.message;
+      const validationErrors = error.response?.data?.errors;
+      if (validationErrors?.length) {
+        throw new Error(validationErrors[0].message || validationErrors[0]);
+      }
+      if (message) {
+        throw new Error(message);
       }
       if (!error.response || error.code === 'ERR_NETWORK' || error.response?.status >= 500) {
         throw new Error('Unable to reset password. Please check your connection and try again.');

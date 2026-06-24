@@ -9,8 +9,10 @@ import { signToken } from '../utils/jwt.js';
 import { MANAGER_PERMISSIONS } from '../constants/managerPermissions.js';
 import * as managerService from './managerService.js';
 import { sendPasswordResetEmail } from './emailService.js';
+import { getSmtpConfigurationError } from '../config/smtp.js';
+import { validatePasswordStrength } from '../utils/passwordPolicy.js';
 
-const RESET_TOKEN_EXPIRY_MS = 60 * 60 * 1000; // 1 hour
+const RESET_TOKEN_EXPIRY_MS = 15 * 60 * 1000; // 15 minutes
 
 export const formatAuthUser = (account, role) => ({
   id: account._id.toString(),
@@ -202,36 +204,61 @@ export const requestPasswordReset = async (email) => {
 
   const accountInfo = await findAccountForPasswordReset(normalizedEmail);
 
-  if (accountInfo) {
-    const rawToken = crypto.randomBytes(32).toString('hex');
-    const tokenHash = await bcrypt.hash(rawToken, 10);
-    const expiresAt = new Date(Date.now() + RESET_TOKEN_EXPIRY_MS);
+  if (!accountInfo) {
+    const error = new Error('No account found with this email address.');
+    error.statusCode = 404;
+    throw error;
+  }
 
+  const rawToken = crypto.randomBytes(32).toString('hex');
+  const tokenHash = await bcrypt.hash(rawToken, 10);
+  const expiresAt = new Date(Date.now() + RESET_TOKEN_EXPIRY_MS);
+
+  await PasswordResetToken.deleteMany({ email: normalizedEmail, usedAt: null });
+
+  await PasswordResetToken.create({
+    email: normalizedEmail,
+    tokenHash,
+    accountType: accountInfo.accountType,
+    accountId: accountInfo.accountId,
+    expiresAt,
+  });
+
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const resetUrl = `${frontendUrl}/reset-password?token=${rawToken}&email=${encodeURIComponent(normalizedEmail)}`;
+
+  const emailResult = await sendPasswordResetEmail({
+    to: normalizedEmail,
+    resetUrl,
+  });
+
+  if (!emailResult.sent) {
     await PasswordResetToken.deleteMany({ email: normalizedEmail, usedAt: null });
 
-    await PasswordResetToken.create({
-      email: normalizedEmail,
-      tokenHash,
-      accountType: accountInfo.accountType,
-      accountId: accountInfo.accountId,
-      expiresAt,
-    });
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('[auth] Password reset email not sent. Reset URL for testing:');
+      console.warn(resetUrl);
+    }
 
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    const resetUrl = `${frontendUrl}/reset-password?token=${rawToken}&email=${encodeURIComponent(normalizedEmail)}`;
+    let errorMessage = 'Unable to send password reset email. Please try again later.';
 
-    await sendPasswordResetEmail({
-      to: normalizedEmail,
-      name: accountInfo.account.name || accountInfo.account.fullName || 'User',
-      resetUrl,
-    }).catch((emailError) => {
-      console.error(`[auth] Password reset email failed: ${emailError.message}`);
-    });
+    if (emailResult.missingVars?.length || emailResult.simulated) {
+      const configError = getSmtpConfigurationError();
+      errorMessage =
+        configError?.message ||
+        `Email service is not configured. Missing: ${(emailResult.missingVars || []).join(', ')}`;
+    } else if (emailResult.error) {
+      errorMessage = `Unable to send password reset email: ${emailResult.error}`;
+    }
+
+    const error = new Error(errorMessage);
+    error.statusCode = 503;
+    throw error;
   }
 
   return {
     success: true,
-    message: 'If an account exists for this email, a password reset link has been sent.',
+    message: 'Password reset link has been sent to your email.',
   };
 };
 
@@ -276,7 +303,7 @@ const updateAccountPassword = async (accountType, accountId, newPassword) => {
   return false;
 };
 
-export const resetPasswordWithToken = async ({ email, token, newPassword }) => {
+export const resetPasswordWithToken = async ({ email, token, newPassword, confirmPassword }) => {
   const normalizedEmail = String(email || '').trim().toLowerCase();
   const rawToken = String(token || '').trim();
 
@@ -286,8 +313,15 @@ export const resetPasswordWithToken = async ({ email, token, newPassword }) => {
     throw error;
   }
 
-  if (newPassword.length < 6) {
-    const error = new Error('Password must be at least 6 characters long');
+  if (confirmPassword !== undefined && newPassword !== confirmPassword) {
+    const error = new Error('Passwords do not match');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const passwordCheck = validatePasswordStrength(newPassword);
+  if (!passwordCheck.valid) {
+    const error = new Error(passwordCheck.message);
     error.statusCode = 400;
     throw error;
   }
@@ -295,18 +329,23 @@ export const resetPasswordWithToken = async ({ email, token, newPassword }) => {
   const resetRecord = await PasswordResetToken.findOne({
     email: normalizedEmail,
     usedAt: null,
-    expiresAt: { $gt: new Date() },
   }).sort({ createdAt: -1 });
 
   if (!resetRecord) {
-    const error = new Error('Invalid or expired reset token');
+    const error = new Error('Invalid reset token. Please request a new password reset link.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (resetRecord.expiresAt <= new Date()) {
+    const error = new Error('This reset link has expired. Please request a new password reset link.');
     error.statusCode = 400;
     throw error;
   }
 
   const tokenMatches = await bcrypt.compare(rawToken, resetRecord.tokenHash);
   if (!tokenMatches) {
-    const error = new Error('Invalid or expired reset token');
+    const error = new Error('Invalid reset token. Please request a new password reset link.');
     error.statusCode = 400;
     throw error;
   }
@@ -330,7 +369,7 @@ export const resetPasswordWithToken = async ({ email, token, newPassword }) => {
 
   return {
     success: true,
-    message: 'Password reset successfully. You can now log in with your new password.',
+    message: 'Password reset successfully. Please login with your new password.',
   };
 };
 

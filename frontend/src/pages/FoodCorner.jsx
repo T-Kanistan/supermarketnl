@@ -12,6 +12,7 @@ import {
 import { GiCook } from 'react-icons/gi';
 import foodCornerService from '../services/foodCornerService';
 import { getImageUrl } from '../services/api';
+import { buildFoodAlt } from '../utils/seoImageAlt';
 import { useEnquiry } from '../context/EnquiryContext';
 import { useCMS } from '../context/CMSContext';
 import usePageBanner from '../hooks/usePageBanner';
@@ -44,8 +45,12 @@ const FoodItemCard = ({ item, onEnquiry }) => {
       <div className="fc-card-image-wrap">
         <img
           src={getImageUrl(item.image)}
-          alt={item.name}
+          alt={buildFoodAlt(item.name)}
           className="fc-card-image"
+          loading="lazy"
+          decoding="async"
+          width="400"
+          height="300"
           onError={(e) => {
             e.target.onerror = null;
             e.target.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=600';
