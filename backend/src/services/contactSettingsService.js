@@ -173,7 +173,19 @@ const normalizePayload = (body = {}) => {
 export const getContactSettings = async () => {
   const doc = await ensureContactSettings();
   const socialLinks = await getSocialLinks();
-  return mapDocToApi(doc, socialLinks);
+  const api = mapDocToApi(doc, socialLinks);
+
+  try {
+    const site = await siteSettingsService.getSiteSettings();
+    api.storeName = site.storeName ?? api.storeName;
+    api.storeAddress = site.physicalAddress ?? api.storeAddress;
+    api.supermarketOpeningHours = site.supermarketOpeningHours ?? api.supermarketOpeningHours;
+    api.foodCornerOpeningHours = site.foodCornerOpeningHours ?? api.foodCornerOpeningHours;
+  } catch {
+    // Site settings optional; contact document remains fallback.
+  }
+
+  return api;
 };
 
 export const updateContactSettings = async (body) => {
@@ -210,7 +222,18 @@ export const updateContactSettings = async (body) => {
     );
   }
 
-  return mapDocToApi(doc, socialLinks);
+  const api = mapDocToApi(doc, socialLinks);
+  try {
+    const site = await siteSettingsService.getSiteSettings();
+    api.storeName = site.storeName ?? api.storeName;
+    api.storeAddress = site.physicalAddress ?? api.storeAddress;
+    api.supermarketOpeningHours = site.supermarketOpeningHours ?? api.supermarketOpeningHours;
+    api.foodCornerOpeningHours = site.foodCornerOpeningHours ?? api.foodCornerOpeningHours;
+  } catch {
+    // Keep contact document values when site settings are unavailable.
+  }
+
+  return api;
 };
 
 export default {

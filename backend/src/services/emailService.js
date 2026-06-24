@@ -5,25 +5,59 @@ const truncate = (text, max = 120) => {
   return text.length <= max ? text : `${text.slice(0, max)}...`;
 };
 
-const createTransporter = async () => {
-  const smtpHost = process.env.SMTP_HOST;
-  const smtpUser = process.env.SMTP_USER;
-  const smtpPass = process.env.SMTP_PASS;
+let cachedTransporter = null;
 
-  if (!smtpHost || !smtpUser || !smtpPass) {
+export const isSmtpConfigured = () =>
+  Boolean(
+    process.env.SMTP_HOST?.trim() &&
+      process.env.SMTP_USER?.trim() &&
+      process.env.SMTP_PASS?.trim()
+  );
+
+const createTransporter = async () => {
+  if (!isSmtpConfigured()) {
     return null;
   }
 
+  if (cachedTransporter) {
+    return cachedTransporter;
+  }
+
   const nodemailer = await import('nodemailer');
-  return nodemailer.default.createTransport({
-    host: smtpHost,
-    port: Number(process.env.SMTP_PORT) || 587,
-    secure: process.env.SMTP_SECURE === 'true',
+  const port = Number(process.env.SMTP_PORT) || 587;
+  const secure = process.env.SMTP_SECURE === 'true' || port === 465;
+
+  cachedTransporter = nodemailer.default.createTransport({
+    host: process.env.SMTP_HOST.trim(),
+    port,
+    secure,
     auth: {
-      user: smtpUser,
-      pass: smtpPass,
+      user: process.env.SMTP_USER.trim(),
+      pass: process.env.SMTP_PASS.trim(),
     },
   });
+
+  return cachedTransporter;
+};
+
+export const verifySmtpConnection = async () => {
+  if (!isSmtpConfigured()) {
+    console.warn(
+      '[email-service] SMTP not configured. Email features will log only until SMTP_HOST, SMTP_USER, and SMTP_PASS are set.'
+    );
+    return { configured: false, verified: false };
+  }
+
+  try {
+    const transporter = await createTransporter();
+    await transporter.verify();
+    console.log('[email-service] SMTP connection verified successfully.');
+    return { configured: true, verified: true };
+  } catch (error) {
+    console.error(`[email-service] SMTP verification failed: ${error.message}`);
+    console.warn('[email-service] Email sending will be attempted but may fail until SMTP is fixed.');
+    return { configured: true, verified: false, error: error.message };
+  }
 };
 
 const getMailDefaults = () => {
@@ -34,28 +68,48 @@ const getMailDefaults = () => {
   return { fromEmail, fromName, adminEmail };
 };
 
+const sendMailSafe = async (mailOptions) => {
+  const transporter = await createTransporter();
+  if (!transporter) {
+    return { sent: false, simulated: true };
+  }
+
+  try {
+    await transporter.sendMail(mailOptions);
+    return { sent: true, simulated: false };
+  } catch (error) {
+    console.error(`[email-service] Failed to send email to ${mailOptions.to}: ${error.message}`);
+    return { sent: false, simulated: false, error: error.message };
+  }
+};
+
+const logSimulatedEmail = (label, details) => {
+  if (process.env.NODE_ENV === 'production') {
+    console.warn(`[email-service] ${label} — SMTP unavailable, email not sent.`);
+    return;
+  }
+  console.log(`[email-service] ${label} (simulated)`);
+  Object.entries(details).forEach(([key, value]) => {
+    console.log(`[email-service] ${key}: ${value}`);
+  });
+};
+
 export const sendEnquiryReplyEmail = async ({ to, customerName, subject, replyMessage }) => {
   const { fromEmail, fromName } = getMailDefaults();
   const mailSubject = subject?.startsWith('Re:') ? subject : `Re: ${subject || 'Your Enquiry'}`;
   const textBody = `Hi ${customerName || 'Customer'},\n\n${replyMessage}\n\n---\n${fromName}`;
 
-  const transporter = await createTransporter();
-  if (!transporter) {
-    console.log('[email-service] SMTP not configured. Reply logged only.');
-    console.log(`[email-service] To: ${to}`);
-    console.log(`[email-service] Subject: ${mailSubject}`);
-    console.log(`[email-service] Body:\n${textBody}`);
+  if (!isSmtpConfigured()) {
+    logSimulatedEmail('Enquiry reply', { To: to, Subject: mailSubject });
     return { sent: false, simulated: true };
   }
 
-  await transporter.sendMail({
+  return sendMailSafe({
     from: `"${fromName}" <${fromEmail}>`,
     to,
     subject: mailSubject,
     text: textBody,
   });
-
-  return { sent: true, simulated: false };
 };
 
 export const sendJobApplicationAdminEmail = async (application) => {
@@ -74,23 +128,17 @@ export const sendJobApplicationAdminEmail = async (application) => {
     application.cvFile ? 'CV uploaded with application.' : 'No CV uploaded.',
   ].join('\n');
 
-  const transporter = await createTransporter();
-  if (!transporter || !adminEmail) {
-    console.log('[email-service] SMTP/admin email not configured. Job application logged only.');
-    console.log(`[email-service] To: ${adminEmail || 'not set'}`);
-    console.log(`[email-service] Subject: ${subject}`);
-    console.log(`[email-service] Body:\n${textBody}`);
+  if (!isSmtpConfigured() || !adminEmail) {
+    logSimulatedEmail('Job application admin notification', { To: adminEmail || 'not set', Subject: subject });
     return { sent: false, simulated: true };
   }
 
-  await transporter.sendMail({
+  return sendMailSafe({
     from: `"${fromName}" <${fromEmail}>`,
     to: adminEmail,
     subject,
     text: textBody,
   });
-
-  return { sent: true, simulated: false };
 };
 
 export const sendJobApplicationApplicantEmail = async (application) => {
@@ -109,23 +157,17 @@ export const sendJobApplicationApplicantEmail = async (application) => {
     fromName,
   ].join('\n');
 
-  const transporter = await createTransporter();
-  if (!transporter || !application.email) {
-    console.log('[email-service] SMTP not configured. Applicant confirmation logged only.');
-    console.log(`[email-service] To: ${application.email}`);
-    console.log(`[email-service] Subject: ${subject}`);
-    console.log(`[email-service] Body:\n${textBody}`);
+  if (!isSmtpConfigured() || !application.email) {
+    logSimulatedEmail('Applicant confirmation', { To: application.email, Subject: subject });
     return { sent: false, simulated: true };
   }
 
-  await transporter.sendMail({
+  return sendMailSafe({
     from: `"${fromName}" <${fromEmail}>`,
     to: application.email,
     subject,
     text: textBody,
   });
-
-  return { sent: true, simulated: false };
 };
 
 export const sendPasswordResetEmail = async ({ to, name, resetUrl }) => {
@@ -144,16 +186,12 @@ export const sendPasswordResetEmail = async ({ to, name, resetUrl }) => {
     fromName,
   ].join('\n');
 
-  const transporter = await createTransporter();
-  if (!transporter) {
-    console.log('[email-service] SMTP not configured. Password reset logged only.');
-    console.log(`[email-service] To: ${to}`);
-    console.log(`[email-service] Subject: ${subject}`);
-    console.log(`[email-service] Reset URL: ${resetUrl}`);
+  if (!isSmtpConfigured()) {
+    logSimulatedEmail('Password reset', { To: to, Subject: subject, 'Reset URL': resetUrl });
     return { sent: false, simulated: true };
   }
 
-  await transporter.sendMail({
+  return sendMailSafe({
     from: `"${fromName}" <${fromEmail}>`,
     to,
     subject,
@@ -166,8 +204,6 @@ export const sendPasswordResetEmail = async ({ to, name, resetUrl }) => {
       <p>${fromName}</p>
     `,
   });
-
-  return { sent: true, simulated: false };
 };
 
 export const sendJobEnquiryNotificationEmail = async (enquiry) => {
@@ -188,23 +224,17 @@ export const sendJobEnquiryNotificationEmail = async (enquiry) => {
     `Submitted: ${new Date(enquiry.submittedAt || Date.now()).toLocaleString()}`,
   ].join('\n');
 
-  const transporter = await createTransporter();
-  if (!transporter || !adminEmail) {
-    console.log('[email-service] SMTP/admin email not configured. Job enquiry logged only.');
-    console.log(`[email-service] To: ${adminEmail || 'not set'}`);
-    console.log(`[email-service] Subject: ${subject}`);
-    console.log(`[email-service] Body:\n${textBody}`);
+  if (!isSmtpConfigured() || !adminEmail) {
+    logSimulatedEmail('Job enquiry notification', { To: adminEmail || 'not set', Subject: subject });
     return { sent: false, simulated: true };
   }
 
-  await transporter.sendMail({
+  return sendMailSafe({
     from: `"${fromName}" <${fromEmail}>`,
     to: adminEmail,
     subject,
     text: textBody,
   });
-
-  return { sent: true, simulated: false };
 };
 
 export { buildWhatsAppLink, truncate };

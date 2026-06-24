@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useLocation } from 'react-router-dom';
 import { FaPlus, FaEdit, FaTrash, FaSearch, FaBoxOpen, FaStar, FaRegStar } from 'react-icons/fa';
 import productService from '../../../services/productService';
 import foodCornerCategoryService from '../../../services/foodCornerCategoryService';
@@ -9,11 +9,11 @@ import { useAuth } from '../../../context/AuthContext';
 
 export const AdminProducts = () => {
   const { isAdmin, isManager } = useAuth();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
-  // Route-driven type view:
-  // - /admin/dashboard/products            => grocery only
-  // - /admin/dashboard/products?type=food-corner => food-corner only
-  const initialType = searchParams.get('type') === 'food-corner' ? 'food-corner' : 'grocery';
+  const isFoodCornerRoute = location.pathname.endsWith('/food-corner');
+  const resolveCatalogType = () =>
+    isFoodCornerRoute || searchParams.get('type') === 'food-corner' ? 'food-corner' : 'grocery';
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [foodCornerCategories, setFoodCornerCategories] = useState([]);
@@ -23,7 +23,7 @@ export const AdminProducts = () => {
   const [editingProduct, setEditingProduct] = useState(null);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [typeFilter, setTypeFilter] = useState(initialType);
+  const [typeFilter, setTypeFilter] = useState(resolveCatalogType);
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
@@ -40,7 +40,9 @@ export const AdminProducts = () => {
     imageUrl: '',
     productType: 'grocery',
     featuredProduct: false,
+    showOnHomepage: false,
     menuDisplayTiming: '',
+    description: '',
     status: 'active',
   });
 
@@ -95,8 +97,8 @@ export const AdminProducts = () => {
   }, [addToast]);
 
   useEffect(() => {
-    setTypeFilter(searchParams.get('type') === 'food-corner' ? 'food-corner' : 'grocery');
-  }, [searchParams]);
+    setTypeFilter(resolveCatalogType());
+  }, [location.pathname, searchParams]);
 
   useEffect(() => {
     fetchData();
@@ -154,15 +156,19 @@ export const AdminProducts = () => {
   };
 
   const handleFeaturedToggle = async (product) => {
-    if (!isAdmin) {
-      addToast('Only administrators can change featured products', 'error');
-      return;
-    }
-    const nextFeatured = !product.isFeatured;
+    const nextFeatured = !(product.showOnHomepage ?? product.featuredProduct ?? product.isFeatured);
     try {
-      await productService.updateProduct(product.id, { isFeatured: nextFeatured });
-      setProducts((prev) => 
-        prev.map((p) => p.id === product.id ? { ...p, isFeatured: nextFeatured } : p)
+      await productService.updateProduct(product.id, {
+        showOnHomepage: nextFeatured,
+        featuredProduct: nextFeatured,
+        isFeatured: nextFeatured,
+      });
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.id === product.id
+            ? { ...p, showOnHomepage: nextFeatured, featuredProduct: nextFeatured, isFeatured: nextFeatured }
+            : p
+        )
       );
       addToast(`Product "${product.name}" featured state updated`, 'success');
     } catch (e) {
@@ -188,7 +194,9 @@ export const AdminProducts = () => {
       imageUrl: '',
       productType: selectedProductType,
       featuredProduct: false,
+      showOnHomepage: false,
       menuDisplayTiming: '',
+      description: '',
       status: 'active',
     });
     setIsModalOpen(true);
@@ -208,10 +216,6 @@ export const AdminProducts = () => {
   };
 
   const openEditModal = (product) => {
-    if (!isAdmin) {
-      addToast('Only administrators can edit product details', 'error');
-      return;
-    }
     const productType = mapProductType(product.productType || product.type);
     setEditingProduct(product);
     setFormData({
@@ -222,8 +226,10 @@ export const AdminProducts = () => {
       weightUnit: product.weightUnit || product.weight || '',
       imageUrl: product.imageUrl || product.image || '',
       productType,
-      featuredProduct: Boolean(product.featuredProduct ?? product.isFeatured),
+      featuredProduct: Boolean(product.showOnHomepage ?? product.featuredProduct ?? product.isFeatured),
+      showOnHomepage: Boolean(product.showOnHomepage ?? product.featuredProduct ?? product.isFeatured),
       menuDisplayTiming: product.menuDisplayTiming || product.displayTime || '',
+      description: product.description || product.shortDescription || '',
       status: product.status === 'inactive' ? 'inactive' : 'active',
     });
     setIsModalOpen(true);
@@ -232,6 +238,14 @@ export const AdminProducts = () => {
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     if (type === 'checkbox') {
+      if (name === 'showOnHomepage') {
+        setFormData((prev) => ({
+          ...prev,
+          showOnHomepage: checked,
+          featuredProduct: checked,
+        }));
+        return;
+      }
       setFormData((prev) => ({ ...prev, [name]: checked }));
       return;
     }
@@ -281,6 +295,10 @@ export const AdminProducts = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!editingProduct && !isAdmin) {
+      addToast('Only administrators can add products', 'error');
+      return;
+    }
     if (!formData.productName) {
       addToast('Product name is required', 'error');
       return;
@@ -364,10 +382,12 @@ export const AdminProducts = () => {
     <div>
       <div className="view-header">
         <div className="view-title-wrap">
-          <h2>Catalog Products</h2>
+          <h2>{typeFilter === 'food-corner' ? 'Food Corner Items' : 'Catalog Products'}</h2>
           <p>
             {isManager
-              ? 'Activate or deactivate products for the public storefront.'
+              ? typeFilter === 'food-corner'
+                ? 'View and edit food corner menu items, pricing, availability, and featured status.'
+                : 'View and edit grocery products, pricing, stock, and featured status.'
               : 'Create, update, and manage inventory products and ready-to-eat restaurant items.'}
           </p>
         </div>
@@ -503,17 +523,13 @@ export const AdminProducts = () => {
                     )}
                   </td>
                   <td data-label="Featured">
-                    {isAdmin ? (
-                      <button 
-                        onClick={() => handleFeaturedToggle(prod)} 
-                        style={{ cursor: 'pointer', fontSize: '1.2rem', color: '#eab308' }}
-                        title={(prod.featuredProduct || prod.isFeatured) ? 'Unmark Featured' : 'Mark Featured'}
-                      >
-                        {(prod.featuredProduct || prod.isFeatured) ? <FaStar /> : <FaRegStar />}
-                      </button>
-                    ) : (
-                      <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>—</span>
-                    )}
+                    <button
+                      onClick={() => handleFeaturedToggle(prod)}
+                      style={{ cursor: 'pointer', fontSize: '1.2rem', color: '#eab308', background: 'none', border: 'none' }}
+                      title={(prod.showOnHomepage || prod.featuredProduct || prod.isFeatured) ? 'Unmark Featured' : 'Mark Featured'}
+                    >
+                      {(prod.showOnHomepage || prod.featuredProduct || prod.isFeatured) ? <FaStar /> : <FaRegStar />}
+                    </button>
                   </td>
                   <td data-label="Status">
                     <div className="product-status-cell">
@@ -529,18 +545,20 @@ export const AdminProducts = () => {
                     </div>
                   </td>
                   <td data-label="Actions" className="admin-actions-cell">
-                    {isAdmin ? (
-                      <div className="cell-actions">
-                        <button className="btn-action-cell edit" onClick={() => openEditModal(prod)} title="Edit Product">
-                          <FaEdit />
-                        </button>
+                    <div className="cell-actions">
+                      <button
+                        className="btn-action-cell edit"
+                        onClick={() => openEditModal(prod)}
+                        title={typeFilter === 'food-corner' ? 'Edit Food Corner Item' : 'Edit Product'}
+                      >
+                        <FaEdit />
+                      </button>
+                      {isAdmin ? (
                         <button className="btn-action-cell delete" onClick={() => handleDelete(prod.id)} title="Delete Product">
                           <FaTrash />
                         </button>
-                      </div>
-                    ) : (
-                      <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>Status only</span>
-                    )}
+                      ) : null}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -601,7 +619,12 @@ export const AdminProducts = () => {
               <div className="modal-body">
                 <div className="admin-form-group">
                   <label>Product Catalog Type</label>
-                  <select name="productType" value={formData.productType} onChange={handleChange}>
+                  <select
+                    name="productType"
+                    value={formData.productType}
+                    onChange={handleChange}
+                    disabled={Boolean(editingProduct) && isManager}
+                  >
                     <option value="grocery">Grocery (Supermarket Section)</option>
                     <option value="food-corner">Food Corner (Kitchen Section)</option>
                   </select>
@@ -677,16 +700,28 @@ export const AdminProducts = () => {
                 ) : null}
 
                 {formData.productType === 'food-corner' && (
-                  <div className="admin-form-group">
-                    <label>Menu Display Timings</label>
-                    <input
-                      type="text"
-                      name="menuDisplayTiming"
-                      value={formData.menuDisplayTiming}
-                      onChange={handleChange}
-                      placeholder="06:00 PM - 10:00 PM"
-                    />
-                  </div>
+                  <>
+                    <div className="admin-form-group">
+                      <label>Menu Display Timings</label>
+                      <input
+                        type="text"
+                        name="menuDisplayTiming"
+                        value={formData.menuDisplayTiming}
+                        onChange={handleChange}
+                        placeholder="06:00 PM - 10:00 PM"
+                      />
+                    </div>
+                    <div className="admin-form-group">
+                      <label>Description</label>
+                      <textarea
+                        name="description"
+                        value={formData.description}
+                        onChange={handleChange}
+                        rows={3}
+                        placeholder="Short description for the menu item"
+                      />
+                    </div>
+                  </>
                 )}
 
                 <div className="admin-form-group row-split">
@@ -736,8 +771,8 @@ export const AdminProducts = () => {
                   <label className="admin-checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontWeight: 600, color: '#334155' }}>
                     <input
                       type="checkbox"
-                      name="featuredProduct"
-                      checked={formData.featuredProduct}
+                      name="showOnHomepage"
+                      checked={formData.showOnHomepage}
                       onChange={handleChange}
                     />
                     Show on Homepage (Featured Products)

@@ -9,7 +9,7 @@ import {
   AboutStatistics,
   AboutOwner,
 } from '../models/aboutModels.js';
-import { deleteLocalImage, toPublicUrl } from '../middleware/upload.js';
+import { deleteLocalImage, persistUploadedFile } from '../middleware/upload.js';
 import { logManagerActivity } from './activityLogService.js';
 
 const sortByOrder = (items) =>
@@ -37,7 +37,7 @@ const filterSearch = (items, search, fields) => {
 const replaceImage = async (doc, field, file) => {
   const prev = doc[field];
   if (prev?.startsWith('/uploads/')) deleteLocalImage(prev);
-  doc[field] = toPublicUrl(file);
+  doc[field] = await persistUploadedFile(file);
   await doc.save();
   return doc[field];
 };

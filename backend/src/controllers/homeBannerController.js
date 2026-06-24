@@ -1,5 +1,5 @@
 import * as homeBannerService from '../services/homeBannerService.js';
-import { getHomeBannerPublicPath } from '../middlewares/homeBannerUploadMiddleware.js';
+import { persistUploadedFile } from '../services/uploadService.js';
 
 const handleServiceError = (error, res, next) => {
   if (error.statusCode) {
@@ -61,7 +61,7 @@ export const createHomeBanner = async (req, res, next) => {
   try {
     const body = { ...req.body };
     if (req.file) {
-      body.backgroundImage = getHomeBannerPublicPath(req.file.filename);
+      body.backgroundImage = await persistUploadedFile(req.file);
     }
 
     const data = await homeBannerService.createHomeBanner(body, req.user);
@@ -79,7 +79,7 @@ export const updateHomeBanner = async (req, res, next) => {
   try {
     const body = { ...req.body };
     if (req.file) {
-      body.backgroundImage = getHomeBannerPublicPath(req.file.filename);
+      body.backgroundImage = await persistUploadedFile(req.file);
     }
 
     const data = await homeBannerService.updateHomeBanner(req.params.id, body, req.user);
@@ -116,7 +116,7 @@ export const uploadHomeBannerImage = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      imageUrl: getHomeBannerPublicPath(req.file.filename),
+      imageUrl: await persistUploadedFile(req.file),
     });
   } catch (error) {
     return next(error);

@@ -1,5 +1,5 @@
 import * as pageBannerService from '../services/pageBannerService.js';
-import { getBannerPublicPath } from '../middlewares/bannerUploadMiddleware.js';
+import { persistUploadedFile } from '../services/uploadService.js';
 
 const handleServiceError = (error, res, next) => {
   if (error.statusCode) {
@@ -10,9 +10,9 @@ const handleServiceError = (error, res, next) => {
 
 export const listBanners = async (req, res, next) => {
   try {
-    const { pageName, q, page, limit, includeInactive } = req.query;
+    const { pageType, pageName, q, page, limit, includeInactive } = req.query;
     const result = await pageBannerService.listBanners({
-      pageName,
+      pageType: pageType || pageName,
       q,
       page,
       limit,
@@ -30,7 +30,7 @@ export const listBanners = async (req, res, next) => {
 
 export const getBannerByPage = async (req, res, next) => {
   try {
-    const data = await pageBannerService.getActiveBannerByPage(req.params.pageName);
+    const data = await pageBannerService.getActiveBannerByPage(req.params.pageType);
     return res.status(200).json({
       success: true,
       data: data || null,
@@ -54,7 +54,7 @@ export const createBanner = async (req, res, next) => {
   try {
     const body = { ...req.body };
     if (req.file) {
-      body.image = getBannerPublicPath(req.file.filename);
+      body.backgroundImage = await persistUploadedFile(req.file);
     }
     const data = await pageBannerService.createBanner(body, req.user);
     return res.status(201).json({
@@ -71,7 +71,7 @@ export const updateBanner = async (req, res, next) => {
   try {
     const body = { ...req.body };
     if (req.file) {
-      body.image = getBannerPublicPath(req.file.filename);
+      body.backgroundImage = await persistUploadedFile(req.file);
     }
     const data = await pageBannerService.updateBanner(req.params.id, body, req.user);
     return res.status(200).json({
@@ -96,6 +96,23 @@ export const deleteBanner = async (req, res, next) => {
   }
 };
 
+export const updateBannerStatus = async (req, res, next) => {
+  try {
+    const data = await pageBannerService.updateBannerStatus(
+      req.params.id,
+      req.body.isActive,
+      req.user
+    );
+    return res.status(200).json({
+      success: true,
+      message: `Banner ${data.isActive ? 'activated' : 'deactivated'} successfully`,
+      data,
+    });
+  } catch (error) {
+    return handleServiceError(error, res, next);
+  }
+};
+
 export const uploadBannerImage = async (req, res, next) => {
   try {
     if (!req.file) {
@@ -106,7 +123,7 @@ export const uploadBannerImage = async (req, res, next) => {
     }
     return res.status(200).json({
       success: true,
-      imageUrl: getBannerPublicPath(req.file.filename),
+      imageUrl: await persistUploadedFile(req.file),
     });
   } catch (error) {
     return next(error);

@@ -1,4 +1,4 @@
-import Banner, { BANNER_PAGE_NAMES } from '../models/Banner.js';
+import Banner, { BANNER_PAGE_TYPES, normalizePageType } from '../models/Banner.js';
 import { handleBase64Upload } from '../middlewares/uploadMiddleware.js';
 import { logManagerActivity } from './activityLogService.js';
 
@@ -12,32 +12,60 @@ const resolveImage = async (value) => {
   return value;
 };
 
+const legacyPageType = (pageType) => (pageType === 'foodcorner' ? 'food-corner' : pageType);
+
 export const formatBanner = (doc) => {
   if (!doc) return null;
   const plain = doc.toObject ? doc.toObject() : { ...doc };
+  const pageType = normalizePageType(plain.pageType || plain.pageName);
+  const title = plain.title || plain.mainHeading || '';
+  const highlightedTitle = plain.highlightedTitle || plain.highlightText || '';
+  const backgroundImage = plain.backgroundImage || plain.image || '';
+  const buttonText = plain.buttonText || plain.button1Text || '';
+  const buttonUrl = plain.buttonUrl || plain.button1Url || '';
+
   return {
     ...plain,
     id: plain._id?.toString?.() ?? plain.id,
+    pageType,
+    pageName: legacyPageType(pageType),
+    title,
+    highlightedTitle,
+    backgroundImage,
+    buttonText,
+    buttonUrl,
+    sideCardTitle: plain.sideCardTitle || '',
+    sideCardDescription: plain.sideCardDescription || '',
+    sideCardIcon: plain.sideCardIcon || '',
     isActive: Boolean(plain.isActive),
     overlayOpacity: Number(plain.overlayOpacity ?? 0.55),
     displayOrder: Number(plain.displayOrder ?? 0),
-    // Legacy aliases for home hero
-    headingLine1: plain.mainHeading,
-    headingLine2: plain.highlightText,
-    headingLine3: plain.badgeText,
-    subtitle: plain.description,
-    backgroundImage: plain.image,
-    primaryButtonLabel: plain.button1Text,
-    primaryButtonLink: plain.button1Url,
-    secondaryButtonLabel: plain.button2Text,
-    secondaryButtonLink: plain.button2Url,
+    // Legacy aliases for existing storefront components
+    mainHeading: title,
+    highlightText: highlightedTitle,
+    image: backgroundImage,
+    button1Text: buttonText,
+    button1Url: buttonUrl,
+    button2Text: plain.button2Text || '',
+    button2Url: plain.button2Url || '',
+    headingLine1: title,
+    headingLine2: highlightedTitle,
+    headingLine3: plain.badgeText || '',
+    subtitle: plain.description || '',
+    primaryButtonLabel: buttonText,
+    primaryButtonLink: buttonUrl,
+    secondaryButtonLabel: plain.button2Text || '',
+    secondaryButtonLink: plain.button2Url || '',
+    cardTitle: plain.sideCardTitle || '',
+    openTimeTitle: plain.sideCardTitle || '',
   };
 };
 
-const buildListQuery = ({ pageName, q, includeInactive = true }) => {
+const buildListQuery = ({ pageType, pageName, q, includeInactive = true }) => {
   const query = { ...notDeleted };
-  if (pageName && pageName !== 'all') {
-    query.pageName = pageName;
+  const filterType = normalizePageType(pageType || pageName);
+  if (filterType && filterType !== 'all') {
+    query.pageType = filterType;
   }
   if (!includeInactive) {
     query.isActive = true;
@@ -45,17 +73,22 @@ const buildListQuery = ({ pageName, q, includeInactive = true }) => {
   if (q?.trim()) {
     const term = q.trim();
     query.$or = [
+      { title: { $regex: term, $options: 'i' } },
+      { highlightedTitle: { $regex: term, $options: 'i' } },
+      { description: { $regex: term, $options: 'i' } },
+      { pageType: { $regex: term, $options: 'i' } },
+      { badgeText: { $regex: term, $options: 'i' } },
+      // Legacy field search for unmigrated records
       { mainHeading: { $regex: term, $options: 'i' } },
       { highlightText: { $regex: term, $options: 'i' } },
-      { description: { $regex: term, $options: 'i' } },
       { pageName: { $regex: term, $options: 'i' } },
-      { badgeText: { $regex: term, $options: 'i' } },
     ];
   }
   return query;
 };
 
 export const listBanners = async ({
+  pageType,
   pageName,
   q,
   page = 1,
@@ -64,7 +97,7 @@ export const listBanners = async ({
 }) => {
   const safeLimit = Math.min(Math.max(Number(limit) || 10, 1), 100);
   const safePage = Math.max(Number(page) || 1, 1);
-  const query = buildListQuery({ pageName, q, includeInactive });
+  const query = buildListQuery({ pageType, pageName, q, includeInactive });
 
   const [items, total] = await Promise.all([
     Banner.find(query)
@@ -95,36 +128,50 @@ export const getBannerById = async (id) => {
   return formatBanner(banner);
 };
 
-export const getActiveBannerByPage = async (pageName) => {
-  const normalized = String(pageName || '').trim().toLowerCase();
-  if (!BANNER_PAGE_NAMES.includes(normalized)) {
-    const error = new Error('Invalid page name');
+export const getActiveBannerByPage = async (pageType) => {
+  const normalized = normalizePageType(pageType);
+  if (!BANNER_PAGE_TYPES.includes(normalized)) {
+    const error = new Error('Invalid page type');
     error.statusCode = 400;
     throw error;
   }
 
   const banner = await Banner.findOne({
-    pageName: normalized,
+    pageType: normalized,
     isActive: true,
     ...notDeleted,
   })
     .sort({ displayOrder: 1, updatedAt: -1 })
     .lean();
 
+  if (!banner) {
+    const legacyName = normalized === 'foodcorner' ? 'food-corner' : normalized;
+    const legacyBanner = await Banner.findOne({
+      pageName: legacyName,
+      isActive: true,
+      ...notDeleted,
+    })
+      .sort({ displayOrder: 1, updatedAt: -1 })
+      .lean();
+    return formatBanner(legacyBanner);
+  }
+
   return formatBanner(banner);
 };
 
 const normalizePayload = async (body, { isUpdate = false } = {}) => {
+  const pageType = normalizePageType(body.pageType || body.pageName);
   const payload = {
-    pageName: body.pageName?.trim().toLowerCase(),
+    pageType,
     badgeText: body.badgeText?.trim() ?? '',
-    mainHeading: body.mainHeading?.trim(),
-    highlightText: body.highlightText?.trim() ?? '',
+    title: (body.title || body.mainHeading)?.trim(),
+    highlightedTitle: (body.highlightedTitle || body.highlightText)?.trim() ?? '',
     description: body.description?.trim() ?? '',
-    button1Text: body.button1Text?.trim() ?? '',
-    button1Url: body.button1Url?.trim() ?? '',
-    button2Text: body.button2Text?.trim() ?? '',
-    button2Url: body.button2Url?.trim() ?? '',
+    buttonText: (body.buttonText || body.button1Text)?.trim() ?? '',
+    buttonUrl: (body.buttonUrl || body.button1Url)?.trim() ?? '',
+    sideCardTitle: body.sideCardTitle?.trim() ?? '',
+    sideCardDescription: body.sideCardDescription?.trim() ?? '',
+    sideCardIcon: body.sideCardIcon?.trim() ?? '',
     overlayColor: body.overlayColor?.trim() || '#0f172a',
     overlayOpacity:
       body.overlayOpacity !== undefined && body.overlayOpacity !== ''
@@ -140,22 +187,23 @@ const normalizePayload = async (body, { isUpdate = false } = {}) => {
         : true,
   };
 
-  if (body.image !== undefined) {
-    payload.image = await resolveImage(body.image);
+  const imageValue = body.backgroundImage ?? body.image;
+  if (imageValue !== undefined) {
+    payload.backgroundImage = await resolveImage(imageValue);
   }
 
   if (!isUpdate) {
-    if (!payload.pageName) {
-      const error = new Error('Page name is required');
+    if (!payload.pageType || !BANNER_PAGE_TYPES.includes(payload.pageType)) {
+      const error = new Error('Valid page type is required');
       error.statusCode = 400;
       throw error;
     }
-    if (!payload.mainHeading) {
-      const error = new Error('Main heading is required');
+    if (!payload.title) {
+      const error = new Error('Title is required');
       error.statusCode = 400;
       throw error;
     }
-    if (!payload.image) {
+    if (!payload.backgroundImage) {
       const error = new Error('Banner image is required');
       error.statusCode = 400;
       throw error;
@@ -183,8 +231,8 @@ export const createBanner = async (body, user) => {
     user,
     action: 'create',
     module: 'banners',
-    description: `Created banner for ${banner.pageName}`,
-    metadata: { bannerId: banner._id, pageName: banner.pageName },
+    description: `Created banner for ${banner.pageType}`,
+    metadata: { bannerId: banner._id, pageType: banner.pageType },
   });
 
   return formatBanner(banner);
@@ -211,8 +259,31 @@ export const updateBanner = async (id, body, user) => {
     user,
     action: 'update',
     module: 'banners',
-    description: `Updated banner for ${banner.pageName}`,
-    metadata: { bannerId: banner._id, pageName: banner.pageName },
+    description: `Updated banner for ${banner.pageType}`,
+    metadata: { bannerId: banner._id, pageType: banner.pageType },
+  });
+
+  return formatBanner(banner);
+};
+
+export const updateBannerStatus = async (id, isActive, user) => {
+  const banner = await Banner.findOne({ _id: id, ...notDeleted });
+  if (!banner) {
+    const error = new Error('Banner not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  banner.isActive = Boolean(isActive);
+  banner.updatedBy = user?._id || user?.id || null;
+  await banner.save();
+
+  await logManagerActivity({
+    user,
+    action: 'update',
+    module: 'banners',
+    description: `${banner.isActive ? 'Activated' : 'Deactivated'} banner for ${banner.pageType}`,
+    metadata: { bannerId: banner._id, pageType: banner.pageType, isActive: banner.isActive },
   });
 
   return formatBanner(banner);
@@ -235,11 +306,11 @@ export const softDeleteBanner = async (id, user) => {
     user,
     action: 'delete',
     module: 'banners',
-    description: `Deleted banner for ${banner.pageName}`,
-    metadata: { bannerId: banner._id, pageName: banner.pageName },
+    description: `Deleted banner for ${banner.pageType}`,
+    metadata: { bannerId: banner._id, pageType: banner.pageType },
   });
 
   return true;
 };
 
-export const getPageNameOptions = () => BANNER_PAGE_NAMES;
+export const getPageTypeOptions = () => BANNER_PAGE_TYPES;

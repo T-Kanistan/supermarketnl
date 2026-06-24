@@ -1,23 +1,16 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import {
-  FaTrash,
-  FaEnvelopeOpenText,
-  FaEye,
-  FaEnvelope,
-  FaCheck,
-  FaWhatsapp,
-  FaTimes,
-} from 'react-icons/fa';
+import { useState, useEffect, useCallback } from 'react';
+import { FaTrash, FaEnvelopeOpenText, FaEye, FaWhatsapp, FaEdit } from 'react-icons/fa';
 import enquiryService from '../../../services/enquiryService';
 import { useToast } from '../../../context/ToastContext';
 import { useAuth } from '../../../context/AuthContext';
+import { ENQUIRY_STATUSES, getStatusClassName } from '../../../constants/enquiryMessages';
 
 const STATUS_FILTERS = [
   { value: 'all', label: 'All Enquiries' },
-  { value: 'new', label: 'New' },
-  { value: 'read', label: 'Read' },
-  { value: 'replied', label: 'Replied' },
-  { value: 'closed', label: 'Closed' },
+  { value: 'New', label: 'New' },
+  { value: 'Read', label: 'Read' },
+  { value: 'Replied', label: 'Replied' },
+  { value: 'Closed', label: 'Closed' },
 ];
 
 const TYPE_FILTERS = [
@@ -33,28 +26,54 @@ const TYPE_LABELS = {
   'food-corner-enquiry': 'Food Corner',
 };
 
+const SOURCE_LABELS = {
+  website: 'Website',
+  whatsapp: 'WhatsApp',
+};
+
 const truncateText = (text, maxLength = 80) => {
   if (!text || text.length <= maxLength) return text;
   return `${text.slice(0, maxLength)}...`;
 };
 
-const formatStatusLabel = (enquiry) => {
-  if (enquiry.status === 'new' && !enquiry.isRead) return 'new';
-  return enquiry.status || 'new';
+const normalizeStatus = (status) => {
+  if (!status) return 'New';
+  const value = String(status);
+  if (ENQUIRY_STATUSES.includes(value)) return value;
+  return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
 };
 
 export const AdminMessages = () => {
   const [enquiries, setEnquiries] = useState([]);
+  const [stats, setStats] = useState({
+    newEnquiries: 0,
+    readEnquiries: 0,
+    repliedEnquiries: 0,
+    closedEnquiries: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [selectedEnquiry, setSelectedEnquiry] = useState(null);
-  const [replyText, setReplyText] = useState('');
-  const [isReplying, setIsReplying] = useState(false);
+  const [statusUpdatingId, setStatusUpdatingId] = useState(null);
 
   const { addToast } = useToast();
   const { isAdmin } = useAuth();
+
+  const fetchStats = useCallback(async () => {
+    try {
+      const data = await enquiryService.getStats();
+      setStats({
+        newEnquiries: data.newEnquiries || 0,
+        readEnquiries: data.readEnquiries || 0,
+        repliedEnquiries: data.repliedEnquiries || 0,
+        closedEnquiries: data.closedEnquiries || 0,
+      });
+    } catch (err) {
+      console.error('Failed to load enquiry stats', err);
+    }
+  }, []);
 
   const fetchEnquiries = useCallback(async () => {
     setLoading(true);
@@ -65,7 +84,9 @@ export const AdminMessages = () => {
       if (search.trim()) params.search = search.trim();
 
       const { data } = await enquiryService.getEnquiries(params);
-      setEnquiries(data.sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date)));
+      setEnquiries(
+        data.sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date))
+      );
     } catch (err) {
       console.error('Failed to load enquiries', err);
       addToast('Failed to load enquiries', 'error');
@@ -76,79 +97,39 @@ export const AdminMessages = () => {
 
   useEffect(() => {
     fetchEnquiries();
-  }, [fetchEnquiries]);
+    fetchStats();
+  }, [fetchEnquiries, fetchStats]);
 
-  const unreadCount = useMemo(
-    () => enquiries.filter((item) => item.status === 'new' && !item.isRead).length,
-    [enquiries]
-  );
+  const updateEnquiryInList = (updated) => {
+    setEnquiries((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+    if (selectedEnquiry?.id === updated.id) {
+      setSelectedEnquiry(updated);
+    }
+  };
+
+  const handleStatusChange = async (enquiry, nextStatus) => {
+    const currentStatus = normalizeStatus(enquiry.status);
+    if (currentStatus === nextStatus) return;
+
+    setStatusUpdatingId(enquiry.id);
+    try {
+      const updated = await enquiryService.updateStatus(enquiry.id, nextStatus);
+      updateEnquiryInList(updated);
+      fetchStats();
+      addToast(`Status updated to ${nextStatus}`, 'success');
+    } catch (err) {
+      console.error('Failed to update enquiry status', err);
+      addToast(err.response?.data?.message || 'Failed to update status', 'error');
+    } finally {
+      setStatusUpdatingId(null);
+    }
+  };
 
   const handleView = async (enquiry) => {
     setSelectedEnquiry(enquiry);
-    setReplyText('');
-    if (enquiry.status === 'new' && !enquiry.isRead) {
-      try {
-        const updated = await enquiryService.markAsRead(enquiry.id);
-        setEnquiries((prev) => prev.map((item) => (item.id === enquiry.id ? updated : item)));
-        setSelectedEnquiry(updated);
-      } catch (err) {
-        console.error('Failed to mark enquiry as read', err);
-      }
+    if (normalizeStatus(enquiry.status) === 'New') {
+      await handleStatusChange(enquiry, 'Read');
     }
-  };
-
-  const handleMarkRead = async (enquiry) => {
-    try {
-      const updated = await enquiryService.markAsRead(enquiry.id);
-      addToast('Enquiry marked as read', 'success');
-      setEnquiries((prev) => prev.map((item) => (item.id === enquiry.id ? updated : item)));
-      if (selectedEnquiry?.id === enquiry.id) setSelectedEnquiry(updated);
-    } catch (err) {
-      console.error('Failed to mark enquiry as read', err);
-      addToast('Failed to update enquiry status', 'error');
-    }
-  };
-
-  const handleClose = async (enquiry) => {
-    try {
-      const updated = await enquiryService.closeEnquiry(enquiry.id);
-      addToast('Enquiry closed', 'success');
-      setEnquiries((prev) => prev.map((item) => (item.id === enquiry.id ? updated : item)));
-      if (selectedEnquiry?.id === enquiry.id) setSelectedEnquiry(updated);
-    } catch (err) {
-      console.error('Failed to close enquiry', err);
-      addToast('Failed to close enquiry', 'error');
-    }
-  };
-
-  const handleReplyEmail = async () => {
-    if (!selectedEnquiry) return;
-    if (!replyText.trim()) {
-      addToast('Please enter a reply message', 'error');
-      return;
-    }
-
-    setIsReplying(true);
-    try {
-      const updated = await enquiryService.sendReply(selectedEnquiry.id, replyText.trim());
-      addToast('Reply sent successfully', 'success');
-      setEnquiries((prev) => prev.map((item) => (item.id === selectedEnquiry.id ? updated : item)));
-      setSelectedEnquiry(updated);
-      setReplyText('');
-    } catch (err) {
-      console.error('Failed to send reply', err);
-      addToast(err.response?.data?.message || 'Failed to send reply', 'error');
-    } finally {
-      setIsReplying(false);
-    }
-  };
-
-  const handleMailto = (enquiry) => {
-    const subject = encodeURIComponent(`Re: ${enquiry.subject}`);
-    const body = encodeURIComponent(
-      `Hi ${enquiry.senderName || enquiry.name},\n\nThank you for contacting us.\n\n\n---\nOriginal message:\n${enquiry.message}`
-    );
-    window.open(`mailto:${enquiry.email}?subject=${subject}&body=${body}`, '_blank');
   };
 
   const handleWhatsApp = (enquiry) => {
@@ -170,6 +151,7 @@ export const AdminMessages = () => {
       addToast('Enquiry deleted', 'success');
       if (selectedEnquiry?.id === id) setSelectedEnquiry(null);
       fetchEnquiries();
+      fetchStats();
     } catch (err) {
       console.error('Failed to delete enquiry', err);
       addToast(err.response?.data?.message || 'Failed to delete enquiry', 'error');
@@ -181,12 +163,7 @@ export const AdminMessages = () => {
       <div className="view-header">
         <div className="view-title-wrap">
           <h2>Customer Enquiries</h2>
-          <p>
-            Manage contact, product, and food corner enquiries from the storefront.
-            {unreadCount > 0 && (
-              <span className="messages-unread-count"> {unreadCount} new</span>
-            )}
-          </p>
+          <p>Manage contact, product, and food corner enquiries from the storefront.</p>
         </div>
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           <input
@@ -220,6 +197,25 @@ export const AdminMessages = () => {
         </div>
       </div>
 
+      <div className="enquiry-stats-grid">
+        <div className="enquiry-stat-card enquiry-stat-new">
+          <span className="enquiry-stat-label">New Enquiries</span>
+          <strong>{stats.newEnquiries}</strong>
+        </div>
+        <div className="enquiry-stat-card enquiry-stat-read">
+          <span className="enquiry-stat-label">Read Enquiries</span>
+          <strong>{stats.readEnquiries}</strong>
+        </div>
+        <div className="enquiry-stat-card enquiry-stat-replied">
+          <span className="enquiry-stat-label">Replied Enquiries</span>
+          <strong>{stats.repliedEnquiries}</strong>
+        </div>
+        <div className="enquiry-stat-card enquiry-stat-closed">
+          <span className="enquiry-stat-label">Closed Enquiries</span>
+          <strong>{stats.closedEnquiries}</strong>
+        </div>
+      </div>
+
       {loading ? (
         <div style={{ background: 'white', padding: '40px', borderRadius: '16px', animation: 'pulse 1.5s infinite ease-in-out' }}>
           <div style={{ height: '30px', width: '200px', background: '#cbd5e1', marginBottom: '20px' }} />
@@ -233,6 +229,7 @@ export const AdminMessages = () => {
                 <th>Sender Name</th>
                 <th>Contact Info</th>
                 <th>Type</th>
+                <th>Source</th>
                 <th>Subject</th>
                 <th>Message</th>
                 <th>Status</th>
@@ -242,19 +239,25 @@ export const AdminMessages = () => {
             </thead>
             <tbody>
               {enquiries.map((enquiry) => {
-                const statusClass = formatStatusLabel(enquiry);
-                const isUnread = enquiry.status === 'new' && !enquiry.isRead;
+                const currentStatus = normalizeStatus(enquiry.status);
+                const isUnread = currentStatus === 'New';
+                const isUpdating = statusUpdatingId === enquiry.id;
 
                 return (
                   <tr key={enquiry.id} className={isUnread ? 'message-row-unread' : ''}>
                     <td style={{ fontWeight: 600 }}>{enquiry.senderName || enquiry.name}</td>
                     <td>
-                      <div>📧 {enquiry.email}</div>
-                      {enquiry.phone && <div>📞 {enquiry.phone}</div>}
+                      <div>{enquiry.email}</div>
+                      {enquiry.phone && <div>{enquiry.phone}</div>}
                     </td>
                     <td>
                       <span className="status-badge-admin scheduled">
                         {TYPE_LABELS[enquiry.enquiryType] || enquiry.enquiryType}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`status-badge-admin ${enquiry.source === 'whatsapp' ? 'active' : 'scheduled'}`}>
+                        {SOURCE_LABELS[enquiry.source] || 'Website'}
                       </span>
                     </td>
                     <td style={{ fontWeight: 600, color: 'var(--admin-sidebar-active)' }}>{enquiry.subject}</td>
@@ -262,9 +265,18 @@ export const AdminMessages = () => {
                       {truncateText(enquiry.messagePreview || enquiry.message)}
                     </td>
                     <td>
-                      <span className={`status-badge-admin ${statusClass === 'new' ? 'unread' : statusClass}`}>
-                        {statusClass}
-                      </span>
+                      <select
+                        id={`status-row-${enquiry.id}`}
+                        className={`enquiry-status-select ${getStatusClassName(currentStatus)}`}
+                        value={currentStatus}
+                        onChange={(e) => handleStatusChange(enquiry, e.target.value)}
+                        disabled={isUpdating}
+                        aria-label={`Change status for ${enquiry.senderName}`}
+                      >
+                        {ENQUIRY_STATUSES.map((status) => (
+                          <option key={status} value={status}>{status}</option>
+                        ))}
+                      </select>
                     </td>
                     <td>
                       <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
@@ -273,22 +285,40 @@ export const AdminMessages = () => {
                     </td>
                     <td>
                       <div className="cell-actions">
-                        <button className="btn-action-cell view" onClick={() => handleView(enquiry)} title="View enquiry">
+                        <button
+                          type="button"
+                          className="btn-action-cell view"
+                          onClick={() => handleView(enquiry)}
+                          title="View enquiry"
+                        >
                           <FaEye />
                         </button>
-                        <button className="btn-action-cell reply" onClick={() => { handleView(enquiry); }} title="Reply via email">
-                          <FaEnvelope />
+                        <button
+                          type="button"
+                          className="btn-action-cell edit"
+                          onClick={() => document.getElementById(`status-row-${enquiry.id}`)?.focus()}
+                          title="Edit status"
+                          aria-label="Edit status"
+                        >
+                          <FaEdit />
                         </button>
-                        <button className="btn-action-cell edit" onClick={() => handleMarkRead(enquiry)} title="Mark as read">
-                          <FaCheck />
-                        </button>
-                        {enquiry.whatsappLink && (
-                          <button className="btn-action-cell" onClick={() => handleWhatsApp(enquiry)} title="WhatsApp customer">
+                        {enquiry.source === 'whatsapp' && enquiry.whatsappLink && (
+                          <button
+                            type="button"
+                            className="btn-action-cell"
+                            onClick={() => handleWhatsApp(enquiry)}
+                            title="WhatsApp customer"
+                          >
                             <FaWhatsapp />
                           </button>
                         )}
                         {isAdmin && (
-                          <button className="btn-action-cell delete" onClick={() => handleDelete(enquiry.id)} title="Delete enquiry">
+                          <button
+                            type="button"
+                            className="btn-action-cell delete"
+                            onClick={() => handleDelete(enquiry.id)}
+                            title="Delete enquiry"
+                          >
                             <FaTrash />
                           </button>
                         )}
@@ -321,68 +351,41 @@ export const AdminMessages = () => {
                 <div><strong>Email:</strong> {selectedEnquiry.email}</div>
                 {selectedEnquiry.phone && <div><strong>Phone:</strong> {selectedEnquiry.phone}</div>}
                 <div><strong>Type:</strong> {TYPE_LABELS[selectedEnquiry.enquiryType] || selectedEnquiry.enquiryType}</div>
+                <div><strong>Source:</strong> {SOURCE_LABELS[selectedEnquiry.source] || 'Website'}</div>
                 {selectedEnquiry.productName && <div><strong>Product:</strong> {selectedEnquiry.productName}</div>}
                 {selectedEnquiry.quantityRequired && (
                   <div><strong>Quantity:</strong> {selectedEnquiry.quantityRequired}</div>
                 )}
                 <div><strong>Date:</strong> {new Date(selectedEnquiry.createdAt || selectedEnquiry.date).toLocaleString()}</div>
+                <div><strong>Last Updated:</strong> {new Date(selectedEnquiry.updatedAt || selectedEnquiry.createdAt).toLocaleString()}</div>
                 <div>
                   <strong>Status:</strong>{' '}
-                  <span className={`status-badge-admin ${formatStatusLabel(selectedEnquiry) === 'new' ? 'unread' : formatStatusLabel(selectedEnquiry)}`}>
-                    {formatStatusLabel(selectedEnquiry)}
-                  </span>
+                  <select
+                    id={`status-modal-${selectedEnquiry.id}`}
+                    className={`enquiry-status-select ${getStatusClassName(normalizeStatus(selectedEnquiry.status))}`}
+                    value={normalizeStatus(selectedEnquiry.status)}
+                    onChange={(e) => handleStatusChange(selectedEnquiry, e.target.value)}
+                    disabled={statusUpdatingId === selectedEnquiry.id}
+                  >
+                    {ENQUIRY_STATUSES.map((status) => (
+                      <option key={status} value={status}>{status}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
               <div className="message-view-content">
                 <strong>Message</strong>
                 <p>{selectedEnquiry.message}</p>
               </div>
-              {selectedEnquiry.replyLogs?.length > 0 && (
-                <div className="message-view-content">
-                  <strong>Reply History</strong>
-                  {selectedEnquiry.replyLogs.map((log) => (
-                    <p key={log._id || log.repliedAt} style={{ marginTop: '8px' }}>
-                      {log.replyMessage}
-                      <br />
-                      <small style={{ color: '#64748b' }}>
-                        {new Date(log.repliedAt).toLocaleString()}
-                      </small>
-                    </p>
-                  ))}
-                </div>
-              )}
-              <div className="admin-form-group" style={{ marginTop: '16px' }}>
-                <label>Email Reply</label>
-                <textarea
-                  rows="4"
-                  value={replyText}
-                  onChange={(e) => setReplyText(e.target.value)}
-                  placeholder="Type your reply to the customer..."
-                />
-              </div>
             </div>
             <div className="modal-footer">
-              <button type="button" className="action-btn-secondary" onClick={() => handleMarkRead(selectedEnquiry)}>
-                <FaCheck /> Mark Read
-              </button>
-              <button type="button" className="action-btn-secondary" onClick={() => handleClose(selectedEnquiry)}>
-                <FaTimes /> Close
-              </button>
-              {selectedEnquiry.whatsappLink && (
+              {selectedEnquiry.source === 'whatsapp' && selectedEnquiry.whatsappLink && (
                 <button type="button" className="action-btn-secondary" onClick={() => handleWhatsApp(selectedEnquiry)}>
                   <FaWhatsapp /> WhatsApp
                 </button>
               )}
-              <button type="button" className="action-btn-secondary" onClick={() => handleMailto(selectedEnquiry)}>
-                <FaEnvelope /> Open in Email Client
-              </button>
-              <button
-                type="button"
-                className="action-btn-primary"
-                onClick={handleReplyEmail}
-                disabled={isReplying}
-              >
-                {isReplying ? 'Sending...' : 'Send Reply'}
+              <button type="button" className="action-btn-primary" onClick={() => setSelectedEnquiry(null)}>
+                Close
               </button>
             </div>
           </div>

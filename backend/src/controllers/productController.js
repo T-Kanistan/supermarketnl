@@ -1,4 +1,5 @@
 import * as productService from '../services/productService.js';
+import { persistUploadedFile } from '../services/uploadService.js';
 
 export const getProducts = async (req, res, next) => {
   try {
@@ -32,6 +33,7 @@ export const getAllProducts = async (req, res, next) => {
 export const getFeaturedProducts = async (req, res, next) => {
   try {
     const data = await productService.getFeaturedProducts();
+    console.log('Featured Products:', data);
     return res.status(200).json({
       success: true,
       count: data.length,
@@ -146,7 +148,7 @@ export const uploadProductImage = async (req, res, next) => {
       });
     }
 
-    const imageUrl = `/uploads/products/${req.file.filename}`;
+    const imageUrl = await persistUploadedFile(req.file);
     return res.status(200).json({
       success: true,
       imageUrl,

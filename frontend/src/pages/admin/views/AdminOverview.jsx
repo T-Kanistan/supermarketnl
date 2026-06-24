@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   FaBoxOpen, FaTags, FaCommentDots, FaQuestionCircle,
   FaEnvelopeOpenText, FaImages, FaPlus, FaGlobe, FaBullhorn, FaUserCog, FaUtensils,
@@ -7,6 +7,7 @@ import {
 import dashboardService from '../../../services/dashboardService';
 import { useToast } from '../../../context/ToastContext';
 import { useAuth } from '../../../context/AuthContext';
+import { getDashboardBase } from '../../../constants/managerPermissions';
 
 export const AdminOverview = () => {
   const [stats, setStats] = useState(null);
@@ -16,6 +17,7 @@ export const AdminOverview = () => {
   const { addToast } = useToast();
   const { isManager } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -112,7 +114,7 @@ export const AdminOverview = () => {
               <FaPlus className="quick-action-card-icon" />
               <span>Add Product</span>
             </div>
-            <div className="quick-action-card" onClick={() => navigate('/admin/dashboard/products?type=food-corner')}>
+            <div className="quick-action-card" onClick={() => navigate(`${getDashboardBase(location.pathname)}/food-corner`)}>
               <FaPlus className="quick-action-card-icon" />
               <span>Add Food Corner Item</span>
             </div>

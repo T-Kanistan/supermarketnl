@@ -39,6 +39,7 @@ const toPublicVacancy = (doc) => {
     location: obj.location,
     workingDays: obj.workingDays,
     workingHours: obj.workingHours,
+    cvRequired: obj.cvRequired !== false,
     closingDate: obj.closingDate,
     summary: obj.summary,
     description: obj.description,
@@ -125,6 +126,7 @@ const buildVacancyUpdate = (payload) => {
   if (payload.location !== undefined) update.location = payload.location;
   if (payload.workingDays !== undefined) update.workingDays = payload.workingDays;
   if (payload.workingHours !== undefined) update.workingHours = payload.workingHours;
+  if (payload.cvRequired !== undefined) update.cvRequired = payload.cvRequired !== false;
   if (payload.closingDate !== undefined) update.closingDate = payload.closingDate;
   if (payload.openDate !== undefined) update.openDate = payload.openDate;
   if (payload.summary !== undefined) update.summary = payload.summary;
@@ -244,6 +246,7 @@ export const createVacancy = async (payload) => {
     location: payload.location,
     workingDays: payload.workingDays,
     workingHours: payload.workingHours,
+    cvRequired: payload.cvRequired !== false,
     closingDate: payload.closingDate ?? null,
     openDate: payload.openDate || new Date(),
     summary: payload.summary,

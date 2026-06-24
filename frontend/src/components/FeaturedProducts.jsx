@@ -11,6 +11,14 @@ import './ProductCard.css';
 import './FeaturedProducts.css';
 import 'swiper/css';
 
+const mapProductType = (value) => {
+  const raw = value == null ? '' : String(value).trim().toLowerCase();
+  if (raw === 'food' || raw === 'food-corner' || raw === 'food corner' || raw === 'foodcorner') {
+    return 'food-corner';
+  }
+  return 'grocery';
+};
+
 const FeaturedProducts = () => {
   const [products, setProducts] = useState([]);
   const [categoryMap, setCategoryMap] = useState({});
@@ -23,13 +31,17 @@ const FeaturedProducts = () => {
     const fetchFeaturedProducts = async () => {
       try {
         const [productData, categoryData] = await Promise.all([
-          productService.getProducts({ isFeatured: true, type: 'grocery' }),
+          productService.getFeaturedProducts(),
           categoryService.getCategories(),
         ]);
 
         const list = (Array.isArray(productData) ? productData : []).filter(
-          (p) => p.isFeatured === true && p.status === 'active'
+          (product) =>
+            product.status === 'active' &&
+            mapProductType(product.productType || product.type) === 'grocery'
         );
+
+        console.log('Featured Products:', list);
 
         const categories = (Array.isArray(categoryData) ? categoryData : []).filter(
           (c) => c.status === 'active'
@@ -56,7 +68,7 @@ const FeaturedProducts = () => {
   const handleEnquiry = (product) => {
     const categoryName = categoryMap[product.categoryId] || product.categoryId || '';
     openEnquiry({
-      name: product.name,
+      name: product.name || product.productName,
       category: categoryName,
       sku: product.id,
       id: product.id,

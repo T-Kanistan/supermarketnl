@@ -1,7 +1,8 @@
 import mongoose from 'mongoose';
+import { ENQUIRY_STATUS_TYPES } from '../constants/enquiryStatuses.js';
 
 const ENQUIRY_TYPES = ['contact-us', 'product-enquiry', 'food-corner-enquiry'];
-const STATUS_TYPES = ['new', 'read', 'replied', 'closed', 'deleted'];
+const SOURCE_TYPES = ['website', 'whatsapp'];
 
 const replyLogSchema = new mongoose.Schema(
   {
@@ -65,8 +66,8 @@ const customerEnquirySchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: STATUS_TYPES,
-      default: 'new',
+      enum: ENQUIRY_STATUS_TYPES,
+      default: 'New',
       index: true,
     },
     isRead: {
@@ -91,6 +92,12 @@ const customerEnquirySchema = new mongoose.Schema(
       type: [replyLogSchema],
       default: [],
     },
+    source: {
+      type: String,
+      enum: SOURCE_TYPES,
+      default: 'website',
+      index: true,
+    },
   },
   {
     timestamps: true,
@@ -110,5 +117,5 @@ customerEnquirySchema.index({
 
 const CustomerEnquiry = mongoose.model('CustomerEnquiry', customerEnquirySchema);
 
-export { ENQUIRY_TYPES, STATUS_TYPES };
+export { ENQUIRY_TYPES, SOURCE_TYPES };
 export default CustomerEnquiry;

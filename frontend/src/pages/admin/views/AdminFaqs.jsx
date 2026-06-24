@@ -1,9 +1,14 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { FaPlus, FaEdit, FaTrash, FaQuestionCircle, FaArrowUp, FaArrowDown, FaSave } from 'react-icons/fa';
 import faqService from '../../../services/faqService';
 import { sortFaqsByOrder, stripLeadingNumberFromQuestion } from '../../../utils/faqUtils';
 import { useToast } from '../../../context/ToastContext';
 import { useAuth } from '../../../context/AuthContext';
+import {
+  MAX_FAQ_COUNT,
+  FAQ_LIMIT_REACHED_TOOLTIP,
+  FAQ_LIMIT_REACHED_WARNING,
+} from '../../../constants/faqLimits';
 
 export const AdminFaqs = () => {
   const [faqs, setFaqs] = useState([]);
@@ -17,6 +22,9 @@ export const AdminFaqs = () => {
 
   const { addToast } = useToast();
   const { isAdmin } = useAuth();
+
+  const faqCount = faqs.length;
+  const isLimitReached = useMemo(() => faqCount >= MAX_FAQ_COUNT, [faqCount]);
 
   const [formData, setFormData] = useState({
     question: '',
@@ -126,6 +134,11 @@ export const AdminFaqs = () => {
   };
 
   const openAddModal = () => {
+    if (isLimitReached) {
+      addToast(FAQ_LIMIT_REACHED_WARNING, 'warning');
+      return;
+    }
+
     setEditingFaq(null);
     setFormData({
       question: '',
@@ -198,6 +211,10 @@ export const AdminFaqs = () => {
         await faqService.updateFaq(editingFaq.id, payload);
         addToast('FAQ updated successfully', 'success');
       } else {
+        if (isLimitReached) {
+          addToast(FAQ_LIMIT_REACHED_WARNING, 'warning');
+          return;
+        }
         await faqService.createFaq(payload);
         addToast('New FAQ added successfully', 'success');
       }
@@ -205,7 +222,7 @@ export const AdminFaqs = () => {
       fetchFaqs();
     } catch (err) {
       console.error('Failed to save FAQ', err);
-      addToast('Failed to save FAQ', 'error');
+      addToast(err.response?.data?.message || 'Failed to save FAQ', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -215,18 +232,35 @@ export const AdminFaqs = () => {
     <div>
       <div className="view-header">
         <div className="view-title-wrap">
-          <h2>FAQs Board</h2>
+          <h2>
+            FAQs ({faqCount}/{MAX_FAQ_COUNT})
+          </h2>
           <p>Create and update Frequently Asked Questions displayed on the store help page.</p>
+          <span className="faq-count-badge">
+            Total FAQs: {faqCount} / {MAX_FAQ_COUNT}
+          </span>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
           <button type="button" className="action-btn-secondary" onClick={saveOrder} disabled={isSavingOrder || !faqs.length}>
             <FaSave /> {isSavingOrder ? 'Saving...' : 'Save Order'}
           </button>
-          <button type="button" className="action-btn-primary" onClick={openAddModal}>
+          <button
+            type="button"
+            className="action-btn-primary"
+            onClick={openAddModal}
+            disabled={isLimitReached}
+            title={isLimitReached ? FAQ_LIMIT_REACHED_TOOLTIP : 'Add a new FAQ'}
+          >
             <FaPlus /> Add FAQ
           </button>
         </div>
       </div>
+
+      {isLimitReached ? (
+        <div className="faq-limit-warning" role="status">
+          {FAQ_LIMIT_REACHED_WARNING}
+        </div>
+      ) : null}
 
       {loading ? (
         <div style={{ background: 'white', padding: '40px', borderRadius: '16px', animation: 'pulse 1.5s infinite ease-in-out' }}>

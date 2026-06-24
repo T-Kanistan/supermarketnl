@@ -47,6 +47,11 @@ const productSchema = new mongoose.Schema(
       default: false,
       index: true,
     },
+    showOnHomepage: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
     status: {
       type: String,
       enum: ['active', 'inactive', 'deleted'],
@@ -108,6 +113,7 @@ const productSchema = new mongoose.Schema(
 
 productSchema.index({ productType: 1, status: 1, categoryId: 1 });
 productSchema.index({ featuredProduct: 1, status: 1 });
+productSchema.index({ showOnHomepage: 1, status: 1 });
 productSchema.index({ productName: 'text', categoryName: 'text' });
 
 const syncLegacyFields = (doc) => {
@@ -125,8 +131,10 @@ const syncLegacyFields = (doc) => {
   if (doc.weightUnit) doc.weight = doc.weightUnit;
   else if (doc.weight) doc.weightUnit = doc.weight;
 
-  doc.isFeatured = Boolean(doc.featuredProduct ?? doc.isFeatured);
-  doc.featuredProduct = doc.isFeatured;
+  const featured = Boolean(doc.showOnHomepage ?? doc.featuredProduct ?? doc.isFeatured);
+  doc.showOnHomepage = featured;
+  doc.isFeatured = featured;
+  doc.featuredProduct = featured;
 
   if (doc.stockStatus === 'in_stock') doc.stock = Math.max(doc.stock || 0, 1);
   if (doc.stockStatus === 'out_of_stock') doc.stock = 0;

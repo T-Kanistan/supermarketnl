@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import multer from 'multer';
+import { deleteStoredFile, getLocalPublicUrl, persistUploadedFile } from '../services/uploadService.js';
 
 const UPLOAD_ROOT = path.join(process.cwd(), 'src/uploads');
 
@@ -110,30 +111,6 @@ export const homepageAboutImageUpload = multer({
   fileFilter: imageFilter,
 });
 
-export const toPublicUrl = (file) => {
-  if (!file) return null;
-  const subdir = path.basename(path.dirname(file.path));
-  return `/uploads/${subdir}/${file.filename}`;
-};
-
-export const deleteLocalImage = (imageUrl) => {
-  if (!imageUrl || !imageUrl.startsWith('/uploads/')) return;
-  const relative = imageUrl.replace('/uploads/', '');
-  const filepath = path.join(UPLOAD_ROOT, relative);
-  if (fs.existsSync(filepath)) {
-    fs.unlinkSync(filepath);
-  }
-};
-
-export default {
-  aboutImageUpload,
-  aboutUsImageUpload,
-  footerLogoUpload,
-  homepageAboutImageUpload,
-  introImageUpload,
-  storyImageUpload,
-  ownerPhotoUpload,
-  genericImageUpload,
-  toPublicUrl,
-  deleteLocalImage,
-};
+export const toPublicUrl = getLocalPublicUrl;
+export const deleteLocalImage = deleteStoredFile;
+export { persistUploadedFile };

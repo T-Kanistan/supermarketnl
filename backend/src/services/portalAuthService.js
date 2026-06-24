@@ -224,6 +224,8 @@ export const requestPasswordReset = async (email) => {
       to: normalizedEmail,
       name: accountInfo.account.name || accountInfo.account.fullName || 'User',
       resetUrl,
+    }).catch((emailError) => {
+      console.error(`[auth] Password reset email failed: ${emailError.message}`);
     });
   }
 

@@ -1,5 +1,5 @@
 import * as announcementService from '../services/announcementService.js';
-import { getAnnouncementBannerPublicPath } from '../middlewares/announcementUploadMiddleware.js';
+import { persistUploadedFile } from '../services/uploadService.js';
 
 export const getStorefrontAnnouncements = async (req, res, next) => {
   try {
@@ -78,7 +78,7 @@ export const createAnnouncement = async (req, res, next) => {
   try {
     const body = { ...req.body };
     if (req.file) {
-      body.bannerImage = getAnnouncementBannerPublicPath(req.file.filename);
+      body.bannerImage = await persistUploadedFile(req.file);
     }
 
     const data = await announcementService.createAnnouncement(body, req.user);
@@ -99,7 +99,7 @@ export const updateAnnouncement = async (req, res, next) => {
   try {
     const body = { ...req.body };
     if (req.file) {
-      body.bannerImage = getAnnouncementBannerPublicPath(req.file.filename);
+      body.bannerImage = await persistUploadedFile(req.file);
     }
 
     const data = await announcementService.updateAnnouncement(req.params.id, body, req.user);
@@ -142,7 +142,7 @@ export const uploadAnnouncementBanner = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      imageUrl: getAnnouncementBannerPublicPath(req.file.filename),
+      imageUrl: await persistUploadedFile(req.file),
     });
   } catch (error) {
     next(error);

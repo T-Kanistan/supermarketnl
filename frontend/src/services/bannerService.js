@@ -7,29 +7,31 @@ const appendField = (formData, key, value) => {
 
 const toFormPayload = (data) => {
   const formData = new FormData();
-  appendField(formData, 'pageName', data.pageName);
+  appendField(formData, 'pageType', data.pageType || data.pageName);
   appendField(formData, 'badgeText', data.badgeText);
-  appendField(formData, 'mainHeading', data.mainHeading);
-  appendField(formData, 'highlightText', data.highlightText);
+  appendField(formData, 'title', data.title || data.mainHeading);
+  appendField(formData, 'highlightedTitle', data.highlightedTitle || data.highlightText);
   appendField(formData, 'description', data.description);
-  appendField(formData, 'button1Text', data.button1Text);
-  appendField(formData, 'button1Url', data.button1Url);
-  appendField(formData, 'button2Text', data.button2Text);
-  appendField(formData, 'button2Url', data.button2Url);
+  appendField(formData, 'buttonText', data.buttonText || data.button1Text);
+  appendField(formData, 'buttonUrl', data.buttonUrl || data.button1Url);
+  appendField(formData, 'sideCardTitle', data.sideCardTitle);
+  appendField(formData, 'sideCardDescription', data.sideCardDescription);
+  appendField(formData, 'sideCardIcon', data.sideCardIcon);
   appendField(formData, 'overlayColor', data.overlayColor);
   appendField(formData, 'overlayOpacity', data.overlayOpacity);
   appendField(formData, 'displayOrder', data.displayOrder);
   appendField(formData, 'isActive', data.isActive);
-  if (data.image && !String(data.image).startsWith('blob:')) {
-    appendField(formData, 'image', data.image);
+  const imageValue = data.backgroundImage || data.image;
+  if (imageValue && !String(imageValue).startsWith('blob:')) {
+    appendField(formData, 'backgroundImage', imageValue);
   }
   return formData;
 };
 
 export const bannerService = {
-  getBannerByPage: async (pageName) => {
+  getBannerByPage: async (pageType) => {
     try {
-      return await apiRequest(() => api.get(`/banners/page/${pageName}`));
+      return await apiRequest(() => api.get(`/banners/page/${pageType}`));
     } catch {
       return null;
     }
@@ -38,7 +40,12 @@ export const bannerService = {
   getStorefrontBanner: async () => bannerService.getBannerByPage('home'),
 
   listBanners: async (params = {}) => {
-    const response = await api.get('/banners', { params });
+    const query = {
+      ...params,
+      pageType: params.pageType || params.pageName,
+    };
+    delete query.pageName;
+    const response = await api.get('/banners', { params: query });
     return {
       data: response.data?.data || [],
       pagination: response.data?.pagination || {
@@ -83,9 +90,13 @@ export const bannerService = {
     return response.data?.data;
   },
 
+  updateBannerStatus: async (id, isActive) => {
+    const response = await api.patch(`/banners/${id}/status`, { isActive });
+    return response.data?.data;
+  },
+
   deleteBanner: async (id) => apiRequest(() => api.delete(`/banners/${id}`)),
 
-  // Legacy helpers
   getAllBanners: async () => {
     const result = await bannerService.listBanners({ limit: 100 });
     return result.data;

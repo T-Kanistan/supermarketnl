@@ -1,5 +1,5 @@
 import FooterCMS, { getDefaultFooterCMS } from '../models/FooterCMS.js';
-import { deleteLocalImage, toPublicUrl } from '../middleware/upload.js';
+import { deleteLocalImage, persistUploadedFile } from '../middleware/upload.js';
 import siteSettingsService from './siteSettingsService.js';
 
 const LINK_TYPES = {
@@ -230,7 +230,7 @@ export const uploadFooterLogo = async (file) => {
     deleteLocalImage(existing.brand.logo);
   }
 
-  const logoUrl = toPublicUrl(file);
+  const logoUrl = await persistUploadedFile(file);
   const doc = await FooterCMS.findByIdAndUpdate(
     existing._id,
     { $set: { 'brand.logo': logoUrl } },

@@ -10,7 +10,6 @@ import {
   updateProduct,
   updateProductStatus,
   deleteProduct,
-  uploadProductImage,
   productImageUpload,
 } from '../controllers/productController.js';
 
@@ -56,8 +55,7 @@ router.patch(
 
 router.put(
   '/:id',
-  protect,
-  adminOnly,
+  ...auth,
   normalizeProductRequestBody,
   updateProductRules,
   validateRequest,

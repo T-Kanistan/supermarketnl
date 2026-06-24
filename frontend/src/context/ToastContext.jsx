@@ -30,6 +30,7 @@ export const ToastProvider = ({ children }) => {
               <span className="toast-icon">
                 {toast.type === 'success' && '✅'}
                 {toast.type === 'error' && '❌'}
+                {toast.type === 'warning' && '⚠️'}
                 {toast.type === 'info' && 'ℹ️'}
               </span>
               <span className="toast-message">{toast.message}</span>

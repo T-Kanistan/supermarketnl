@@ -2,7 +2,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 
-const bannerUploadDir = path.join(process.cwd(), 'src/uploads/banner');
+const bannerUploadDir = path.join(process.cwd(), 'src/uploads/banners');
 
 if (!fs.existsSync(bannerUploadDir)) {
   fs.mkdirSync(bannerUploadDir, { recursive: true });
@@ -33,4 +33,4 @@ export const bannerUpload = multer({
   fileFilter,
 });
 
-export const getBannerPublicPath = (filename) => `/uploads/banner/${filename}`;
+export const getBannerPublicPath = (filename) => `/uploads/banners/${filename}`;

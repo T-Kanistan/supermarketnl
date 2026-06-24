@@ -80,6 +80,11 @@ const jobApplicationSchema = new mongoose.Schema(
       trim: true,
       default: '',
     },
+    resumeUrl: {
+      type: String,
+      trim: true,
+      default: '',
+    },
     appliedDate: {
       type: Date,
       default: Date.now,

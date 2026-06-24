@@ -1,5 +1,4 @@
 import api, { request } from './api';
-import { localDb } from './localDb';
 import { normalizeRole } from '../constants/managerPermissions';
 
 const TOKEN_KEY = 'supermarket_token';
@@ -108,31 +107,12 @@ export const authService = {
       if (
         !error.response ||
         error.code === 'ERR_NETWORK' ||
-        error.response?.status >= 500 ||
-        error.response?.status === 404
+        error.response?.status >= 500
       ) {
-        const managers = localDb.getManagers();
-        const user = managers.find(
-          (m) => (m.email === login || m.username === login) && m.password === password
-        );
-        if (!user) {
-          throw new Error('Invalid email or password');
-        }
-        const role = normalizeRole(user.role);
-        if (role !== 'admin' && role !== 'manager') {
-          throw new Error('Access Denied. You are not authorized to access the dashboard.');
-        }
-        const token = `mock_jwt_token_for_${user.role}`;
-        persistSession(
-          token,
-          user,
-          user.role === 'admin' ? ['*'] : ['products', 'offers', 'enquiries', 'content'],
-          rememberMe
-        );
-        return normalizeAuthUser(user);
+        throw new Error('Unable to sign in. Please check your connection and try again.');
       }
 
-      throw error;
+      throw new Error('Invalid email or password');
     }
   },
 
@@ -196,6 +176,40 @@ export const authService = {
       return response.data;
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Failed to change password');
+    }
+  },
+
+  forgotPassword: async (email) => {
+    try {
+      const response = await api.post('/auth/forgot-password', { email });
+      return response.data;
+    } catch (error) {
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      if (!error.response || error.code === 'ERR_NETWORK' || error.response?.status >= 500) {
+        throw new Error('Unable to send reset email. Please check your connection and try again.');
+      }
+      throw new Error('Unable to process password reset request');
+    }
+  },
+
+  resetPassword: async ({ email, token, newPassword }) => {
+    try {
+      const response = await api.post('/auth/reset-password', {
+        email,
+        token,
+        newPassword,
+      });
+      return response.data;
+    } catch (error) {
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      if (!error.response || error.code === 'ERR_NETWORK' || error.response?.status >= 500) {
+        throw new Error('Unable to reset password. Please check your connection and try again.');
+      }
+      throw new Error('Invalid or expired reset token');
     }
   },
 };

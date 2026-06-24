@@ -6,6 +6,7 @@ import {
   createBanner,
   updateBanner,
   deleteBanner,
+  updateBannerStatus,
   getBanners,
 } from '../controllers/bannerController.js';
 import { protect, restrictTo, adminOnly } from '../middlewares/authMiddleware.js';
@@ -14,15 +15,16 @@ import { validateRequest } from '../middlewares/validationMiddleware.js';
 import {
   createBannerRules,
   updateBannerRules,
+  updateBannerStatusRules,
   bannerIdRules,
-  bannerPageNameRules,
+  bannerPageTypeRules,
   listBannerRules,
 } from '../validators/bannerValidator.js';
 
 const router = express.Router();
 const auth = [protect, restrictTo('admin', 'manager')];
 
-router.get('/page/:pageName', bannerPageNameRules, validateRequest, getBannerByPage);
+router.get('/page/:pageType', bannerPageTypeRules, validateRequest, getBannerByPage);
 
 router.get('/', ...auth, listBannerRules, validateRequest, listBanners);
 
@@ -46,6 +48,14 @@ router.put(
   updateBannerRules,
   validateRequest,
   updateBanner
+);
+
+router.patch(
+  '/:id/status',
+  ...auth,
+  updateBannerStatusRules,
+  validateRequest,
+  updateBannerStatus
 );
 
 router.delete('/:id', protect, adminOnly, bannerIdRules, validateRequest, deleteBanner);

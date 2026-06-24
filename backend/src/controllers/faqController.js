@@ -18,8 +18,17 @@ export const getStorefrontFaqs = async (req, res, next) => {
 
 export const getFaqs = async (req, res, next) => {
   try {
-    const data = await faqService.listFaqs();
-    return res.status(200).json({ success: true, count: data.length, data });
+    const [data, limitMeta] = await Promise.all([
+      faqService.listFaqs(),
+      faqService.getFaqLimitMeta(),
+    ]);
+    return res.status(200).json({
+      success: true,
+      count: data.length,
+      maxFaqs: limitMeta.max,
+      limitReached: limitMeta.limitReached,
+      data,
+    });
   } catch (error) {
     return next(error);
   }

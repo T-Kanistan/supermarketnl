@@ -27,8 +27,9 @@ const formatApplication = (doc, options = {}) => {
     phone: plain.phoneNumber,
     phoneNumber: plain.phoneNumber,
     address: plain.address,
-    cvFile: plain.cvFile || '',
-    cvDownloadLink: plain.cvFile && id
+    cvFile: plain.resumeUrl || plain.cvFile || '',
+    resumeUrl: plain.resumeUrl || plain.cvFile || '',
+    cvDownloadLink: (plain.resumeUrl || plain.cvFile) && id
       ? `/api/admin/applications/${id}/download-cv`
       : null,
     applicationDate: plain.appliedDate || plain.createdAt,
@@ -51,6 +52,7 @@ const resolveVacancySnapshot = async (vacancyId) => {
 
 export const createJobApplication = async (payload) => {
   const vacancy = await resolveVacancySnapshot(payload.jobId);
+  const resumeUrl = payload.resumeUrl || payload.cvFile || '';
 
   const application = await JobApplication.create({
     jobId: payload.jobId,
@@ -63,7 +65,8 @@ export const createJobApplication = async (payload) => {
     email: payload.email,
     phoneNumber: payload.phoneNumber,
     address: payload.address,
-    cvFile: payload.cvFile || '',
+    cvFile: resumeUrl,
+    resumeUrl,
     appliedDate: new Date(),
     status: 'pending',
     applicationStatus: APPLICATION_STATUS_LABELS.pending,
@@ -145,9 +148,11 @@ export const deleteJobApplication = async (id) => {
     throw error;
   }
 
-  if (application.cvFile) {
+  if (application.cvFile || application.resumeUrl) {
     try {
-      const { absolutePath } = resolveJobApplicationCvPath(application.cvFile);
+      const { absolutePath } = resolveJobApplicationCvPath(
+        application.resumeUrl || application.cvFile
+      );
       fs.unlinkSync(absolutePath);
     } catch {
       // File may already be removed; continue deleting record.
@@ -166,7 +171,9 @@ export const getJobApplicationCvDownload = async (id) => {
     throw error;
   }
 
-  const { absolutePath, filename } = resolveJobApplicationCvPath(application.cvFile);
+  const { absolutePath, filename } = resolveJobApplicationCvPath(
+    application.resumeUrl || application.cvFile
+  );
   return {
     absolutePath,
     filename,
@@ -190,7 +197,9 @@ export const getRecentJobApplications = async (limit = 10) => {
       appliedDate: app.appliedDate || app.createdAt,
       status: getStatusLabel(app.status),
       applicationStatus: app.applicationStatus || getStatusLabel(app.status),
-      cvDownloadLink: app.cvFile ? `/api/admin/applications/${id}/download-cv` : null,
+      cvDownloadLink: app.resumeUrl || app.cvFile
+        ? `/api/admin/applications/${id}/download-cv`
+        : null,
     };
   });
 };

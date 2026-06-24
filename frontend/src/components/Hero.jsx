@@ -8,26 +8,10 @@ import bannerService from '../services/bannerService';
 import { getImageUrl } from '../services/api';
 import './Hero.css';
 
-const DEFAULT_BANNER = {
-  headingLine1: 'FRESH',
-  headingLine2: 'PRODUCTS',
-  headingLine3: 'BETTER LIVING',
-  subtitle: 'Your one-stop supermarket for quality products and great offers.',
-  primaryButtonLabel: 'EXPLORE PRODUCTS',
-  primaryButtonLink: '/products',
-  secondaryButtonLabel: 'EXPLORE FOOD CORNER',
-  secondaryButtonLink: '/food-corner',
-  backgroundImage: '/images/home-banner-produce.jpg',
-  showOpenTimeCard: true,
-  cardTitle: 'Open Time',
-  supermarketLabel: 'Supermarket',
-  foodCornerLabel: 'Food Corner',
-};
-
 const Hero = () => {
   const navigate = useNavigate();
   const { cmsData } = useCMS();
-  const [banner, setBanner] = useState(null);
+  const [banner, setBanner] = useState(() => mergePageBanner('home', null));
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -50,39 +34,16 @@ const Hero = () => {
   }
 
   const bannerData = banner || mergePageBanner('home', null);
-
-  const rawBackground = bannerData.image || bannerData.backgroundImage;
-  const bgImage = rawBackground
-    ? getImageUrl(rawBackground)
-    : getImageUrl(DEFAULT_BANNER.backgroundImage);
-  const headingLine1 = bannerData.mainHeading || bannerData.headingLine1 || DEFAULT_BANNER.headingLine1;
-  const headingLine2 =
-    bannerData.highlightText || bannerData.headingLine2 || DEFAULT_BANNER.headingLine2;
-  const headingLine3 =
-    bannerData.badgeText || bannerData.headingLine3 || DEFAULT_BANNER.headingLine3;
-  const primaryLabel =
-    bannerData.button1Text || bannerData.primaryButtonLabel || DEFAULT_BANNER.primaryButtonLabel;
-  const primaryLink =
-    bannerData.button1Url || bannerData.primaryButtonLink || DEFAULT_BANNER.primaryButtonLink;
-  const secondaryLabel =
-    bannerData.button2Text ||
-    bannerData.secondaryButtonLabel ||
-    DEFAULT_BANNER.secondaryButtonLabel;
-  const secondaryLink =
-    bannerData.button2Url ||
-    bannerData.secondaryButtonLink ||
-    DEFAULT_BANNER.secondaryButtonLink;
-  const showOpenTimeCard = true;
-  const supermarketHours =
-    cmsData?.supermarketTimings ||
-    bannerData.supermarketHours ||
-    bannerData.supermarketTimings ||
-    '';
-  const foodCornerHours =
-    cmsData?.foodCornerTimings ||
-    bannerData.foodCornerHours ||
-    bannerData.foodCornerTimings ||
-    '';
+  const bgImage = getImageUrl(bannerData.backgroundImage || bannerData.image);
+  const headingLine1 = bannerData.title || bannerData.mainHeading;
+  const headingLine2 = bannerData.highlightedTitle || bannerData.highlightText;
+  const headingLine3 = bannerData.badgeText;
+  const primaryLabel = bannerData.buttonText || bannerData.button1Text;
+  const primaryLink = bannerData.buttonUrl || bannerData.button1Url;
+  const secondaryLabel = bannerData.button2Text;
+  const secondaryLink = bannerData.button2Url;
+  const supermarketHours = cmsData?.supermarketTimings || '';
+  const foodCornerHours = cmsData?.foodCornerTimings || '';
 
   return (
     <section
@@ -99,59 +60,58 @@ const Hero = () => {
               <span className="hero-title-line">{headingLine3}</span>
               <span className="hero-title-accent" aria-hidden="true" />
             </h1>
-            <p className="hero-subtitle">
-              {bannerData.description || bannerData.subtitle || DEFAULT_BANNER.subtitle}
-            </p>
+            <p className="hero-subtitle">{bannerData.description}</p>
             <div className="hero-buttons">
-              <button
-                type="button"
-                className="btn-primary btn-large hero-btn"
-                onClick={() => navigate(primaryLink || '/products')}
-              >
-                <span>{primaryLabel}</span>
-                <FaArrowRight aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                className="btn-secondary btn-large hero-btn"
-                onClick={() => navigate(secondaryLink || '/food-corner')}
-              >
-                <span>{secondaryLabel}</span>
-                <FaArrowRight aria-hidden="true" />
-              </button>
+              {primaryLabel ? (
+                <button
+                  type="button"
+                  className="btn-primary btn-large hero-btn"
+                  onClick={() => navigate(primaryLink || '/products')}
+                >
+                  <span>{primaryLabel}</span>
+                  <FaArrowRight aria-hidden="true" />
+                </button>
+              ) : null}
+              {secondaryLabel ? (
+                <button
+                  type="button"
+                  className="btn-secondary btn-large hero-btn"
+                  onClick={() => navigate(secondaryLink || '/food-corner')}
+                >
+                  <span>{secondaryLabel}</span>
+                  <FaArrowRight aria-hidden="true" />
+                </button>
+              ) : null}
             </div>
           </div>
 
-          {showOpenTimeCard !== false ? (
-            <div className="hero-timings-card right-time-card">
-              <h3 className="hero-timings-title">
-                {bannerData.cardTitle || bannerData.openTimeTitle || DEFAULT_BANNER.cardTitle}
-              </h3>
-              <div className="timing-item">
-                <div className="timing-icon-wrap supermarket">
-                  <FaShoppingBasket />
-                </div>
-                <div>
-                  <span className="timing-label">
-                    {bannerData.supermarketLabel || DEFAULT_BANNER.supermarketLabel}
-                  </span>
-                  <span className="timing-value">{supermarketHours}</span>
-                </div>
+          <div className="hero-timings-card right-time-card">
+            <h3 className="hero-timings-title">
+              {bannerData.sideCardTitle || bannerData.cardTitle || 'Open Time'}
+            </h3>
+            {bannerData.sideCardDescription ? (
+              <p className="hero-timings-desc">{bannerData.sideCardDescription}</p>
+            ) : null}
+            <div className="timing-item">
+              <div className="timing-icon-wrap supermarket">
+                <FaShoppingBasket />
               </div>
-              <div className="timing-divider" />
-              <div className="timing-item">
-                <div className="timing-icon-wrap food-corner">
-                  <FaUtensils />
-                </div>
-                <div>
-                  <span className="timing-label">
-                    {bannerData.foodCornerLabel || DEFAULT_BANNER.foodCornerLabel}
-                  </span>
-                  <span className="timing-value">{foodCornerHours}</span>
-                </div>
+              <div>
+                <span className="timing-label">Supermarket</span>
+                <span className="timing-value">{supermarketHours}</span>
               </div>
             </div>
-          ) : null}
+            <div className="timing-divider" />
+            <div className="timing-item">
+              <div className="timing-icon-wrap food-corner">
+                <FaUtensils />
+              </div>
+              <div>
+                <span className="timing-label">Food Corner</span>
+                <span className="timing-value">{foodCornerHours}</span>
+              </div>
+            </div>
+          </div>
       </div>
     </section>
   );

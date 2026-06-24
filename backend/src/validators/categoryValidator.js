@@ -1,4 +1,4 @@
-import { body } from 'express-validator';
+import { body, param } from 'express-validator';
 
 export const createCategoryRules = [
   body('name')
@@ -30,3 +30,5 @@ export const updateCategoryRules = [
     .isIn(['active', 'inactive'])
     .withMessage('Status must be either active or inactive'),
 ];
+
+export const categoryIdRules = [param('id').isMongoId().withMessage('Invalid category id')];

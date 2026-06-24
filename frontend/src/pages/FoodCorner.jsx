@@ -211,7 +211,7 @@ const FoodCorner = () => {
       <section className={`fc-hero${bannerLoading ? ' fc-hero--loading' : ''}`}>
         <div
           className="fc-hero-bg"
-          style={{ backgroundImage: `url('${getImageUrl(pageBanner.image)}')` }}
+          style={{ backgroundImage: `url('${getImageUrl(pageBanner.backgroundImage || pageBanner.image)}')` }}
           aria-hidden="true"
         />
         <div className="fc-hero-overlay" style={getBannerOverlayStyle(pageBanner)} />
@@ -219,17 +219,20 @@ const FoodCorner = () => {
           <div className="fc-hero-copy">
             <span className="fc-hero-badge">
               <FaUtensils aria-hidden="true" />
-              {pageBanner.badgeText || 'FOOD CORNER'}
+              {pageBanner.badgeText}
             </span>
             <h1 className="fc-hero-title">
-              {pageBanner.mainHeading || 'Enjoy Delicious'}
-              <br />
-              <span className="fc-hero-highlight">{pageBanner.highlightText || 'Food Corner'}</span>
+              {pageBanner.title || pageBanner.mainHeading}
+              {pageBanner.highlightedTitle || pageBanner.highlightText ? (
+                <>
+                  <br />
+                  <span className="fc-hero-highlight">
+                    {pageBanner.highlightedTitle || pageBanner.highlightText}
+                  </span>
+                </>
+              ) : null}
             </h1>
-            <p className="fc-hero-subtitle">
-              {pageBanner.description ||
-                'Freshly prepared meals, snacks and beverages made with quality ingredients, every day.'}
-            </p>
+            <p className="fc-hero-subtitle">{pageBanner.description}</p>
             <ul className="fc-hero-features">
               <li>
                 <span className="fc-feature-icon fc-feature-icon--green" aria-hidden="true">

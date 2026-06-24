@@ -4,7 +4,7 @@ import AboutUsCMS, {
   migrateLegacyAboutDoc,
   LEGACY_FIELDS,
 } from '../models/AboutCMS.js';
-import { deleteLocalImage, toPublicUrl } from '../middleware/upload.js';
+import { deleteLocalImage, persistUploadedFile } from '../middleware/upload.js';
 
 const IMAGE_FIELD_MAP = {
   homepage: 'homepageAboutSection.image',
@@ -481,7 +481,7 @@ export const uploadAboutImage = async (type, file) => {
     deleteLocalImage(previousUrl);
   }
 
-  const imageUrl = toPublicUrl(file);
+  const imageUrl = await persistUploadedFile(file);
   const update = { [fieldPath]: imageUrl };
   const updated = await AboutUsCMS.findByIdAndUpdate(doc._id, { $set: update }, { new: true });
 
@@ -654,7 +654,7 @@ export const uploadOfferImage = async (id, file) => {
     throw error;
   }
   if (offer.imageUrl?.startsWith('/uploads/')) deleteLocalImage(offer.imageUrl);
-  offer.imageUrl = toPublicUrl(file);
+  offer.imageUrl = await persistUploadedFile(file);
   await doc.save();
   return mapOfferToApi(offer);
 };

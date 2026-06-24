@@ -1,5 +1,5 @@
 import * as testimonialService from '../services/testimonialService.js';
-import { getTestimonialAvatarPublicPath } from '../middlewares/testimonialUploadMiddleware.js';
+import { persistUploadedFile } from '../services/uploadService.js';
 
 const handleServiceError = (error, res, next) => {
   if (error.statusCode) {
@@ -50,7 +50,7 @@ export const createTestimonial = async (req, res, next) => {
   try {
     const body = { ...req.body };
     if (req.file) {
-      body.avatarImage = getTestimonialAvatarPublicPath(req.file.filename);
+      body.avatarImage = await persistUploadedFile(req.file);
     }
 
     const data = await testimonialService.createTestimonial(body, req.user);
@@ -68,7 +68,7 @@ export const updateTestimonial = async (req, res, next) => {
   try {
     const body = { ...req.body };
     if (req.file) {
-      body.avatarImage = getTestimonialAvatarPublicPath(req.file.filename);
+      body.avatarImage = await persistUploadedFile(req.file);
     }
 
     const data = await testimonialService.updateTestimonial(req.params.id, body, req.user);
@@ -99,7 +99,7 @@ export const uploadTestimonialAvatar = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      imageUrl: getTestimonialAvatarPublicPath(req.file.filename),
+      imageUrl: await persistUploadedFile(req.file),
     });
   } catch (error) {
     return next(error);

@@ -181,7 +181,7 @@ const AdminHomepageAbout = () => {
   if (loading) {
     return (
       <div>
-        <Link to={backLink} state={isManager ? undefined : { settingsTab: 'about' }} className="view-back-link">
+        <Link to={backLink} className="view-back-link">
           <FaArrowLeft aria-hidden="true" /> {backLabel}
         </Link>
         <div className="admin-page-loading">Loading homepage about section...</div>
@@ -191,7 +191,7 @@ const AdminHomepageAbout = () => {
 
   return (
     <div>
-      <Link to={backLink} state={isManager ? undefined : { settingsTab: 'about' }} className="view-back-link">
+      <Link to={backLink} className="view-back-link">
         <FaArrowLeft aria-hidden="true" /> {backLabel}
       </Link>
 
@@ -256,8 +256,8 @@ const AdminHomepageAbout = () => {
               <strong>Content is synced from About Us CMS.</strong>
               <p style={{ margin: '6px 0 0', fontSize: '0.9rem' }}>
                 Edit hero title, description, and image in{' '}
-                <Link to="/admin/dashboard/site-settings" style={{ color: '#1d4ed8', fontWeight: 600 }}>
-                  Site Settings → About Us
+                <Link to="/admin/dashboard/about-us" style={{ color: '#1d4ed8', fontWeight: 600 }}>
+                  About Us Management
                 </Link>
                 .
               </p>

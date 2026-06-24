@@ -251,6 +251,10 @@ h1, h2, h3, h4, h5, h6 {
   border-left-color: var(--red-discount);
 }
 
+.toast-warning {
+  border-left-color: #f59e0b;
+}
+
 .toast-info {
   border-left-color: var(--dark-blue-light);
 }

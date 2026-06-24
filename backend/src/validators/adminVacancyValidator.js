@@ -11,7 +11,7 @@ export const adminVacancyListQueryRules = [
   query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
 ];
 
-export const vacancyIdRules = [param('id').notEmpty().withMessage('Vacancy id is required')];
+export const vacancyIdRules = [param('id').isMongoId().withMessage('Invalid vacancy id')];
 
 const titleRule = body().custom((_, { req }) => {
   const title = req.body.title || req.body.jobTitle;
@@ -34,6 +34,14 @@ export const vacancyBodyRules = [
   body('location').optional().trim().isLength({ max: 200 }),
   body('workingDays').optional().trim().isLength({ max: 120 }),
   body('workingHours').optional().trim().isLength({ max: 120 }),
+  body('cvRequired')
+    .optional()
+    .custom((value) => {
+      if (value === undefined || value === null || value === '') return true;
+      if (typeof value === 'boolean') return true;
+      if (value === 'true' || value === 'false') return true;
+      throw new Error('cvRequired must be a boolean value');
+    }),
   body('openDate').optional({ nullable: true }),
   body('closingDate')
     .optional({ nullable: true })

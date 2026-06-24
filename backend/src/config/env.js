@@ -20,6 +20,8 @@ export const logStartupEnvironment = () => {
   console.log(`[Env] MONGODB_URI=${maskValue(process.env.MONGODB_URI || process.env.MONGO_URI)}`);
   console.log(`[Env] JWT_SECRET=${maskValue(process.env.JWT_SECRET)}`);
   console.log(`[Env] CORS_ORIGINS=${process.env.CORS_ORIGINS ? 'set' : 'using defaults'}`);
+  console.log(`[Env] SMTP_HOST=${maskValue(process.env.SMTP_HOST)}`);
+  console.log(`[Env] CLOUDINARY=${maskValue(process.env.CLOUDINARY_CLOUD_NAME)}`);
 };
 
 export const getRequiredEnv = (key) => {

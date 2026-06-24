@@ -14,6 +14,7 @@ import {
   createFoodCornerCategoryRules,
   updateFoodCornerCategoryRules,
   toggleFoodCornerCategoryStatusRules,
+  foodCornerCategoryIdRules,
 } from '../validators/foodCornerCategoryValidator.js';
 
 const router = express.Router();
@@ -29,11 +30,12 @@ router.get(
 
 const catalogAuth = [protect, restrictTo('admin', 'manager')];
 
-router.get('/categories/:id', ...catalogAuth, getFoodCornerCategoryById);
+router.get('/categories/:id', ...catalogAuth, foodCornerCategoryIdRules, validateRequest, getFoodCornerCategoryById);
 
 router.post(
   '/categories',
-  ...catalogAuth,
+  protect,
+  adminOnly,
   createFoodCornerCategoryRules,
   validateRequest,
   createFoodCornerCategory
@@ -41,7 +43,9 @@ router.post(
 
 router.put(
   '/categories/:id',
-  ...catalogAuth,
+  protect,
+  adminOnly,
+  foodCornerCategoryIdRules,
   updateFoodCornerCategoryRules,
   validateRequest,
   updateFoodCornerCategory
@@ -49,7 +53,9 @@ router.put(
 
 router.patch(
   '/categories/:id/status',
-  ...catalogAuth,
+  protect,
+  adminOnly,
+  foodCornerCategoryIdRules,
   toggleFoodCornerCategoryStatusRules,
   validateRequest,
   toggleFoodCornerCategoryStatus
@@ -59,6 +65,8 @@ router.delete(
   '/categories/:id',
   protect,
   adminOnly,
+  foodCornerCategoryIdRules,
+  validateRequest,
   deleteFoodCornerCategory
 );
 

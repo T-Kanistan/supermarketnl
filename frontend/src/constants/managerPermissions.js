@@ -10,6 +10,7 @@ export const ADMIN_ONLY_DASHBOARD_ROUTES = [
 export const MANAGER_ALLOWED_DASHBOARD_ROUTES = [
   '',
   'products',
+  'food-corner',
   'food-corner-items',
   'announcements',
   'messages',

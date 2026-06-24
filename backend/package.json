@@ -18,6 +18,7 @@
     "db:home": "node src/scripts/initHomeCMS.js",
     "db:normalize-faqs": "node src/scripts/normalizeFaqOrder.js",
     "db:banner": "node src/scripts/initBanner.js",
+    "db:page-banners": "node src/scripts/initPageBanners.js",
     "db:homepage-about": "node src/scripts/initHomepageAbout.js",
     "db:sync-home-about": "node src/scripts/syncHomeAbout.js",
     "db:categories": "node src/scripts/initCategories.js",

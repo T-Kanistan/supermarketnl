@@ -27,9 +27,9 @@ export const CMSProvider = ({ children }) => {
         logo: siteSettings?.storeLogo || home.logo,
         address: siteSettings?.physicalAddress || footer.address,
         supermarketTimings:
-          siteSettings?.supermarketOpeningHours || home.supermarketTimings,
+          siteSettings?.supermarketOpeningHours ?? home.supermarketTimings,
         foodCornerTimings:
-          siteSettings?.foodCornerOpeningHours || home.foodCornerTimings,
+          siteSettings?.foodCornerOpeningHours ?? home.foodCornerTimings,
       });
     } catch (err) {
       console.error('Failed to load CMS data:', err);

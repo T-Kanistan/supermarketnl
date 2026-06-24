@@ -43,8 +43,9 @@ export const dashboardChildRoutes = (
     />
     <Route
       path="food-corner-items"
-      element={<DashboardRedirect suffix="/products?type=food-corner" />}
+      element={<DashboardRedirect suffix="/food-corner" />}
     />
+    <Route path="food-corner" element={<AdminProducts />} />
     <Route path="products" element={<AdminProducts />} />
     <Route path="faqs" element={<AdminFaqs />} />
     <Route path="testimonials" element={<AdminTestimonials />} />

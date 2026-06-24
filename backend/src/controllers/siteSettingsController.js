@@ -23,7 +23,16 @@ export const getSettings = async (req, res, next) => {
 export const updateSettings = async (req, res, next) => {
   try {
     console.log('Saving Settings:', req.body);
-    const settings = await siteSettingsService.updateSiteSettings(req.body, req.file, req.user);
+
+    const payload = {
+      storeName: req.body.storeName,
+      storeLogo: req.body.storeLogo ?? req.body.logo,
+      physicalAddress: req.body.physicalAddress ?? req.body.address,
+      supermarketOpeningHours: req.body.supermarketOpeningHours ?? req.body.supermarketTimings,
+      foodCornerOpeningHours: req.body.foodCornerOpeningHours ?? req.body.foodCornerTimings,
+    };
+
+    const settings = await siteSettingsService.updateSiteSettings(payload, req.file, req.user);
     return successResponse(res, 200, 'Settings updated successfully', settings);
   } catch (error) {
     next(error);

@@ -1,20 +1,28 @@
 import mongoose from 'mongoose';
 
-export const BANNER_PAGE_NAMES = [
+export const BANNER_PAGE_TYPES = [
   'home',
   'products',
-  'food-corner',
+  'foodcorner',
   'vacancies',
   'faq',
   'contact',
 ];
 
+/** Accept legacy slugs used in routes and older records. */
+export const normalizePageType = (value) => {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'food-corner') return 'foodcorner';
+  if (BANNER_PAGE_TYPES.includes(normalized)) return normalized;
+  return normalized;
+};
+
 const bannerSchema = new mongoose.Schema(
   {
-    pageName: {
+    pageType: {
       type: String,
-      required: [true, 'Page name is required'],
-      enum: BANNER_PAGE_NAMES,
+      required: [true, 'Page type is required'],
+      enum: BANNER_PAGE_TYPES,
       trim: true,
       lowercase: true,
       index: true,
@@ -25,13 +33,13 @@ const bannerSchema = new mongoose.Schema(
       default: '',
       maxlength: 120,
     },
-    mainHeading: {
+    title: {
       type: String,
-      required: [true, 'Main heading is required'],
+      required: [true, 'Title is required'],
       trim: true,
       maxlength: 200,
     },
-    highlightText: {
+    highlightedTitle: {
       type: String,
       trim: true,
       default: '',
@@ -43,32 +51,39 @@ const bannerSchema = new mongoose.Schema(
       default: '',
       maxlength: 600,
     },
-    button1Text: {
+    buttonText: {
       type: String,
       trim: true,
       default: '',
       maxlength: 80,
     },
-    button1Url: {
+    buttonUrl: {
       type: String,
       trim: true,
       default: '',
     },
-    button2Text: {
-      type: String,
-      trim: true,
-      default: '',
-      maxlength: 80,
-    },
-    button2Url: {
-      type: String,
-      trim: true,
-      default: '',
-    },
-    image: {
+    backgroundImage: {
       type: String,
       required: [true, 'Banner image is required'],
       trim: true,
+    },
+    sideCardTitle: {
+      type: String,
+      trim: true,
+      default: '',
+      maxlength: 120,
+    },
+    sideCardDescription: {
+      type: String,
+      trim: true,
+      default: '',
+      maxlength: 300,
+    },
+    sideCardIcon: {
+      type: String,
+      trim: true,
+      default: '',
+      maxlength: 80,
     },
     overlayColor: {
       type: String,
@@ -113,8 +128,11 @@ const bannerSchema = new mongoose.Schema(
   }
 );
 
-bannerSchema.index({ pageName: 1, isActive: 1, deletedAt: 1, displayOrder: 1 });
+bannerSchema.index({ pageType: 1, isActive: 1, deletedAt: 1, displayOrder: 1 });
 
 const Banner = mongoose.model('Banner', bannerSchema);
 
 export default Banner;
+
+// Legacy export for existing imports
+export const BANNER_PAGE_NAMES = BANNER_PAGE_TYPES;

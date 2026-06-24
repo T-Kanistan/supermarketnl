@@ -11,16 +11,17 @@ import './AdminBanners.css';
 const PAGE_FILTER_OPTIONS = [{ value: 'all', label: 'All Pages' }, ...BANNER_PAGE_OPTIONS];
 
 const emptyForm = () => ({
-  pageName: 'home',
+  pageType: 'home',
   badgeText: '',
-  mainHeading: '',
-  highlightText: '',
+  title: '',
+  highlightedTitle: '',
   description: '',
-  button1Text: '',
-  button1Url: '',
-  button2Text: '',
-  button2Url: '',
-  image: '',
+  buttonText: '',
+  buttonUrl: '',
+  backgroundImage: '',
+  sideCardTitle: '',
+  sideCardDescription: '',
+  sideCardIcon: '',
   overlayColor: '#0f172a',
   overlayOpacity: 0.55,
   displayOrder: 0,
@@ -59,7 +60,7 @@ export const AdminBanners = () => {
     setLoading(true);
     try {
       const result = await bannerService.listBanners({
-        pageName: pageFilter,
+        pageType: pageFilter,
         q: searchQuery || undefined,
         page: pagination.page,
         limit: pagination.limit,
@@ -105,16 +106,17 @@ export const AdminBanners = () => {
     setEditingBanner(banner);
     setImageFile(null);
     setFormData({
-      pageName: banner.pageName || 'home',
+      pageType: banner.pageType || banner.pageName || 'home',
       badgeText: banner.badgeText || '',
-      mainHeading: banner.mainHeading || '',
-      highlightText: banner.highlightText || '',
+      title: banner.title || banner.mainHeading || '',
+      highlightedTitle: banner.highlightedTitle || banner.highlightText || '',
       description: banner.description || '',
-      button1Text: banner.button1Text || '',
-      button1Url: banner.button1Url || '',
-      button2Text: banner.button2Text || '',
-      button2Url: banner.button2Url || '',
-      image: banner.image || '',
+      buttonText: banner.buttonText || banner.button1Text || '',
+      buttonUrl: banner.buttonUrl || banner.button1Url || '',
+      backgroundImage: banner.backgroundImage || banner.image || '',
+      sideCardTitle: banner.sideCardTitle || '',
+      sideCardDescription: banner.sideCardDescription || '',
+      sideCardIcon: banner.sideCardIcon || '',
       overlayColor: banner.overlayColor || '#0f172a',
       overlayOpacity: banner.overlayOpacity ?? 0.55,
       displayOrder: banner.displayOrder ?? 0,
@@ -153,12 +155,12 @@ export const AdminBanners = () => {
 
     const previewUrl = URL.createObjectURL(file);
     setImageFile(file);
-    setFormData((prev) => ({ ...prev, image: previewUrl }));
+    setFormData((prev) => ({ ...prev, backgroundImage: previewUrl }));
     setIsUploading(true);
 
     try {
       const imageUrl = await bannerService.uploadBannerImage(file);
-      setFormData((prev) => ({ ...prev, image: imageUrl }));
+      setFormData((prev) => ({ ...prev, backgroundImage: imageUrl }));
       addToast('Banner image uploaded successfully', 'success');
     } catch (err) {
       console.error('Banner upload failed', err);
@@ -169,15 +171,15 @@ export const AdminBanners = () => {
   };
 
   const validateForm = () => {
-    if (!formData.pageName) {
-      addToast('Page name is required', 'error');
+    if (!formData.pageType) {
+      addToast('Page type is required', 'error');
       return false;
     }
-    if (!formData.mainHeading?.trim()) {
-      addToast('Main heading is required', 'error');
+    if (!formData.title?.trim()) {
+      addToast('Title is required', 'error');
       return false;
     }
-    if (!formData.image || formData.image.startsWith('blob:')) {
+    if (!formData.backgroundImage || formData.backgroundImage.startsWith('blob:')) {
       addToast('Please upload a banner image before saving', 'error');
       return false;
     }
@@ -227,7 +229,7 @@ export const AdminBanners = () => {
       addToast('Unable to delete banner: missing ID', 'error');
       return;
     }
-    if (!window.confirm(`Delete banner for ${getPageBannerLabel(banner.pageName)}?`)) return;
+    if (!window.confirm(`Delete banner for ${getPageBannerLabel(banner.pageType || banner.pageName)}?`)) return;
 
     try {
       await bannerService.deleteBanner(bannerId);
@@ -245,8 +247,24 @@ export const AdminBanners = () => {
     setSearchQuery(searchInput.trim());
   };
 
+  const handleToggleStatus = async (banner) => {
+    const bannerId = getBannerId(banner);
+    if (!bannerId) {
+      addToast('Unable to update banner: missing ID', 'error');
+      return;
+    }
+    try {
+      await bannerService.updateBannerStatus(bannerId, !banner.isActive);
+      addToast(`Banner ${banner.isActive ? 'deactivated' : 'activated'} successfully`, 'success');
+      fetchBanners();
+    } catch (err) {
+      console.error('Failed to update banner status', err);
+      addToast(err.response?.data?.message || 'Failed to update banner status', 'error');
+    }
+  };
+
   const previewImage =
-    getImageUrl(formData.image) ||
+    getImageUrl(formData.backgroundImage) ||
     'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=2000';
 
   return (
@@ -303,8 +321,8 @@ export const AdminBanners = () => {
               <tr>
                 <th>Banner Preview</th>
                 <th>Page Name</th>
-                <th>Heading</th>
-                <th>Sub Heading</th>
+                <th>Title</th>
+                <th>Highlighted</th>
                 <th>Status</th>
                 <th>Last Updated</th>
                 <th>Actions</th>
@@ -312,10 +330,10 @@ export const AdminBanners = () => {
             </thead>
             <tbody>
               {banners.map((banner) => (
-                <tr key={getBannerId(banner) || banner.pageName}>
+                <tr key={getBannerId(banner) || banner.pageType}>
                   <td data-label="Banner Preview">
                     <img
-                      src={getImageUrl(banner.image)}
+                      src={getImageUrl(banner.backgroundImage || banner.image)}
                       alt=""
                       className="admin-banner-thumb"
                       onError={(e) => {
@@ -325,14 +343,23 @@ export const AdminBanners = () => {
                     />
                   </td>
                   <td data-label="Page Name">
-                    <div className="admin-banner-page-label">{getPageBannerLabel(banner.pageName)}</div>
+                    <div className="admin-banner-page-label">
+                      {getPageBannerLabel(banner.pageType || banner.pageName)}
+                    </div>
                   </td>
-                  <td data-label="Heading">{banner.mainHeading || '—'}</td>
-                  <td data-label="Sub Heading">{banner.highlightText || banner.badgeText || '—'}</td>
+                  <td data-label="Title">{banner.title || banner.mainHeading || '—'}</td>
+                  <td data-label="Highlighted">
+                    {banner.highlightedTitle || banner.highlightText || banner.badgeText || '—'}
+                  </td>
                   <td data-label="Status">
-                    <span className={`status-pill ${banner.isActive ? 'active' : 'inactive'}`}>
+                    <button
+                      type="button"
+                      className={`status-pill ${banner.isActive ? 'active' : 'inactive'}`}
+                      onClick={() => handleToggleStatus(banner)}
+                      title={banner.isActive ? 'Click to deactivate' : 'Click to activate'}
+                    >
                       {banner.isActive ? 'Active' : 'Inactive'}
-                    </span>
+                    </button>
                   </td>
                   <td data-label="Last Updated">{formatDate(banner.updatedAt)}</td>
                   <td data-label="Actions">
@@ -421,8 +448,8 @@ export const AdminBanners = () => {
               <div className="modal-body admin-banner-modal-grid">
                 <div>
                   <div className="admin-form-group">
-                    <label>Page Name</label>
-                    <select name="pageName" value={formData.pageName} onChange={handleChange} required>
+                    <label>Page Type</label>
+                    <select name="pageType" value={formData.pageType} onChange={handleChange} required>
                       {BANNER_PAGE_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value}>
                           {option.label}
@@ -463,12 +490,12 @@ export const AdminBanners = () => {
 
                   <div className="admin-form-group row-split">
                     <div>
-                      <label>Main Heading</label>
-                      <input type="text" name="mainHeading" value={formData.mainHeading} onChange={handleChange} required maxLength={200} />
+                      <label>Title</label>
+                      <input type="text" name="title" value={formData.title} onChange={handleChange} required maxLength={200} />
                     </div>
                     <div>
-                      <label>Highlight Heading Text</label>
-                      <input type="text" name="highlightText" value={formData.highlightText} onChange={handleChange} maxLength={200} />
+                      <label>Highlighted Title</label>
+                      <input type="text" name="highlightedTitle" value={formData.highlightedTitle} onChange={handleChange} maxLength={200} />
                     </div>
                   </div>
 
@@ -479,24 +506,29 @@ export const AdminBanners = () => {
 
                   <div className="admin-form-group row-split">
                     <div>
-                      <label>Button 1 Text</label>
-                      <input type="text" name="button1Text" value={formData.button1Text} onChange={handleChange} maxLength={80} />
+                      <label>Button Text</label>
+                      <input type="text" name="buttonText" value={formData.buttonText} onChange={handleChange} maxLength={80} />
                     </div>
                     <div>
-                      <label>Button 1 URL</label>
-                      <input type="text" name="button1Url" value={formData.button1Url} onChange={handleChange} />
+                      <label>Button URL</label>
+                      <input type="text" name="buttonUrl" value={formData.buttonUrl} onChange={handleChange} />
                     </div>
                   </div>
 
                   <div className="admin-form-group row-split">
                     <div>
-                      <label>Button 2 Text</label>
-                      <input type="text" name="button2Text" value={formData.button2Text} onChange={handleChange} maxLength={80} />
+                      <label>Side Card Title</label>
+                      <input type="text" name="sideCardTitle" value={formData.sideCardTitle} onChange={handleChange} maxLength={120} placeholder="e.g. Open Time (home page)" />
                     </div>
                     <div>
-                      <label>Button 2 URL</label>
-                      <input type="text" name="button2Url" value={formData.button2Url} onChange={handleChange} />
+                      <label>Side Card Icon</label>
+                      <input type="text" name="sideCardIcon" value={formData.sideCardIcon} onChange={handleChange} maxLength={80} placeholder="e.g. clock" />
                     </div>
+                  </div>
+
+                  <div className="admin-form-group">
+                    <label>Side Card Description</label>
+                    <input type="text" name="sideCardDescription" value={formData.sideCardDescription} onChange={handleChange} maxLength={300} />
                   </div>
 
                   <div className="admin-form-group row-split">
@@ -541,11 +573,11 @@ export const AdminBanners = () => {
                         <span className="admin-banner-live-badge">{formData.badgeText}</span>
                       ) : null}
                       <h4 className="admin-banner-live-title">
-                        {formData.mainHeading || 'Main Heading'}
-                        {formData.highlightText ? (
+                        {formData.title || 'Title'}
+                        {formData.highlightedTitle ? (
                           <>
                             <br />
-                            <span className="admin-banner-live-highlight">{formData.highlightText}</span>
+                            <span className="admin-banner-live-highlight">{formData.highlightedTitle}</span>
                           </>
                         ) : null}
                       </h4>
@@ -553,11 +585,8 @@ export const AdminBanners = () => {
                         <p className="admin-banner-live-desc">{formData.description}</p>
                       ) : null}
                       <div className="admin-banner-live-buttons">
-                        {formData.button1Text ? (
-                          <span className="admin-banner-live-btn">{formData.button1Text}</span>
-                        ) : null}
-                        {formData.button2Text ? (
-                          <span className="admin-banner-live-btn secondary">{formData.button2Text}</span>
+                        {formData.buttonText ? (
+                          <span className="admin-banner-live-btn">{formData.buttonText}</span>
                         ) : null}
                       </div>
                     </div>
@@ -586,21 +615,22 @@ export const AdminBanners = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="modal-header">
-              <h3>{getPageBannerLabel(viewingBanner.pageName)} Banner</h3>
+              <h3>{getPageBannerLabel(viewingBanner.pageType || viewingBanner.pageName)} Banner</h3>
               <button type="button" className="modal-close-btn" onClick={() => setIsViewOpen(false)}>
                 &times;
               </button>
             </div>
             <div className="modal-body">
               <img
-                src={getImageUrl(viewingBanner.image)}
+                src={getImageUrl(viewingBanner.backgroundImage || viewingBanner.image)}
                 alt=""
                 style={{ width: '100%', borderRadius: '12px', marginBottom: '16px', maxHeight: '220px', objectFit: 'cover' }}
               />
-              <p><strong>Main Heading:</strong> {viewingBanner.mainHeading}</p>
-              <p><strong>Highlight:</strong> {viewingBanner.highlightText || '—'}</p>
+              <p><strong>Title:</strong> {viewingBanner.title || viewingBanner.mainHeading}</p>
+              <p><strong>Highlighted Title:</strong> {viewingBanner.highlightedTitle || viewingBanner.highlightText || '—'}</p>
               <p><strong>Badge:</strong> {viewingBanner.badgeText || '—'}</p>
               <p><strong>Description:</strong> {viewingBanner.description || '—'}</p>
+              <p><strong>Button:</strong> {viewingBanner.buttonText || viewingBanner.button1Text || '—'}</p>
               <p><strong>Status:</strong> {viewingBanner.isActive ? 'Active' : 'Inactive'}</p>
               <p><strong>Last Updated:</strong> {formatDate(viewingBanner.updatedAt)}</p>
             </div>

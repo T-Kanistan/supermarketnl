@@ -1,6 +1,10 @@
 import { logStartupEnvironment } from './config/env.js';
 import connectMongo, { disconnectMongo } from './config/mongo.js';
 import { migrateProductStatus } from './migrations/migrateProductStatus.js';
+import { migrateShowOnHomepage } from './migrations/migrateShowOnHomepage.js';
+import { seedPageBanners } from './migrations/migratePageBanners.js';
+import { verifySmtpConnection } from './services/emailService.js';
+import { isCloudinaryConfigured } from './services/uploadService.js';
 import app from './app.js';
 import { startAnnouncementExpiryJob } from './jobs/announcementExpiryJob.js';
 
@@ -36,9 +40,19 @@ const startServer = async () => {
   });
 
   try {
+    console.log('[Server] Attempting MongoDB Atlas connection via MONGODB_URI...');
     await connectMongo();
+    console.log('[Server] MongoDB Atlas connection established — database is ready.');
     await migrateProductStatus();
+    await migrateShowOnHomepage();
+    await seedPageBanners();
     startAnnouncementExpiryJob();
+    await verifySmtpConnection();
+    if (isCloudinaryConfigured()) {
+      console.log('[Server] Cloudinary configured — uploads will persist to cloud storage.');
+    } else {
+      console.warn('[Server] Cloudinary not configured — uploads stored locally (not persistent on ephemeral hosts).');
+    }
     console.log('[Server] Startup complete — MongoDB connected and routes ready.');
   } catch (error) {
     console.error('[SERVER STARTUP FAILED] MongoDB connection could not be established.');

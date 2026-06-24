@@ -121,7 +121,7 @@ export const formatProduct = (doc) => {
   const productType = plain.type ? normalizeProductType(plain.type) : normalizeProductType(plain.productType);
   const productName = plain.productName || plain.name || '';
   const imageUrl = plain.imageUrl || plain.image || '';
-  const featuredProduct = Boolean(plain.featuredProduct ?? plain.isFeatured);
+  const featuredProduct = Boolean(plain.showOnHomepage ?? plain.featuredProduct ?? plain.isFeatured);
   const stockStatus =
     plain.stockStatus || (Number(plain.stock) > 0 ? 'in_stock' : 'out_of_stock');
 
@@ -132,6 +132,7 @@ export const formatProduct = (doc) => {
     productName,
     imageUrl,
     featuredProduct,
+    showOnHomepage: featuredProduct,
     stockStatus,
     weightUnit: plain.weightUnit || plain.weight || '',
     shortDescription: plain.shortDescription || plain.description || '',
@@ -168,6 +169,12 @@ export const formatProductListItem = (doc) => {
     image: plain.imageUrl || plain.image || '',
     imageUrl: plain.imageUrl || plain.image || '',
     status,
+    featuredProduct: plain.featuredProduct,
+    showOnHomepage: plain.showOnHomepage,
+    isFeatured: plain.isFeatured,
+    productType: plain.productType,
+    name: plain.name || plain.productName,
+    stock: plain.stock,
     createdAt: plain.createdAt,
   };
 };
@@ -202,11 +209,17 @@ export const buildProductFilter = (query = {}, { publicOnly = false } = {}) => {
     filter.categoryId = category;
   }
 
-  const featured = parseBoolean(query.featuredProduct ?? query.isFeatured);
+  const featured = parseBoolean(
+    query.showOnHomepage ?? query.featuredProduct ?? query.isFeatured ?? query.featured
+  );
   if (featured !== undefined) {
     filter.$and = filter.$and || [];
     filter.$and.push({
-      $or: [{ featuredProduct: featured }, { isFeatured: featured }],
+      $or: [
+        { showOnHomepage: featured },
+        { featuredProduct: featured },
+        { isFeatured: featured },
+      ],
     });
   }
 
@@ -267,14 +280,18 @@ export const normalizeProductPayload = async (body, { isUpdate = false } = {}) =
     throw error;
   }
 
+  const featuredValue =
+    parseBoolean(body.showOnHomepage ?? body.featuredProduct ?? body.isFeatured ?? body.featured) ??
+    false;
+
   const payload = {
     productType,
     productName,
     categoryId,
     categoryName,
     price,
-    featuredProduct:
-      parseBoolean(body.featuredProduct ?? body.isFeatured ?? body.featured) ?? false,
+    featuredProduct: featuredValue,
+    showOnHomepage: featuredValue,
     status: ['active', 'inactive'].includes(body.status) ? body.status : 'active',
   };
 
@@ -358,10 +375,12 @@ export const buildPartialProductUpdate = async (body, existing) => {
     }
   }
 
-  if (hasField(body, 'featuredProduct', 'isFeatured', 'featured')) {
-    update.featuredProduct = Boolean(
-      parseBoolean(body.featuredProduct ?? body.isFeatured ?? body.featured)
+  if (hasField(body, 'featuredProduct', 'isFeatured', 'featured', 'showOnHomepage')) {
+    const featuredValue = Boolean(
+      parseBoolean(body.showOnHomepage ?? body.featuredProduct ?? body.isFeatured ?? body.featured)
     );
+    update.featuredProduct = featuredValue;
+    update.showOnHomepage = featuredValue;
   }
 
   if (body.status !== undefined) {
@@ -424,7 +443,11 @@ export const listProducts = async (query = {}, options = {}) => {
 export const getFeaturedProducts = async () => {
   const products = await Product.find({
     status: 'active',
-    $or: [{ featuredProduct: true }, { isFeatured: true }],
+    $or: [
+      { showOnHomepage: true },
+      { featuredProduct: true },
+      { isFeatured: true },
+    ],
   }).sort({ createdAt: -1 });
   return products.map(formatProduct);
 };
@@ -470,11 +493,6 @@ export const createProduct = async (body, user) => {
 
 export const updateProduct = async (id, body, user) => {
   const role = user?.role || user?.accountType;
-  if (role === 'manager') {
-    const error = new Error('Managers can only change product status');
-    error.statusCode = 403;
-    throw error;
-  }
 
   const product = await Product.findOne({ _id: id, status: { $ne: 'deleted' } });
   if (!product) {
@@ -484,6 +502,9 @@ export const updateProduct = async (id, body, user) => {
   }
 
   const updateData = await buildPartialProductUpdate(body, product);
+  if (role === 'manager') {
+    delete updateData.productType;
+  }
   if (Object.keys(updateData).length === 0) {
     return formatProduct(product);
   }

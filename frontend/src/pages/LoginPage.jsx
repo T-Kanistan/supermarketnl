@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
-import { FaEnvelope, FaLock, FaEye, FaEyeSlash, FaShieldAlt } from 'react-icons/fa';
+import { FaEnvelope, FaLock, FaEye, FaEyeSlash, FaShieldAlt, FaSignInAlt } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useCMS } from '../context/CMSContext';
@@ -87,28 +87,9 @@ export const LoginPage = () => {
     <div className="modern-auth-page login-page-enter">
       <div className="auth-split-layout">
         <div className="auth-brand-side">
-          <div
-            className="brand-overlay"
-            style={{
-              background:
-                'linear-gradient(135deg, rgba(0, 78, 137, 0.65) 0%, rgba(15, 23, 42, 0.95) 100%)',
-            }}
-          />
+          <div className="brand-overlay" />
           <div className="brand-content">
-            <div className="trust-badge animate-fade-in-up">
-              <FaShieldAlt className="shield-icon" />
-              <span>Secure Management Portal</span>
-            </div>
-            <h1 className="brand-heading animate-fade-in-up delay-1">{storeName}</h1>
-            <p className="brand-subtext animate-fade-in-up delay-2">
-              Admin and Manager access to manage products, offers, enquiries, and store content.
-            </p>
-          </div>
-        </div>
-
-        <div className="auth-form-side">
-          <div className="auth-form-card animate-fade-in">
-            <div className="login-brand-logo">
+            <div className="brand-logo-wrap animate-fade-in-up">
               <img
                 src={storeLogo}
                 alt={storeName}
@@ -117,36 +98,33 @@ export const LoginPage = () => {
                 }}
               />
             </div>
+            <h1 className="brand-welcome animate-fade-in-up delay-1">Welcome Back!</h1>
+            <p className="brand-tagline animate-fade-in-up delay-2">
+              Secure access for Admins and Managers.
+            </p>
+            <div className="brand-feature-box animate-fade-in-up delay-3">
+              <div className="brand-feature-icon">
+                <FaShieldAlt />
+              </div>
+              <div>
+                <strong>Secure Management Portal</strong>
+                <p>Manage products, offers, enquiries and store content with ease.</p>
+              </div>
+            </div>
+          </div>
+        </div>
 
+        <div className="auth-form-side">
+          <div className="auth-form-card animate-fade-in">
             <div className="form-header">
               <h2>Sign In</h2>
               <p>Enter your credentials to access the dashboard.</p>
             </div>
 
             {accessDenied ? (
-              <div
-                className="login-access-denied"
-                role="alert"
-                style={{
-                  marginBottom: '20px',
-                  padding: '14px 16px',
-                  borderRadius: '12px',
-                  background: '#fef2f2',
-                  border: '1px solid #fecaca',
-                  color: '#b91c1c',
-                  fontWeight: 600,
-                  lineHeight: 1.5,
-                }}
-              >
+              <div className="login-access-denied" role="alert">
                 {DASHBOARD_ACCESS_DENIED}
               </div>
-            ) : null}
-
-            {import.meta.env.DEV ? (
-              <p className="auth-credentials-hint">
-                Dev login: <strong>admin@winswereldwinkel.nl</strong> or{' '}
-                <strong>admin@store.com</strong> / <strong>Admin@123</strong>
-              </p>
             ) : null}
 
             <form className="modern-auth-form" onSubmit={handleSubmit}>
@@ -158,7 +136,7 @@ export const LoginPage = () => {
                     type="email"
                     id="email"
                     name="email"
-                    placeholder="admin@winswereldwinkel.nl"
+                    placeholder="Enter your email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     autoComplete="email"
@@ -201,7 +179,7 @@ export const LoginPage = () => {
                   />
                   Remember Me
                 </label>
-                <Link to="/contact" className="forgot-link">
+                <Link to="/forgot-password" className="forgot-link">
                   Forgot Password?
                 </Link>
               </div>
@@ -211,9 +189,20 @@ export const LoginPage = () => {
                 className={`primary-login-btn brand-login-btn ${isSubmitting ? 'loading' : ''}`}
                 disabled={isSubmitting}
               >
-                {isSubmitting ? <span className="loader" /> : 'Login'}
+                {isSubmitting ? (
+                  <span className="loader" />
+                ) : (
+                  <>
+                    <FaSignInAlt className="sign-in-icon" />
+                    Sign In
+                  </>
+                )}
               </button>
             </form>
+
+            <div className="social-login-divider">
+              <span>OR</span>
+            </div>
 
             <p className="auth-redirect">
               Return to storefront?{' '}

@@ -97,7 +97,6 @@ const ensureSiteSettings = async () => {
 export const getSiteSettings = async () => {
   const settings = await ensureSiteSettings();
   const apiSettings = mapDocToApi(settings);
-  console.log('Fetching Settings:', apiSettings);
   return apiSettings;
 };
 
@@ -129,7 +128,6 @@ export const updateSiteSettings = async (body = {}, file, user) => {
   await syncRelatedStores(settings);
 
   const apiSettings = mapDocToApi(settings);
-  console.log('Fetching Settings:', apiSettings);
   return apiSettings;
 };
 

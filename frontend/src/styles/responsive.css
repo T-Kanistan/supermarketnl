@@ -1,13 +1,13 @@
-/**
- * Wins Wereld Winkel — Responsive Design System
+﻿/**
+ * Wins Wereld Winkel â€” Responsive Design System
  * Breakpoints:
- *   Mobile:  320px – 767px   (max-width: 767px)
- *   Tablet:  768px – 1023px  (min-width: 768px) and (max-width: 1023px)
- *   Laptop:  1024px – 1439px (min-width: 1024px) and (max-width: 1439px)
+ *   Mobile:  320px â€“ 767px   (max-width: 767px)
+ *   Tablet:  768px â€“ 1023px  (min-width: 768px) and (max-width: 1023px)
+ *   Laptop:  1024px â€“ 1439px (min-width: 1024px) and (max-width: 1439px)
  *   Desktop: 1440px+         (min-width: 1440px)
  */
 
-/* ─── Global layout & overflow ─── */
+/* â”€â”€â”€ Global layout & overflow â”€â”€â”€ */
 html {
   -webkit-text-size-adjust: 100%;
   scroll-behavior: smooth;
@@ -36,7 +36,7 @@ iframe {
   border: 0;
 }
 
-/* ─── Container tiers ─── */
+/* â”€â”€â”€ Container tiers â”€â”€â”€ */
 @media (min-width: 1440px) {
   .container {
     max-width: 1440px;
@@ -60,7 +60,7 @@ iframe {
   }
 }
 
-/* ─── Touch-friendly controls (mobile) ─── */
+/* â”€â”€â”€ Touch-friendly controls (mobile) â”€â”€â”€ */
 @media (max-width: 767px) {
   .btn-primary,
   .btn-secondary,
@@ -82,7 +82,7 @@ iframe {
   }
 }
 
-/* ─── Standard 4 / 2 / 1 product & card grids ─── */
+/* â”€â”€â”€ Standard 4 / 2 / 1 product & card grids â”€â”€â”€ */
 .store-product-grid,
 .products-page-grid.store-product-grid,
 .fc-grid {
@@ -131,7 +131,7 @@ iframe {
   height: 100%;
 }
 
-/* ─── Header / Navbar ─── */
+/* â”€â”€â”€ Header / Navbar â”€â”€â”€ */
 @media (max-width: 1023px) {
   .main-header {
     height: 80px;
@@ -219,7 +219,7 @@ iframe {
   }
 }
 
-/* ─── Hero sections (home + page heroes) ─── */
+/* â”€â”€â”€ Hero sections (home + page heroes) â”€â”€â”€ */
 @media (max-width: 1199px) {
   .hero,
   .hero-loading {
@@ -313,7 +313,7 @@ iframe {
   }
 }
 
-/* ─── Food Corner category tabs ─── */
+/* â”€â”€â”€ Food Corner category tabs â”€â”€â”€ */
 @media (max-width: 767px) {
   .fc-category-tabs {
     display: flex;
@@ -343,7 +343,7 @@ iframe {
   }
 }
 
-/* ─── About Us ─── */
+/* â”€â”€â”€ About Us â”€â”€â”€ */
 @media (max-width: 1023px) {
   .about-story-panel,
   .about-intro-card,
@@ -404,7 +404,7 @@ iframe {
   }
 }
 
-/* ─── Vacancies ─── */
+/* â”€â”€â”€ Vacancies â”€â”€â”€ */
 @media (max-width: 1023px) {
   .careers-main-grid {
     grid-template-columns: 1fr;
@@ -472,7 +472,7 @@ iframe {
   }
 }
 
-/* ─── Contact page ─── */
+/* â”€â”€â”€ Contact page â”€â”€â”€ */
 @media (max-width: 1023px) {
   .contact-align-grid,
   .contact-location-grid {
@@ -519,7 +519,7 @@ iframe {
   }
 }
 
-/* ─── Footer ─── */
+/* â”€â”€â”€ Footer â”€â”€â”€ */
 @media (min-width: 1024px) and (max-width: 1439px) {
   .footer-main-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -555,7 +555,7 @@ iframe {
   }
 }
 
-/* ─── Home sections ─── */
+/* â”€â”€â”€ Home sections â”€â”€â”€ */
 @media (min-width: 768px) and (max-width: 1023px) {
   .features-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -584,7 +584,7 @@ iframe {
   }
 }
 
-/* ─── Products page layout ─── */
+/* â”€â”€â”€ Products page layout â”€â”€â”€ */
 @media (max-width: 1023px) {
   .products-layout {
     flex-direction: column;
@@ -786,39 +786,16 @@ iframe {
   }
 }
 
-/* ─── Auth / Login ─── */
-@media (max-width: 767px) {
-  .modern-auth-page {
-    padding: 16px;
+/* â”€â”€â”€ Auth / Login â”€â”€â”€ */
+@media (max-width: 768px) {
+  .auth-page,
+  .auth-split {
+    height: 100dvh;
     min-height: 100dvh;
-  }
-
-  .auth-split-layout {
-    border-radius: 16px;
-    min-height: auto;
-  }
-
-  .auth-brand-side {
-    min-height: 200px;
-    padding: 28px 20px;
-  }
-
-  .brand-heading {
-    font-size: clamp(1.6rem, 6vw, 2.2rem);
-  }
-
-  .auth-form-side {
-    padding: 24px 20px;
-  }
-
-  .form-options {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
   }
 }
 
-/* ─── FAQ, Offers, Terms ─── */
+/* â”€â”€â”€ FAQ, Offers, Terms â”€â”€â”€ */
 @media (max-width: 767px) {
   .faq-page,
   .offers-page,
@@ -827,7 +804,7 @@ iframe {
   }
 }
 
-/* ─── Enquiry modal ─── */
+/* â”€â”€â”€ Enquiry modal â”€â”€â”€ */
 @media (max-width: 767px) {
   .enquiry-modal-overlay {
     padding: 0;
@@ -843,7 +820,7 @@ iframe {
   }
 }
 
-/* ─── Utility: hide on mobile / tablet ─── */
+/* â”€â”€â”€ Utility: hide on mobile / tablet â”€â”€â”€ */
 @media (max-width: 767px) {
   .hide-mobile {
     display: none !important;

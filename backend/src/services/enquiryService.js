@@ -3,6 +3,11 @@ import { sanitizeEnquiryInput } from '../utils/sanitize.js';
 import { buildWhatsAppLink, sendEnquiryReplyEmail, truncate } from './emailService.js';
 import { createEnquiryNotification, markEnquiryNotificationsRead } from './notificationService.js';
 import { logActivity } from './activityLogService.js';
+import {
+  ENQUIRY_PUBLIC_STATUSES,
+  normalizeEnquiryStatus,
+  statusMatchesFilter,
+} from '../constants/enquiryStatuses.js';
 
 const startOfDay = (date) => {
   const d = new Date(date);
@@ -16,19 +21,26 @@ const endOfDay = (date) => {
   return d;
 };
 
+const syncReadFlag = (enquiry, status) => {
+  enquiry.isRead = status !== 'New';
+};
+
 export const formatEnquiry = (doc) => {
   if (!doc) return null;
   const plain = doc.toObject ? doc.toObject() : { ...doc };
+  const status = normalizeEnquiryStatus(plain.status);
 
   return {
     ...plain,
     id: plain._id?.toString?.() ?? plain.id,
     name: plain.senderName,
     senderName: plain.senderName,
+    status,
     date: plain.createdAt,
     messagePreview: truncate(plain.message, 120),
     whatsappLink: buildWhatsAppLink(plain.phone),
-    effectiveStatus: plain.status === 'deleted' ? 'deleted' : plain.status,
+    source: plain.source || 'website',
+    effectiveStatus: plain.status === 'deleted' ? 'deleted' : status,
   };
 };
 
@@ -43,12 +55,7 @@ export const buildEnquiryFilter = (query = {}) => {
   const filter = { status: { $ne: 'deleted' } };
 
   if (query.status && query.status !== 'all') {
-    if (query.status === 'new') {
-      filter.status = 'new';
-      filter.isRead = false;
-    } else {
-      filter.status = query.status;
-    }
+    filter.status = { $in: statusMatchesFilter(query.status) };
   }
 
   if (query.enquiryType && query.enquiryType !== 'all') {
@@ -144,7 +151,8 @@ export const createEnquiry = async (body, enquiryType) => {
     productName: sanitized.productName || '',
     quantityRequired: sanitized.quantityRequired || '',
     attachment: sanitized.attachment || '',
-    status: 'new',
+    source: sanitized.source || 'website',
+    status: 'New',
     isRead: false,
   });
 
@@ -188,7 +196,15 @@ export const getEnquiryById = async (id) => {
   return formatEnquiry(enquiry);
 };
 
-export const markEnquiryRead = async (id, user) => {
+export const updateEnquiryStatus = async (id, statusInput, user) => {
+  const status = normalizeEnquiryStatus(statusInput);
+
+  if (!ENQUIRY_PUBLIC_STATUSES.includes(status)) {
+    const error = new Error('Invalid enquiry status');
+    error.statusCode = 400;
+    throw error;
+  }
+
   const enquiry = await CustomerEnquiry.findOne({ _id: id, status: { $ne: 'deleted' } });
   if (!enquiry) {
     const error = new Error('Enquiry not found');
@@ -196,66 +212,38 @@ export const markEnquiryRead = async (id, user) => {
     throw error;
   }
 
-  enquiry.isRead = true;
-  if (enquiry.status === 'new') enquiry.status = 'read';
-  await enquiry.save();
-  await markEnquiryNotificationsRead(enquiry._id);
+  enquiry.status = status;
+  syncReadFlag(enquiry, status);
 
-  await logActivity({
-    user,
-    action: 'READ',
-    module: 'ENQUIRY',
-    description: 'Enquiry marked as read',
-  });
-
-  return formatEnquiry(enquiry);
-};
-
-export const markEnquiryReplied = async (id, user) => {
-  const enquiry = await CustomerEnquiry.findOne({ _id: id, status: { $ne: 'deleted' } });
-  if (!enquiry) {
-    const error = new Error('Enquiry not found');
-    error.statusCode = 404;
-    throw error;
+  if (status === 'Replied') {
+    enquiry.repliedAt = new Date();
+    enquiry.repliedBy = user?._id || null;
   }
 
-  enquiry.status = 'replied';
-  enquiry.isRead = true;
-  enquiry.repliedAt = new Date();
-  enquiry.repliedBy = user?._id || null;
-  await enquiry.save();
-
-  await logActivity({
-    user,
-    action: 'REPLY',
-    module: 'ENQUIRY',
-    description: 'Admin replied to enquiry',
-  });
-
-  return formatEnquiry(enquiry);
-};
-
-export const closeEnquiry = async (id, user) => {
-  const enquiry = await CustomerEnquiry.findOne({ _id: id, status: { $ne: 'deleted' } });
-  if (!enquiry) {
-    const error = new Error('Enquiry not found');
-    error.statusCode = 404;
-    throw error;
+  if (status === 'Read') {
+    await markEnquiryNotificationsRead(enquiry._id);
   }
 
-  enquiry.status = 'closed';
-  enquiry.isRead = true;
   await enquiry.save();
 
   await logActivity({
     user,
     action: 'UPDATE',
     module: 'ENQUIRY',
-    description: 'Enquiry closed',
+    description: `Enquiry status changed to ${status}`,
   });
 
   return formatEnquiry(enquiry);
 };
+
+export const markEnquiryRead = async (id, user) =>
+  updateEnquiryStatus(id, 'Read', user);
+
+export const markEnquiryReplied = async (id, user) =>
+  updateEnquiryStatus(id, 'Replied', user);
+
+export const closeEnquiry = async (id, user) =>
+  updateEnquiryStatus(id, 'Closed', user);
 
 export const replyToEnquiry = async (id, replyMessage, user) => {
   const enquiry = await CustomerEnquiry.findOne({ _id: id, status: { $ne: 'deleted' } });
@@ -284,7 +272,7 @@ export const replyToEnquiry = async (id, replyMessage, user) => {
     repliedBy: user?._id || null,
     repliedAt: new Date(),
   });
-  enquiry.status = 'replied';
+  enquiry.status = 'Replied';
   enquiry.isRead = true;
   enquiry.repliedAt = new Date();
   enquiry.repliedBy = user?._id || null;
@@ -326,10 +314,10 @@ export const getEnquiryStats = async () => {
   const [totalEnquiries, newEnquiries, readEnquiries, repliedEnquiries, closedEnquiries] =
     await Promise.all([
       CustomerEnquiry.countDocuments(baseFilter),
-      CustomerEnquiry.countDocuments({ ...baseFilter, status: 'new', isRead: false }),
-      CustomerEnquiry.countDocuments({ status: 'read' }),
-      CustomerEnquiry.countDocuments({ status: 'replied' }),
-      CustomerEnquiry.countDocuments({ status: 'closed' }),
+      CustomerEnquiry.countDocuments({ ...baseFilter, status: { $in: statusMatchesFilter('New') } }),
+      CustomerEnquiry.countDocuments({ status: { $in: statusMatchesFilter('Read') } }),
+      CustomerEnquiry.countDocuments({ status: { $in: statusMatchesFilter('Replied') } }),
+      CustomerEnquiry.countDocuments({ status: { $in: statusMatchesFilter('Closed') } }),
     ]);
 
   return {
@@ -342,4 +330,4 @@ export const getEnquiryStats = async () => {
 };
 
 export const getUnreadEnquiryCount = async () =>
-  CustomerEnquiry.countDocuments({ status: 'new', isRead: false });
+  CustomerEnquiry.countDocuments({ status: { $in: statusMatchesFilter('New') } });

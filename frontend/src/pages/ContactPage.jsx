@@ -14,9 +14,11 @@ import {
 } from 'react-icons/fi';
 import { FaFacebook, FaInstagram, FaWhatsapp, FaTiktok, FaYoutube } from 'react-icons/fa';
 import { useToast } from '../context/ToastContext';
+import { useCMS } from '../context/CMSContext';
 import { mergeContactPage } from '../constants/contactPageDefaults';
 import contactSettingsService from '../services/contactSettingsService';
 import cmsService from '../services/cmsService';
+import { ENQUIRY_SUBMIT_SUCCESS_MESSAGE } from '../constants/enquiryMessages';
 import usePageBanner from '../hooks/usePageBanner';
 import { getBannerOverlayStyle } from '../utils/bannerOverlay';
 import { getImageUrl } from '../services/api';
@@ -24,6 +26,7 @@ import './ContactPage.css';
 
 const ContactPage = () => {
   const { addToast } = useToast();
+  const { cmsData } = useCMS();
   const [contactData, setContactData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
@@ -76,16 +79,18 @@ const ContactPage = () => {
 
   const contact = mergeContactPage(contactData.contactPage);
   const heroBadge = pageBanner.badgeText || contact.heroBadge;
-  const heroTitle = pageBanner.highlightText
-    ? `${pageBanner.mainHeading} ${pageBanner.highlightText}`.trim()
-    : pageBanner.mainHeading || contact.heroTitle;
+  const heroTitle = pageBanner.highlightedTitle || pageBanner.highlightText
+    ? `${pageBanner.title || pageBanner.mainHeading} ${pageBanner.highlightedTitle || pageBanner.highlightText}`.trim()
+    : pageBanner.title || pageBanner.mainHeading || contact.heroTitle;
   const heroSubtitle = pageBanner.description || contact.heroSubtitle;
   const phone = contactData.contactPhone || '';
   const email = contactData.contactEmail || '';
   const address = contactData.address || '';
   const storeName = contactData.storeName || '';
-  const supermarketHours = contactData.supermarketTimings || '';
-  const foodCornerHours = contactData.foodCornerTimings || '';
+  const supermarketHours =
+    cmsData?.supermarketTimings || contactData.supermarketTimings || '';
+  const foodCornerHours =
+    cmsData?.foodCornerTimings || contactData.foodCornerTimings || '';
   const socials = contactData.socials || {};
 
   const phoneHref = phone ? `tel:${phone.replace(/[^\d+]/g, '')}` : '#';
@@ -108,7 +113,7 @@ const ContactPage = () => {
     setIsSubmitting(true);
     try {
       await cmsService.submitContactMessage(formData);
-      addToast('Thank you! Your message has been sent successfully.', 'success');
+      addToast(ENQUIRY_SUBMIT_SUCCESS_MESSAGE, 'success');
       setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
     } catch (err) {
       console.error('Submit contact message failed', err);
@@ -124,7 +129,7 @@ const ContactPage = () => {
       <section className={`contact-hero${bannerLoading ? ' contact-hero--loading' : ''}`}>
         <div
           className="contact-hero-bg"
-          style={{ backgroundImage: `url('${getImageUrl(pageBanner.image)}')` }}
+          style={{ backgroundImage: `url('${getImageUrl(pageBanner.backgroundImage || pageBanner.image)}')` }}
           aria-hidden="true"
         />
         <div className="contact-hero-overlay" style={getBannerOverlayStyle(pageBanner)} />

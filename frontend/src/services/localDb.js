@@ -116,11 +116,6 @@ const defaultMessages = [
   { id: '1', name: 'John Doe', email: 'john@example.com', phone: '+31600000000', subject: 'Inquiry about bulk order', message: 'Hello, do you support wholesale orders of basmati rice?', date: '2026-06-16T12:00:00.000Z', isRead: false }
 ];
 
-const defaultManagers = [
-  { id: '1', name: 'System Admin', email: 'admin@supermarket.com', password: 'admin123', role: 'admin' },
-  { id: '2', name: 'John Manager', email: 'manager@supermarket.com', password: 'manager123', role: 'manager' }
-];
-
 const initDb = () => {
   if (!localStorage.getItem(STORAGE_KEYS.SETTINGS)) {
     localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(defaultSettings));
@@ -151,9 +146,6 @@ const initDb = () => {
   }
   if (!localStorage.getItem(STORAGE_KEYS.MESSAGES)) {
     localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(defaultMessages));
-  }
-  if (!localStorage.getItem(STORAGE_KEYS.MANAGERS)) {
-    localStorage.setItem(STORAGE_KEYS.MANAGERS, JSON.stringify(defaultManagers));
   }
 };
 

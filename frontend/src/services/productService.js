@@ -20,13 +20,15 @@ const extractApiError = (error, fallback = 'Request failed') => {
 
 const toApiPayload = (data) => {
   const productType = mapProductType(data.productType || data.type || data.productCatalogType);
+  const featured = Boolean(data.showOnHomepage ?? data.featuredProduct ?? data.isFeatured ?? data.featured);
   const payload = {
     productType,
     productName: data.productName || data.name,
     categoryId: data.categoryId || data.category || data.categoryName,
     price: Number(data.price),
     imageUrl: data.imageUrl || data.image,
-    featuredProduct: Boolean(data.featuredProduct ?? data.isFeatured ?? data.featured),
+    showOnHomepage: featured,
+    featuredProduct: featured,
     status: data.status || 'active',
   };
 
@@ -37,6 +39,7 @@ const toApiPayload = (data) => {
     payload.weightUnit = data.weightUnit || data.weightUnitSize || data.weight || '';
   } else {
     payload.menuDisplayTiming = data.menuDisplayTiming || data.displayTime || '';
+    payload.description = data.description || data.shortDescription || '';
   }
 
   return payload;
@@ -61,8 +64,17 @@ const toUpdatePayload = (data) => {
   if (data.imageUrl !== undefined || data.image !== undefined) {
     payload.imageUrl = data.imageUrl || data.image;
   }
-  if (data.featuredProduct !== undefined || data.isFeatured !== undefined || data.featured !== undefined) {
-    payload.featuredProduct = Boolean(data.featuredProduct ?? data.isFeatured ?? data.featured);
+  if (
+    data.showOnHomepage !== undefined ||
+    data.featuredProduct !== undefined ||
+    data.isFeatured !== undefined ||
+    data.featured !== undefined
+  ) {
+    const featured = Boolean(
+      data.showOnHomepage ?? data.featuredProduct ?? data.isFeatured ?? data.featured
+    );
+    payload.showOnHomepage = featured;
+    payload.featuredProduct = featured;
   }
   if (data.status !== undefined) {
     payload.status = data.status;
@@ -76,8 +88,13 @@ const toUpdatePayload = (data) => {
     if (data.weightUnit !== undefined || data.weightUnitSize !== undefined || data.weight !== undefined) {
       payload.weightUnit = data.weightUnit || data.weightUnitSize || data.weight || '';
     }
-  } else if (data.menuDisplayTiming !== undefined || data.displayTime !== undefined) {
-    payload.menuDisplayTiming = data.menuDisplayTiming || data.displayTime || '';
+  } else {
+    if (data.menuDisplayTiming !== undefined || data.displayTime !== undefined) {
+      payload.menuDisplayTiming = data.menuDisplayTiming || data.displayTime || '';
+    }
+    if (data.description !== undefined || data.shortDescription !== undefined) {
+      payload.description = data.description || data.shortDescription || '';
+    }
   }
 
   return payload;
@@ -118,9 +135,19 @@ export const productService = {
     return request(
       async () => {
         const response = await api.get('/products/featured');
-        return response.data.data ?? response.data;
+        const products = response.data.data ?? response.data;
+        console.log('Featured Products:', products);
+        return products;
       },
-      () => localDb.getProducts().filter((p) => (p.isFeatured || p.featuredProduct) && p.status !== 'inactive')
+      () =>
+        localDb
+          .getProducts()
+          .filter(
+            (p) =>
+              (p.showOnHomepage || p.isFeatured || p.featuredProduct) &&
+              p.status !== 'inactive' &&
+              p.status !== 'deleted'
+          )
     );
   },
 

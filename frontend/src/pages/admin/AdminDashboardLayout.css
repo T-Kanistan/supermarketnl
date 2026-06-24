@@ -291,6 +291,30 @@
   margin-top: 4px;
 }
 
+.faq-count-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 10px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.faq-limit-warning {
+  margin-bottom: 20px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  color: #92400e;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
 .view-back-link {
   display: inline-flex;
   align-items: center;
@@ -927,6 +951,85 @@
 .messages-unread-count {
   color: #ef4444;
   font-weight: 600;
+}
+
+.enquiry-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.enquiry-stat-card {
+  background: #ffffff;
+  border: 1px solid var(--admin-border);
+  border-radius: 14px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.enquiry-stat-label {
+  font-size: 0.85rem;
+  color: var(--admin-text-sub);
+  font-weight: 600;
+}
+
+.enquiry-stat-card strong {
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.enquiry-stat-new strong { color: #dc2626; }
+.enquiry-stat-read strong { color: #2563eb; }
+.enquiry-stat-replied strong { color: #16a34a; }
+.enquiry-stat-closed strong { color: #64748b; }
+
+.enquiry-status-select {
+  min-width: 118px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  background: #fff;
+}
+
+.enquiry-status-select.enquiry-status-new {
+  color: #b91c1c;
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.enquiry-status-select.enquiry-status-read {
+  color: #1d4ed8;
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.enquiry-status-select.enquiry-status-replied {
+  color: #15803d;
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+}
+
+.enquiry-status-select.enquiry-status-closed {
+  color: #475569;
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.enquiry-status-select:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+@media (max-width: 900px) {
+  .enquiry-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .message-view-modal {

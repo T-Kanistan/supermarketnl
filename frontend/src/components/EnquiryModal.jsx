@@ -8,8 +8,9 @@ import {
   GENERAL_ENQUIRY_TYPES,
   buildSubmissionMessage,
   openWhatsAppEnquiry,
+  openCustomerEnquiryWhatsApp,
 } from '../utils/enquiryUtils';
-import './EnquiryModal.css';
+import { ENQUIRY_SUBMIT_SUCCESS_MESSAGE } from '../constants/enquiryMessages';
 
 const productEmptyForm = {
   fullName: '',
@@ -34,6 +35,7 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
   const [form, setForm] = useState(generalEmptyForm);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isWhatsAppSubmitting, setIsWhatsAppSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
   const isFoodCorner = product?.enquirySource === 'food-corner';
@@ -105,6 +107,23 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
     return Object.keys(next).length === 0;
   };
 
+  const getGeneralPayload = () => ({
+    fullName: form.fullName.trim(),
+    phoneNumber: form.phone.trim(),
+    email: form.email.trim(),
+    enquiryType: form.enquiryType,
+    message: form.message.trim(),
+  });
+
+  const completeSubmission = () => {
+    setShowSuccess(true);
+    addToast(ENQUIRY_SUBMIT_SUCCESS_MESSAGE, 'success');
+    setTimeout(() => {
+      setShowSuccess(false);
+      onClose();
+    }, 2200);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
@@ -113,11 +132,8 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
     try {
       if (isGeneral) {
         await enquiryService.submitGeneralEnquiry({
-          fullName: form.fullName.trim(),
-          phoneNumber: form.phone.trim(),
-          email: form.email.trim(),
-          enquiryType: form.enquiryType,
-          message: form.message.trim(),
+          ...getGeneralPayload(),
+          source: 'website',
         });
       } else {
         const payload = {
@@ -136,17 +152,34 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
         }
       }
 
-      setShowSuccess(true);
-      addToast('Your enquiry has been submitted successfully!', 'success');
-      setTimeout(() => {
-        setShowSuccess(false);
-        onClose();
-      }, 2200);
+      completeSubmission();
     } catch (err) {
       console.error('Enquiry submission failed', err);
       addToast('Failed to submit enquiry. Please try again or use WhatsApp.', 'error');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleGeneralWhatsApp = async () => {
+    if (!validate()) return;
+
+    setIsWhatsAppSubmitting(true);
+    try {
+      const payload = getGeneralPayload();
+
+      await enquiryService.submitGeneralEnquiry({
+        ...payload,
+        source: 'whatsapp',
+      });
+
+      openCustomerEnquiryWhatsApp(payload);
+      completeSubmission();
+    } catch (err) {
+      console.error('WhatsApp enquiry submission failed', err);
+      addToast('Failed to submit enquiry. Please try again.', 'error');
+    } finally {
+      setIsWhatsAppSubmitting(false);
     }
   };
 
@@ -193,8 +226,8 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
         {showSuccess ? (
           <div className="enquiry-success">
             <div className="enquiry-success-icon">✓</div>
-            <h3>{isGeneral ? 'Enquiry Submitted Successfully' : 'Enquiry Submitted!'}</h3>
-            <p>{isGeneral ? 'Our team will contact you shortly.' : 'Thank you. We will contact you shortly.'}</p>
+            <h3>Enquiry Submitted Successfully</h3>
+            <p>{ENQUIRY_SUBMIT_SUCCESS_MESSAGE}</p>
           </div>
         ) : (
           <form className="enquiry-form" onSubmit={handleSubmit} noValidate>
@@ -366,13 +399,27 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
             )}
 
             <div className="enquiry-actions">
-              <button type="submit" className="enquiry-btn enquiry-btn-submit" disabled={isSubmitting}>
+              <button
+                type="submit"
+                className="enquiry-btn enquiry-btn-submit"
+                disabled={isSubmitting || isWhatsAppSubmitting}
+              >
                 <FiSend /> {isSubmitting ? 'Submitting...' : 'Submit Enquiry'}
               </button>
               {isGeneral ? (
-                <button type="button" className="enquiry-btn enquiry-btn-cancel" onClick={onClose}>
-                  Cancel
-                </button>
+                <>
+                  <button
+                    type="button"
+                    className="enquiry-btn enquiry-btn-whatsapp"
+                    onClick={handleGeneralWhatsApp}
+                    disabled={isSubmitting || isWhatsAppSubmitting}
+                  >
+                    <FaWhatsapp /> {isWhatsAppSubmitting ? 'Opening...' : 'WhatsApp Enquiry'}
+                  </button>
+                  <button type="button" className="enquiry-btn enquiry-btn-cancel" onClick={onClose}>
+                    Cancel
+                  </button>
+                </>
               ) : (
                 <button type="button" className="enquiry-btn enquiry-btn-whatsapp" onClick={handleWhatsApp}>
                   <FaWhatsapp /> WhatsApp Enquiry

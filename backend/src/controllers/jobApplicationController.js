@@ -11,8 +11,13 @@ import {
   sendJobApplicationAdminEmail,
   sendJobApplicationApplicantEmail,
 } from '../services/emailService.js';
-import { getJobApplicationCvPublicPath } from '../middlewares/jobApplicationUploadMiddleware.js';
+import {
+  getJobApplicationCvPublicPath,
+  CV_UPLOAD_ERROR_MESSAGE,
+} from '../middlewares/jobApplicationUploadMiddleware.js';
 import { sanitizeJobApplicationInput } from '../utils/sanitize.js';
+import Vacancy from '../models/Vacancy.js';
+import mongoose from 'mongoose';
 
 const handleServiceError = (error, res, next) => {
   if (error.statusCode) {
@@ -21,10 +26,28 @@ const handleServiceError = (error, res, next) => {
   return next(error);
 };
 
+const resolveVacancyCvRequirement = async (jobId) => {
+  if (!jobId) return true;
+  const lookup = [{ legacyId: jobId }];
+  if (mongoose.Types.ObjectId.isValid(jobId)) lookup.unshift({ _id: jobId });
+  const vacancy = await Vacancy.findOne({ $or: lookup }).lean();
+  if (!vacancy) return true;
+  return vacancy.cvRequired !== false;
+};
+
 export const submitJobApplication = async (req, res, next) => {
   try {
     const sanitized = sanitizeJobApplicationInput(req.body);
-    const cvFile = req.file ? getJobApplicationCvPublicPath(req.file.filename) : '';
+    const cvRequired = await resolveVacancyCvRequirement(sanitized.jobId);
+
+    if (cvRequired && !req.file) {
+      return res.status(400).json({
+        success: false,
+        message: CV_UPLOAD_ERROR_MESSAGE,
+      });
+    }
+
+    const resumeUrl = req.file ? getJobApplicationCvPublicPath(req.file.filename) : '';
 
     const application = await createJobApplication({
       jobId: sanitized.jobId,
@@ -37,7 +60,8 @@ export const submitJobApplication = async (req, res, next) => {
       email: sanitized.email,
       phoneNumber: sanitized.phoneNumber,
       address: sanitized.address,
-      cvFile,
+      resumeUrl,
+      cvFile: resumeUrl,
     });
 
     try {

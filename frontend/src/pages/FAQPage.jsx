@@ -48,22 +48,19 @@ const FAQPage = () => {
       <section className={`faq-hero${bannerLoading ? ' faq-hero--loading' : ''}`}>
         <div
           className="faq-hero-bg"
-          style={{ backgroundImage: `url('${getImageUrl(pageBanner.image)}')` }}
+          style={{ backgroundImage: `url('${getImageUrl(pageBanner.backgroundImage || pageBanner.image)}')` }}
           aria-hidden="true"
         />
         <div className="faq-hero-overlay" style={getBannerOverlayStyle(pageBanner)} />
         <div className="container faq-hero-inner">
           <div className="faq-hero-copy">
-            <span className="faq-hero-badge">{pageBanner.badgeText || 'HELP CENTER'}</span>
+            <span className="faq-hero-badge">{pageBanner.badgeText}</span>
             <h1 className="faq-hero-heading">
-              {pageBanner.highlightText
-                ? `${pageBanner.mainHeading} ${pageBanner.highlightText}`.trim()
-                : pageBanner.mainHeading || 'Frequently Asked Questions'}
+              {pageBanner.highlightedTitle || pageBanner.highlightText
+                ? `${pageBanner.title || pageBanner.mainHeading} ${pageBanner.highlightedTitle || pageBanner.highlightText}`.trim()
+                : pageBanner.title || pageBanner.mainHeading}
             </h1>
-            <p className="faq-hero-subtitle">
-              {pageBanner.description ||
-                'Find answers about our supermarket, products, food corner, and services.'}
-            </p>
+            <p className="faq-hero-subtitle">{pageBanner.description}</p>
           </div>
           <div className="faq-hero-art" aria-hidden="true">
             <div className="faq-art-ring" />

@@ -1,5 +1,5 @@
 import * as homepageAboutService from '../services/homepageAboutService.js';
-import { getHomepageAboutPublicPath } from '../middlewares/homepageAboutUploadMiddleware.js';
+import { persistUploadedFile } from '../services/uploadService.js';
 import { successResponse } from '../utils/apiResponse.js';
 
 const handleServiceError = (error, res, next) => {
@@ -65,7 +65,7 @@ export const createHomepageAbout = async (req, res, next) => {
   try {
     const body = { ...req.body };
     if (req.file) {
-      body.aboutImage = getHomepageAboutPublicPath(req.file.filename);
+      body.aboutImage = await persistUploadedFile(req.file);
     }
 
     const data = await homepageAboutService.createHomepageAbout(body, req.user);
@@ -79,7 +79,7 @@ export const updateHomepageAbout = async (req, res, next) => {
   try {
     const body = { ...req.body };
     if (req.file) {
-      body.aboutImage = getHomepageAboutPublicPath(req.file.filename);
+      body.aboutImage = await persistUploadedFile(req.file);
     }
 
     const data = await homepageAboutService.updateHomepageAbout(req.params.id, body, req.user);
@@ -93,7 +93,7 @@ export const updateHomepageAboutLegacy = async (req, res, next) => {
   try {
     const body = { ...req.body };
     if (req.file) {
-      body.aboutImage = getHomepageAboutPublicPath(req.file.filename);
+      body.aboutImage = await persistUploadedFile(req.file);
     }
 
     const data = await homepageAboutService.updateActiveHomepageAbout(body, req.user);
@@ -120,7 +120,7 @@ export const uploadHomepageAboutImage = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      imageUrl: getHomepageAboutPublicPath(req.file.filename),
+      imageUrl: await persistUploadedFile(req.file),
     });
   } catch (error) {
     return next(error);

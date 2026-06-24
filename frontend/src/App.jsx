@@ -25,6 +25,8 @@ const CareerApplyPage = lazy(() => import('./pages/CareerApplyPage'));
 const TermsPage = lazy(() => import('./pages/TermsPage'));
 const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
+const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 const AdminDashboardLayout = lazy(() => import('./pages/admin/AdminDashboardLayout'));
 
 const PageLoader = () => (
@@ -58,6 +60,8 @@ function App() {
                       <Route path="/privacy" element={<PrivacyPolicyPage />} />
 
                       <Route path="/login" element={<LoginPage />} />
+                      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                      <Route path="/reset-password" element={<ResetPasswordPage />} />
                       <Route path="/register" element={<Navigate to="/login" replace />} />
 
                       <Route path="/admin" element={<Navigate to="/login" replace />} />

@@ -31,6 +31,9 @@ export const sanitizeEnquiryInput = (body = {}) => ({
   quantityRequired: sanitizeText(body.quantityRequired || body.quantity),
   attachment: sanitizeText(body.attachment),
   adminNotes: sanitizeText(body.adminNotes),
+  source: ['website', 'whatsapp'].includes(String(body.source || '').toLowerCase())
+    ? String(body.source).toLowerCase()
+    : 'website',
 });
 
 export const sanitizeJobApplicationInput = (body = {}) => ({
@@ -45,6 +48,14 @@ export const sanitizeJobApplicationInput = (body = {}) => ({
   phoneNumber: sanitizeText(body.phoneNumber),
   address: sanitizeText(body.address),
 });
+
+const parseCvRequired = (value) => {
+  if (value === undefined || value === null || value === '') return undefined;
+  if (typeof value === 'boolean') return value;
+  if (value === 'true' || value === true) return true;
+  if (value === 'false' || value === false) return false;
+  return Boolean(value);
+};
 
 export const sanitizeVacancyInput = (body = {}) => {
   const closingDate =
@@ -63,6 +74,7 @@ export const sanitizeVacancyInput = (body = {}) => {
     location: sanitizeText(body.location),
     workingDays: sanitizeText(body.workingDays),
     workingHours: sanitizeText(body.workingHours),
+    cvRequired: body.cvRequired !== undefined ? parseCvRequired(body.cvRequired) : undefined,
     summary: sanitizeText(body.summary),
     description: sanitizeText(body.jobDescription || body.description),
     icon: sanitizeText(body.icon),

@@ -42,7 +42,7 @@ const imageUrlRule = (required = false) =>
     return true;
   });
 
-const featuredRule = body(['featuredProduct', 'isFeatured', 'featured'])
+const featuredRule = body(['showOnHomepage', 'featuredProduct', 'isFeatured', 'featured'])
   .optional({ values: 'falsy' })
   .custom((value) => {
     if (value === undefined || value === null || value === '') return true;

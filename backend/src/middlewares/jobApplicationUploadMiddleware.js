@@ -2,7 +2,9 @@ import fs from 'fs';
 import path from 'path';
 import multer from 'multer';
 
-const cvUploadDir = path.join(process.cwd(), 'src/uploads/job-applications');
+const cvUploadDir = path.join(process.cwd(), 'src/uploads/resumes');
+const legacyCvUploadDir = path.join(process.cwd(), 'src/uploads/job-applications');
+
 if (!fs.existsSync(cvUploadDir)) {
   fs.mkdirSync(cvUploadDir, { recursive: true });
 }
@@ -18,7 +20,7 @@ const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, cvUploadDir),
   filename: (_req, file, cb) => {
     const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    cb(null, `cv-${uniqueSuffix}${path.extname(file.originalname).toLowerCase()}`);
+    cb(null, `resume-${uniqueSuffix}${path.extname(file.originalname).toLowerCase()}`);
   },
 });
 
@@ -36,10 +38,32 @@ export const jobApplicationCvUpload = multer({
   fileFilter,
 });
 
+export const CV_UPLOAD_ERROR_MESSAGE = 'Please upload your Resume/CV (Maximum 2MB).';
+
+export const handleCvUpload = (req, res, next) => {
+  jobApplicationCvUpload.single('cv')(req, res, (err) => {
+    if (!err) return next();
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({
+        success: false,
+        message: CV_UPLOAD_ERROR_MESSAGE,
+      });
+    }
+    if (err.message === 'Only PDF, DOC, and DOCX files are allowed') {
+      return res.status(400).json({
+        success: false,
+        message: 'Only PDF, DOC, and DOCX files are allowed',
+      });
+    }
+    return next(err);
+  });
+};
+
 export const getJobApplicationCvPublicPath = (filename) =>
-  `/uploads/job-applications/${filename}`;
+  `/uploads/resumes/${filename}`;
 
 const cvUploadDirResolved = path.resolve(cvUploadDir);
+const legacyCvUploadDirResolved = path.resolve(legacyCvUploadDir);
 
 export const resolveJobApplicationCvPath = (cvFile = '') => {
   if (!cvFile?.trim()) {
@@ -48,16 +72,21 @@ export const resolveJobApplicationCvPath = (cvFile = '') => {
     throw error;
   }
 
-  const filename = path.basename(cvFile.replace(/^\/uploads\/job-applications\//, ''));
-  const absolutePath = path.resolve(cvUploadDir, filename);
+  const normalized = cvFile.replace(/^\/uploads\/(resumes|job-applications)\//, '');
+  const filename = path.basename(normalized);
+  const candidates = [
+    path.resolve(cvUploadDir, filename),
+    path.resolve(legacyCvUploadDir, filename),
+  ];
 
-  if (!absolutePath.startsWith(cvUploadDirResolved)) {
-    const error = new Error('Invalid CV file path');
-    error.statusCode = 400;
-    throw error;
-  }
+  const absolutePath = candidates.find(
+    (candidate) =>
+      (candidate.startsWith(cvUploadDirResolved) ||
+        candidate.startsWith(legacyCvUploadDirResolved)) &&
+      fs.existsSync(candidate)
+  );
 
-  if (!fs.existsSync(absolutePath)) {
+  if (!absolutePath) {
     const error = new Error('CV file not found on server');
     error.statusCode = 404;
     throw error;

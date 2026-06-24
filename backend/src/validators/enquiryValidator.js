@@ -69,6 +69,10 @@ export const contactEnquiryRules = [
     .trim()
     .isLength({ max: 200 })
     .withMessage('Enquiry type is too long'),
+  body('source')
+    .optional()
+    .isIn(['website', 'whatsapp'])
+    .withMessage('Invalid enquiry source'),
   body().custom((_, { req }) => {
     const subject = (req.body.subject || req.body.enquiryType || '').trim();
     if (!subject) {
@@ -124,13 +128,23 @@ export const enquiryReplyRules = [
 export const enquiryIdRules = [param('id').isMongoId().withMessage('Invalid enquiry id')];
 
 export const enquiryListQueryRules = [
-  query('status').optional().isIn(['all', 'new', 'read', 'replied', 'closed']),
+  query('status').optional().isIn(['all', 'New', 'Read', 'Replied', 'Closed', 'new', 'read', 'replied', 'closed']),
   query('enquiryType')
     .optional()
     .isIn(['all', 'contact-us', 'product-enquiry', 'food-corner-enquiry']),
   query('page').optional().isInt({ min: 1 }),
   query('limit').optional().isInt({ min: 1, max: 100 }),
   query('date').optional().isISO8601(),
+];
+
+export const enquiryStatusRules = [
+  param('id').isMongoId().withMessage('Invalid enquiry id'),
+  body('status')
+    .trim()
+    .notEmpty()
+    .withMessage('Status is required')
+    .isIn(['New', 'Read', 'Replied', 'Closed', 'new', 'read', 'replied', 'closed'])
+    .withMessage('Invalid enquiry status'),
 ];
 
 export const markMessageReadRules = [

@@ -91,7 +91,8 @@ const connectMongo = async () => {
 
     const connection = await mongoose.connect(uri, MONGO_OPTIONS);
 
-    console.log('[MongoDB] Connection successful.');
+    console.log('[MongoDB] Connection successful — Atlas cluster is reachable.');
+    console.log(`[MongoDB] readyState=${mongoose.connection.readyState} (1 = connected)`);
     console.log(`[MongoDB] Host: ${connection.connection.host}`);
     console.log(`[MongoDB] Database: ${connection.connection.name}`);
 

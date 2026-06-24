@@ -211,12 +211,11 @@ const ProductsPage = () => {
 
   const isAllItems = activeCategory.id === 'all';
   const heroImage = isAllItems
-    ? getImageUrl(pageBanner.image) || PRODUCTS_PAGE_HERO_IMAGE
+    ? getImageUrl(pageBanner.backgroundImage || pageBanner.image) || PRODUCTS_PAGE_HERO_IMAGE
     : getImageUrl(activeCategory.image) || PRODUCTS_PAGE_HERO_IMAGE;
   const heroBadge = isAllItems ? pageBanner.badgeText || 'OUR STORE' : 'CATEGORY';
   const heroSubtitle = isAllItems
-    ? pageBanner.description ||
-      'Browse fresh groceries, beverages, spices, and daily essentials from our supermarket.'
+    ? pageBanner.description
     : `Explore our ${activeCategory.name.toLowerCase()} selection — quality products for your home.`;
   const heroOverlayStyle = isAllItems ? getBannerOverlayStyle(pageBanner) : undefined;
 
@@ -238,9 +237,11 @@ const ProductsPage = () => {
             <h1 className="products-hero-title">
               {isAllItems ? (
                 <>
-                  {pageBanner.mainHeading || 'Our'}
+                  {pageBanner.title || pageBanner.mainHeading || 'Our'}
                   <br />
-                  <span className="products-hero-highlight">{pageBanner.highlightText || 'Products'}</span>
+                  <span className="products-hero-highlight">
+                    {pageBanner.highlightedTitle || pageBanner.highlightText || 'Products'}
+                  </span>
                 </>
               ) : (
                 <>

@@ -85,6 +85,33 @@ export const buildSubmissionMessage = (form, { isFoodCorner = false } = {}) => {
   return lines.join('\n');
 };
 
+export const buildCustomerEnquiryWhatsAppMessage = ({
+  fullName,
+  phone,
+  phoneNumber,
+  email,
+  enquiryType,
+  message,
+}) => `📩 Customer Enquiry
+
+👤 Name: ${fullName}
+📞 Phone: ${phoneNumber || phone}
+📧 Email: ${email}
+
+📋 Enquiry Type:
+${enquiryType}
+
+💬 Message:
+${message}
+
+Send to:
++31659046526`;
+
+export const openCustomerEnquiryWhatsApp = (payload) => {
+  const text = buildCustomerEnquiryWhatsAppMessage(payload);
+  window.open(`${ENQUIRY_WHATSAPP_URL}?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+};
+
 export const openWhatsAppEnquiry = (form, options = {}) => {
   const text = buildWhatsAppEnquiryMessage({ ...form, ...options });
   window.open(`${ENQUIRY_WHATSAPP_URL}?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');

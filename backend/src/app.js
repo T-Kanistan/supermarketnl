@@ -41,6 +41,7 @@ import adminJobEnquiryRoutes from './routes/adminJobEnquiryRoutes.js';
 import managerJobEnquiryRoutes from './routes/managerJobEnquiryRoutes.js';
 import careersRoutes from './routes/careersRoutes.js';
 import { errorHandler } from './middlewares/errorMiddleware.js';
+import { isMongoConnected } from './config/mongo.js';
 
 const app = express();
 
@@ -87,11 +88,13 @@ app.use(
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
-// Simple logger middleware
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
-  next();
-});
+// Request logger (development only)
+if (process.env.NODE_ENV !== 'production') {
+  app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
+    next();
+  });
+}
 
 // Serve uploaded assets statically
 app.use('/uploads', express.static(path.join(process.cwd(), 'src/uploads')));
@@ -134,6 +137,20 @@ app.use('/api/admin/vacancies', adminVacancyRoutes);
 app.use('/api/job-enquiries', jobEnquiryRoutes);
 app.use('/api/admin/job-enquiries', adminJobEnquiryRoutes);
 app.use('/api/manager/job-enquiries', managerJobEnquiryRoutes);
+
+app.get('/api/db-status', (req, res) => {
+  const connected = isMongoConnected();
+  const readyState = mongoose.connection.readyState;
+  const message = connected ? 'Database Connected' : 'Database Disconnected';
+
+  res.status(connected ? 200 : 503).json({
+    success: connected,
+    message,
+    readyState,
+    host: mongoose.connection.host || null,
+    database: mongoose.connection.name || null,
+  });
+});
 
 // Base health-check route (used by Railway/Render probes)
 app.get('/', (req, res) => {

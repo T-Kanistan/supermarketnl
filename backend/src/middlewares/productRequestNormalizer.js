@@ -29,6 +29,14 @@ export const normalizeProductRequestBody = (req, _res, next) => {
     body.featuredProduct = parseOptionalBoolean(body.featuredProduct);
   }
 
+  if (body.showOnHomepage !== undefined) {
+    const showOnHomepage = parseOptionalBoolean(body.showOnHomepage);
+    body.showOnHomepage = showOnHomepage;
+    if (body.featuredProduct === undefined && body.isFeatured === undefined) {
+      body.featuredProduct = showOnHomepage;
+    }
+  }
+
   if (body.category !== undefined && body.categoryId === undefined && body.categoryName === undefined) {
     body.categoryId = body.category;
   }

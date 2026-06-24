@@ -44,6 +44,10 @@ const vacancySchema = new mongoose.Schema(
       trim: true,
       default: '',
     },
+    cvRequired: {
+      type: Boolean,
+      default: true,
+    },
     closingDate: {
       type: Date,
       default: null,

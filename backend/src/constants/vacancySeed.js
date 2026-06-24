@@ -8,6 +8,7 @@ export const VACANCY_SEED_DATA = [
     location: 'Hilversum, Netherlands',
     workingDays: 'Monday – Saturday',
     workingHours: '08:00 AM – 10:00 PM',
+    cvRequired: true,
     closingDate: new Date('2025-07-15'),
     icon: 'cashier',
     summary:
@@ -25,6 +26,7 @@ export const VACANCY_SEED_DATA = [
     location: 'Hilversum, Netherlands',
     workingDays: 'Monday – Saturday',
     workingHours: '07:00 AM – 04:00 PM',
+    cvRequired: false,
     closingDate: new Date('2025-07-20'),
     icon: 'stock',
     summary:

@@ -1,5 +1,6 @@
 import FAQ from '../models/FAQ.js';
 import { logManagerActivity } from './activityLogService.js';
+import { MAX_FAQ_COUNT, FAQ_LIMIT_ERROR_MESSAGE } from '../constants/faqLimits.js';
 
 const notDeletedFilter = { status: { $ne: 'deleted' } };
 
@@ -141,7 +142,19 @@ export const getFaqById = async (id) => {
   return formatFaq(faq);
 };
 
+export const countManageableFaqs = async () => FAQ.countDocuments(notDeletedFilter);
+
+export const assertCanCreateFaq = async () => {
+  const currentCount = await countManageableFaqs();
+  if (currentCount >= MAX_FAQ_COUNT) {
+    const error = new Error(FAQ_LIMIT_ERROR_MESSAGE);
+    error.statusCode = 400;
+    throw error;
+  }
+};
+
 export const createFaq = async (body, user) => {
+  await assertCanCreateFaq();
   validateFaqPayload(body);
 
   let displayOrder;
@@ -377,6 +390,15 @@ export const saveFaqOrder = async (faqIds, user) => {
 export const searchFaqs = async (query) => listFaqs({ search: query });
 
 export const countActiveFaqs = async () => FAQ.countDocuments({ status: 'active' });
+
+export const getFaqLimitMeta = async () => {
+  const count = await countManageableFaqs();
+  return {
+    count,
+    max: MAX_FAQ_COUNT,
+    limitReached: count >= MAX_FAQ_COUNT,
+  };
+};
 
 /** @deprecated Use saveFaqOrder — kept for normalize script */
 export const extractFaqLeadingNumber = (question) => {

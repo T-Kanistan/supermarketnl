@@ -1,4 +1,4 @@
-import { body } from 'express-validator';
+import { body, param, query } from 'express-validator';
 
 const categoryNameRule = (optional = false) => {
   const rule = body('categoryName').trim();
@@ -73,4 +73,8 @@ export const toggleFoodCornerCategoryStatusRules = [
     .optional()
     .isBoolean()
     .withMessage('Status must be a boolean'),
+];
+
+export const foodCornerCategoryIdRules = [
+  param('id').isMongoId().withMessage('Invalid food corner category id'),
 ];

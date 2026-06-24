@@ -3,12 +3,10 @@ import { useLocation } from 'react-router-dom';
 import { useCMS } from '../../../context/CMSContext';
 import { useToast } from '../../../context/ToastContext';
 import { getImageUrl } from '../../../services/api';
-import { emptyAboutPageForm, emptyAboutSectionForm } from '../../../constants/aboutPageDefaults';
 import { emptyContactPageForm, mergeContactPage } from '../../../constants/contactPageDefaults';
 import { emptyFooterPageForm, mergeFooterPage } from '../../../constants/footerPageDefaults';
 import contactSettingsService from '../../../services/contactSettingsService';
 import siteSettingsService from '../../../services/siteSettingsService';
-import aboutUsService from '../../../services/aboutUsService';
 import { FaUpload, FaPlus, FaTrash, FaFacebook, FaInstagram, FaWhatsapp, FaTiktok, FaYoutube } from 'react-icons/fa';
 import { FiMapPin, FiPhone, FiMail, FiClock } from 'react-icons/fi';
 
@@ -18,14 +16,9 @@ const buildFormState = (cmsData) => ({
   contactEmail: cmsData?.contactEmail || '',
   contactPhone: cmsData?.contactPhone || '',
   address: cmsData?.address || '',
-  aboutUs: cmsData?.aboutUs || '',
   footerDescription: cmsData?.footerDescription || '',
   supermarketTimings: cmsData?.supermarketTimings || '',
   foodCornerTimings: cmsData?.foodCornerTimings || '',
-  featuresSection: cmsData?.featuresSection || { items: [] },
-  aboutSection: cmsData?.aboutSection || emptyAboutSectionForm(),
-  foodCornerPromo: cmsData?.foodCornerPromo || {},
-  aboutPage: cmsData?.aboutPage || emptyAboutPageForm(),
   contactPage: mergeContactPage(cmsData?.contactPage),
   footerPage: mergeFooterPage(cmsData?.footerPage),
   socials: {
@@ -36,28 +29,6 @@ const buildFormState = (cmsData) => ({
     youtube: cmsData?.socials?.youtube || '',
   },
 });
-
-const AboutImageUpload = ({ label, value, inputId, onUpload }) => (
-  <div className="admin-form-group">
-    <label>{label}</label>
-    <div style={{ display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
-      {value && (
-        <img
-          src={getImageUrl(value)}
-          alt={label}
-          style={{ height: '100px', width: '140px', objectFit: 'cover', border: '1px solid #cbd5e1', borderRadius: '8px' }}
-        />
-      )}
-      <div className="image-upload-zone" style={{ flex: 1, minWidth: '200px', padding: '16px' }}>
-        <input type="file" accept="image/*" id={inputId} onChange={onUpload} style={{ display: 'none' }} />
-        <label htmlFor={inputId} style={{ cursor: 'pointer', margin: 0 }}>
-          <FaUpload className="upload-icon" style={{ fontSize: '1.5rem', marginBottom: '4px' }} />
-          <p style={{ fontSize: '0.8rem', color: '#64748b' }}>Upload image (Max 3MB)</p>
-        </label>
-      </div>
-    </div>
-  </div>
-);
 
 const FooterLinkRow = ({ link, onChange, onRemove, showEnabled = true }) => (
   <div className="footer-link-row">
@@ -150,7 +121,7 @@ const FooterPreview = ({ formData }) => {
 };
 
 export const AdminSiteSettings = () => {
-  const { cmsData, updateHomeData, updateFooterData, refreshCMS, loading } = useCMS();
+  const { cmsData, updateFooterData, refreshCMS, loading } = useCMS();
   const { addToast } = useToast();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState('general');
@@ -158,14 +129,15 @@ export const AdminSiteSettings = () => {
 
   const [formData, setFormData] = useState({
     ...buildFormState(null),
-    aboutPage: emptyAboutPageForm(),
     contactPage: emptyContactPageForm(),
     footerPage: emptyFooterPageForm(),
   });
 
+  const allowedTabs = ['general', 'contact', 'footer', 'socials'];
+
   useEffect(() => {
     const tab = location.state?.settingsTab;
-    if (tab) {
+    if (tab && allowedTabs.includes(tab)) {
       setActiveTab(tab);
     }
   }, [location.state?.settingsTab]);
@@ -180,20 +152,6 @@ export const AdminSiteSettings = () => {
       let next = { ...base };
 
       try {
-        const aboutData = await aboutUsService.getAboutUs();
-        if (aboutData && isMounted) {
-          next = {
-            ...next,
-            aboutUs: aboutData.aboutUs || '',
-            aboutSection: aboutData.aboutSection || emptyAboutSectionForm(),
-            aboutPage: aboutData.aboutPage || emptyAboutPageForm(),
-          };
-        }
-      } catch (err) {
-        console.warn('About Us API unavailable, using CMS fallback.', err);
-      }
-
-      try {
         const siteSettings = await siteSettingsService.getSiteSettings();
         if (siteSettings && isMounted) {
           next = {
@@ -201,8 +159,8 @@ export const AdminSiteSettings = () => {
             storeName: siteSettings.storeName || next.storeName,
             logo: siteSettings.storeLogo || next.logo,
             address: siteSettings.physicalAddress || next.address,
-            supermarketTimings: siteSettings.supermarketOpeningHours || next.supermarketTimings,
-            foodCornerTimings: siteSettings.foodCornerOpeningHours || next.foodCornerTimings,
+            supermarketTimings: siteSettings.supermarketOpeningHours ?? next.supermarketTimings,
+            foodCornerTimings: siteSettings.foodCornerOpeningHours ?? next.foodCornerTimings,
           };
         }
       } catch (err) {
@@ -264,140 +222,6 @@ export const AdminSiteSettings = () => {
       };
       reader.readAsDataURL(file);
     }
-  };
-
-  const handleAboutImageUpload = (field) => (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    if (file.size > 3 * 1024 * 1024) {
-      addToast('File too large. Max size is 3MB.', 'error');
-      return;
-    }
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      if (field === 'owner.photo') {
-        setFormData((prev) => ({
-          ...prev,
-          aboutPage: {
-            ...prev.aboutPage,
-            owner: { ...prev.aboutPage.owner, photo: reader.result },
-          },
-        }));
-      } else {
-        setFormData((prev) => ({
-          ...prev,
-          aboutPage: { ...prev.aboutPage, [field]: reader.result },
-        }));
-      }
-      addToast('Image loaded. Save settings to apply.', 'info');
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const updateAboutPage = (field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      aboutPage: { ...prev.aboutPage, [field]: value },
-    }));
-  };
-
-  const updateOwner = (field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      aboutPage: {
-        ...prev.aboutPage,
-        owner: { ...prev.aboutPage.owner, [field]: value },
-      },
-    }));
-  };
-
-  const updateOffering = (index, field, value) => {
-    setFormData((prev) => {
-      const offerings = [...prev.aboutPage.offerings];
-      offerings[index] = { ...offerings[index], [field]: value };
-      return { ...prev, aboutPage: { ...prev.aboutPage, offerings } };
-    });
-  };
-
-  const updateAboutStat = (index, field, value) => {
-    setFormData((prev) => {
-      const stats = [...(prev.aboutPage.stats || [])];
-      stats[index] = { ...stats[index], [field]: field === 'value' ? Number(value) || 0 : value };
-      return { ...prev, aboutPage: { ...prev.aboutPage, stats } };
-    });
-  };
-
-  const addOffering = () => {
-    setFormData((prev) => ({
-      ...prev,
-      aboutPage: {
-        ...prev.aboutPage,
-        offerings: [
-          ...prev.aboutPage.offerings,
-          { id: `${Date.now()}`, title: '', description: '', image: '' },
-        ],
-      },
-    }));
-  };
-
-  const removeOffering = (index) => {
-    setFormData((prev) => ({
-      ...prev,
-      aboutPage: {
-        ...prev.aboutPage,
-        offerings: prev.aboutPage.offerings.filter((_, i) => i !== index),
-      },
-    }));
-  };
-
-  const updateAboutSection = (field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      aboutSection: { ...prev.aboutSection, [field]: value },
-    }));
-  };
-
-  const updateAboutBullet = (index, value) => {
-    setFormData((prev) => {
-      const bulletPoints = [...(prev.aboutSection?.bulletPoints || [])];
-      bulletPoints[index] = value;
-      return { ...prev, aboutSection: { ...prev.aboutSection, bulletPoints } };
-    });
-  };
-
-  const addAboutBullet = () => {
-    setFormData((prev) => ({
-      ...prev,
-      aboutSection: {
-        ...prev.aboutSection,
-        bulletPoints: [...(prev.aboutSection?.bulletPoints || []), ''],
-      },
-    }));
-  };
-
-  const removeAboutBullet = (index) => {
-    setFormData((prev) => ({
-      ...prev,
-      aboutSection: {
-        ...prev.aboutSection,
-        bulletPoints: (prev.aboutSection?.bulletPoints || []).filter((_, i) => i !== index),
-      },
-    }));
-  };
-
-  const handleAboutSectionImageUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 3 * 1024 * 1024) {
-      addToast('File too large. Max size is 3MB.', 'error');
-      return;
-    }
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      updateAboutSection('image', reader.result);
-      addToast('Image loaded. Save settings to apply.', 'info');
-    };
-    reader.readAsDataURL(file);
   };
 
   const updateContactPage = (field, value) => {
@@ -463,28 +287,21 @@ export const AdminSiteSettings = () => {
           contactPage: mergeContactPage(updated.contactPage),
         }));
         addToast('Contact settings updated successfully!', 'success');
-      } else if (activeTab === 'about') {
-        const synced = await aboutUsService.updateAboutUs(formData);
-        setFormData((prev) => ({
-          ...prev,
-          aboutUs: synced?.aboutUs || prev.aboutUs,
-          aboutSection: synced?.aboutSection || prev.aboutSection,
-          aboutPage: synced?.aboutPage || prev.aboutPage,
-        }));
-        addToast('About Us settings updated successfully!', 'success');
       } else if (activeTab === 'footer') {
         await updateFooterData(formData);
+        await refreshCMS();
         addToast('Footer settings updated successfully!', 'success');
       } else {
-        const updated = await siteSettingsService.updateSiteSettings(formData);
+        await siteSettingsService.updateSiteSettings(formData);
         await refreshCMS();
+        const refreshed = await siteSettingsService.getSiteSettings();
         setFormData((prev) => ({
           ...prev,
-          storeName: updated.storeName || prev.storeName,
-          logo: updated.storeLogo || prev.logo,
-          address: updated.physicalAddress || prev.address,
-          supermarketTimings: updated.supermarketOpeningHours || prev.supermarketTimings,
-          foodCornerTimings: updated.foodCornerOpeningHours || prev.foodCornerTimings,
+          storeName: refreshed.storeName || prev.storeName,
+          logo: refreshed.storeLogo || prev.logo,
+          address: refreshed.physicalAddress || prev.address,
+          supermarketTimings: refreshed.supermarketOpeningHours ?? prev.supermarketTimings,
+          foodCornerTimings: refreshed.foodCornerOpeningHours ?? prev.foodCornerTimings,
         }));
         addToast('Settings updated successfully', 'success');
       }
@@ -519,13 +336,7 @@ export const AdminSiteSettings = () => {
           className={`settings-tab-btn ${activeTab === 'contact' ? 'active' : ''}`}
           onClick={() => setActiveTab('contact')}
         >
-          Contact Us Setting
-        </button>
-        <button 
-          className={`settings-tab-btn ${activeTab === 'about' ? 'active' : ''}`}
-          onClick={() => setActiveTab('about')}
-        >
-          About Us Section
+          Contact Us Settings
         </button>
         <button 
           className={`settings-tab-btn ${activeTab === 'footer' ? 'active' : ''}`}
@@ -891,320 +702,6 @@ export const AdminSiteSettings = () => {
                     onChange={(e) => updateContactPage('mapEmbedUrl', e.target.value)}
                     rows="3"
                     placeholder="Paste Google Maps embed iframe src URL"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'about' && (
-            <div className="about-settings-sections">
-              <h3>About Us Page Settings</h3>
-              <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '24px' }}>
-                Manage content shown on the public About Us page.
-              </p>
-
-              <div className="settings-subsection" style={{ marginBottom: '24px' }}>
-                <h4>Homepage About Section</h4>
-                <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '12px' }}>
-                  The homepage About block is managed separately to avoid duplicate content.
-                </p>
-                <a
-                  href="/admin/dashboard/homepage-about"
-                  className="action-btn-secondary"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}
-                >
-                  Manage Homepage About Section →
-                </a>
-              </div>
-
-              <div className="settings-subsection">
-                <h4>1. Hero Section</h4>
-                <div className="admin-form-group">
-                  <label>Eyebrow Tag</label>
-                  <input
-                    type="text"
-                    value={formData.aboutPage.heroEyebrow || ''}
-                    onChange={(e) => updateAboutPage('heroEyebrow', e.target.value)}
-                    placeholder="ABOUT WINS WERELD WINKEL"
-                  />
-                </div>
-                <div className="admin-form-group row-split">
-                  <div>
-                    <label>Page Heading</label>
-                    <input
-                      type="text"
-                      value={formData.aboutPage.heroHeading}
-                      onChange={(e) => updateAboutPage('heroHeading', e.target.value)}
-                      placeholder="Your Trusted International Supermarket & Food Corner in"
-                    />
-                  </div>
-                  <div>
-                    <label>Highlighted Word (green)</label>
-                    <input
-                      type="text"
-                      value={formData.aboutPage.heroHighlight || ''}
-                      onChange={(e) => updateAboutPage('heroHighlight', e.target.value)}
-                      placeholder="Hilversum"
-                    />
-                  </div>
-                </div>
-                <div className="admin-form-group">
-                  <label>Hero Description</label>
-                  <textarea
-                    value={formData.aboutPage.heroDescription}
-                    onChange={(e) => updateAboutPage('heroDescription', e.target.value)}
-                    rows="4"
-                    placeholder="Short introduction shown in the hero section..."
-                  />
-                </div>
-                <div className="admin-form-group">
-                  <label>Hero Image Badge Text</label>
-                  <input
-                    type="text"
-                    value={formData.aboutPage.heroBadge || ''}
-                    onChange={(e) => updateAboutPage('heroBadge', e.target.value)}
-                    placeholder="Serving Hilversum since 2022"
-                  />
-                </div>
-                <AboutImageUpload
-                  label="Hero Image"
-                  value={formData.aboutPage.heroImage}
-                  inputId="about-hero-image"
-                  onUpload={handleAboutImageUpload('heroImage')}
-                />
-              </div>
-
-              <div className="settings-subsection">
-                <h4>2. Our Story</h4>
-                <div className="admin-form-group">
-                  <label>Story Title</label>
-                  <input
-                    type="text"
-                    value={formData.aboutPage.storyTitle}
-                    onChange={(e) => updateAboutPage('storyTitle', e.target.value)}
-                    placeholder="Our Story"
-                  />
-                </div>
-                <div className="admin-form-group">
-                  <label>Story Description</label>
-                  <textarea
-                    value={formData.aboutPage.storyDescription}
-                    onChange={(e) => updateAboutPage('storyDescription', e.target.value)}
-                    rows="6"
-                    placeholder="Tell your company story. Use blank lines between paragraphs."
-                  />
-                </div>
-                <AboutImageUpload
-                  label="Story Image"
-                  value={formData.aboutPage.storyImage}
-                  inputId="about-story-image"
-                  onUpload={handleAboutImageUpload('storyImage')}
-                />
-              </div>
-
-              <div className="settings-subsection">
-                <h4>3. Mission, Vision &amp; Promise</h4>
-                <div className="admin-form-group row-split">
-                  <div>
-                    <label>Mission Title</label>
-                    <input
-                      type="text"
-                      value={formData.aboutPage.missionTitle}
-                      onChange={(e) => updateAboutPage('missionTitle', e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label>Vision Title</label>
-                    <input
-                      type="text"
-                      value={formData.aboutPage.visionTitle}
-                      onChange={(e) => updateAboutPage('visionTitle', e.target.value)}
-                    />
-                  </div>
-                </div>
-                <div className="admin-form-group row-split">
-                  <div>
-                    <label>Mission Description</label>
-                    <textarea
-                      value={formData.aboutPage.missionDescription}
-                      onChange={(e) => updateAboutPage('missionDescription', e.target.value)}
-                      rows="4"
-                    />
-                  </div>
-                  <div>
-                    <label>Vision Description</label>
-                    <textarea
-                      value={formData.aboutPage.visionDescription}
-                      onChange={(e) => updateAboutPage('visionDescription', e.target.value)}
-                      rows="4"
-                    />
-                  </div>
-                </div>
-                <div className="admin-form-group row-split">
-                  <div>
-                    <label>Promise Title</label>
-                    <input
-                      type="text"
-                      value={formData.aboutPage.promiseTitle || ''}
-                      onChange={(e) => updateAboutPage('promiseTitle', e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label>Promise Description</label>
-                    <textarea
-                      value={formData.aboutPage.promiseDescription || ''}
-                      onChange={(e) => updateAboutPage('promiseDescription', e.target.value)}
-                      rows="4"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="settings-subsection">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <h4 style={{ margin: 0 }}>4. What We Offer</h4>
-                  <button type="button" className="action-btn-secondary" onClick={addOffering} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <FaPlus /> Add Item
-                  </button>
-                </div>
-                {formData.aboutPage.offerings.map((item, index) => (
-                  <div key={item.id || index} className="about-offering-row">
-                    <div className="admin-form-group row-split">
-                      <div>
-                        <label>Category Name</label>
-                        <input
-                          type="text"
-                          value={item.title}
-                          onChange={(e) => updateOffering(index, 'title', e.target.value)}
-                          placeholder="e.g. Fresh Vegetables & Fruits"
-                        />
-                      </div>
-                      <div>
-                        <label>Description</label>
-                        <input
-                          type="text"
-                          value={item.description}
-                          onChange={(e) => updateOffering(index, 'description', e.target.value)}
-                          placeholder="Short description"
-                        />
-                      </div>
-                    </div>
-                    <div className="admin-form-group">
-                      <label>Image URL</label>
-                      <input
-                        type="text"
-                        value={item.image || ''}
-                        onChange={(e) => updateOffering(index, 'image', e.target.value)}
-                        placeholder="https://..."
-                      />
-                    </div>
-                    <button type="button" className="about-offering-remove" onClick={() => removeOffering(index)}>
-                      <FaTrash /> Remove
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-              <div className="settings-subsection">
-                <h4>5. Statistics Banner</h4>
-                <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '16px' }}>
-                  Numbers shown on the dark blue stats section.
-                </p>
-                {(formData.aboutPage.stats || []).map((stat, index) => (
-                  <div key={stat.label || index} className="about-offering-row">
-                    <div className="admin-form-group row-split">
-                      <div>
-                        <label>Value</label>
-                        <input
-                          type="number"
-                          value={stat.value}
-                          onChange={(e) => updateAboutStat(index, 'value', e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <label>Suffix</label>
-                        <input
-                          type="text"
-                          value={stat.suffix}
-                          onChange={(e) => updateAboutStat(index, 'suffix', e.target.value)}
-                          placeholder="K+, +, %"
-                        />
-                      </div>
-                      <div>
-                        <label>Label</label>
-                        <input
-                          type="text"
-                          value={stat.label}
-                          onChange={(e) => updateAboutStat(index, 'label', e.target.value)}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="settings-subsection">
-                <h4>6. Company Owner Details</h4>
-                <AboutImageUpload
-                  label="Owner Photo"
-                  value={formData.aboutPage.owner.photo}
-                  inputId="about-owner-photo"
-                  onUpload={handleAboutImageUpload('owner.photo')}
-                />
-                <div className="admin-form-group row-split">
-                  <div>
-                    <label>Owner Name</label>
-                    <input
-                      type="text"
-                      value={formData.aboutPage.owner.name}
-                      onChange={(e) => updateOwner('name', e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label>Designation</label>
-                    <input
-                      type="text"
-                      value={formData.aboutPage.owner.designation}
-                      onChange={(e) => updateOwner('designation', e.target.value)}
-                      placeholder="Founder & Owner"
-                    />
-                  </div>
-                </div>
-                <div className="admin-form-group row-split">
-                  <div>
-                    <label>Phone Number</label>
-                    <input
-                      type="tel"
-                      value={formData.aboutPage.owner.phone}
-                      onChange={(e) => updateOwner('phone', e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label>Location</label>
-                    <input
-                      type="text"
-                      value={formData.aboutPage.owner.location}
-                      onChange={(e) => updateOwner('location', e.target.value)}
-                    />
-                  </div>
-                </div>
-                <div className="admin-form-group">
-                  <label>Badge Text</label>
-                  <input
-                    type="text"
-                    value={formData.aboutPage.owner.badge}
-                    onChange={(e) => updateOwner('badge', e.target.value)}
-                    placeholder="Since 2022"
-                  />
-                </div>
-                <div className="admin-form-group">
-                  <label>Owner Quote</label>
-                  <textarea
-                    value={formData.aboutPage.owner.quote}
-                    onChange={(e) => updateOwner('quote', e.target.value)}
-                    rows="3"
-                    placeholder="A quote from the owner..."
                   />
                 </div>
               </div>

@@ -39,7 +39,7 @@ export const getStats = async (req, res, next) => {
         }),
         Announcement.countDocuments({ status: 'active' }),
         CustomerEnquiry.countDocuments({ status: { $ne: 'deleted' } }),
-        CustomerEnquiry.countDocuments({ status: 'new', isRead: false }),
+        CustomerEnquiry.countDocuments({ status: { $in: ['New', 'new'] }, isRead: false }),
         Announcement.countDocuments({ status: 'active' }),
       ]);
 

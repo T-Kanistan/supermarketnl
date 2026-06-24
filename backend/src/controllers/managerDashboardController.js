@@ -1,6 +1,7 @@
 import Product from '../models/Product.js';
 import Announcement from '../models/Announcement.js';
 import CustomerEnquiry from '../models/CustomerEnquiry.js';
+import { normalizeEnquiryStatus } from '../constants/enquiryStatuses.js';
 import ActivityLog from '../models/ActivityLog.js';
 import HomepageBanner from '../models/HomepageBanner.js';
 import HomepageAboutSection from '../models/HomepageAboutSection.js';
@@ -31,7 +32,7 @@ export const getManagerDashboard = async (req, res, next) => {
         }),
         Announcement.countDocuments({ status: 'active' }),
         CustomerEnquiry.countDocuments({ status: { $ne: 'deleted' } }),
-        CustomerEnquiry.countDocuments({ status: 'new', isRead: false }),
+        CustomerEnquiry.countDocuments({ status: { $in: ['New', 'new'] }, isRead: false }),
         Announcement.countDocuments({ status: 'active' }),
       ]);
 
@@ -93,7 +94,7 @@ export const getManagerRecentEnquiries = async (req, res, next) => {
       data: enquiries.map((item) => ({
         customerName: item.senderName,
         subject: item.subject,
-        status: item.status === 'new' && !item.isRead ? 'Pending' : item.status,
+        status: normalizeEnquiryStatus(item.status),
         enquiryType: item.enquiryType,
         createdAt: item.createdAt,
       })),

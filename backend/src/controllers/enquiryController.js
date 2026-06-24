@@ -16,14 +16,17 @@ const mapLegacyBody = (body) => ({
   message: body.message,
   productName: body.productName,
   quantityRequired: body.quantityRequired || body.quantity,
+  source: body.source,
 });
+
+const enquirySuccessMessage = 'Your enquiry has been submitted successfully.';
 
 export const submitContactEnquiry = async (req, res, next) => {
   try {
     const data = await enquiryService.createEnquiry(mapLegacyBody(req.body), 'contact-us');
     return res.status(201).json({
       success: true,
-      message: 'Your enquiry has been submitted successfully',
+      message: enquirySuccessMessage,
       data,
     });
   } catch (error) {
@@ -36,7 +39,7 @@ export const submitProductEnquiry = async (req, res, next) => {
     const data = await enquiryService.createEnquiry(mapLegacyBody(req.body), 'product-enquiry');
     return res.status(201).json({
       success: true,
-      message: 'Your product enquiry has been submitted successfully',
+      message: enquirySuccessMessage,
       data,
     });
   } catch (error) {
@@ -49,7 +52,7 @@ export const submitFoodCornerEnquiry = async (req, res, next) => {
     const data = await enquiryService.createEnquiry(mapLegacyBody(req.body), 'food-corner-enquiry');
     return res.status(201).json({
       success: true,
-      message: 'Your food corner enquiry has been submitted successfully',
+      message: enquirySuccessMessage,
       data,
     });
   } catch (error) {
@@ -75,6 +78,23 @@ export const getEnquiryById = async (req, res, next) => {
   try {
     const data = await enquiryService.getEnquiryById(req.params.id);
     return res.status(200).json({ success: true, data });
+  } catch (error) {
+    return handleServiceError(error, res, next);
+  }
+};
+
+export const updateEnquiryStatus = async (req, res, next) => {
+  try {
+    const data = await enquiryService.updateEnquiryStatus(
+      req.params.id,
+      req.body.status,
+      req.user
+    );
+    return res.status(200).json({
+      success: true,
+      message: 'Enquiry status updated successfully',
+      data,
+    });
   } catch (error) {
     return handleServiceError(error, res, next);
   }
@@ -164,7 +184,6 @@ export const getEnquiryStats = async (req, res, next) => {
   }
 };
 
-// CMS backward compatibility
 export const getMessages = getEnquiries;
 export const submitMessage = submitContactEnquiry;
 
