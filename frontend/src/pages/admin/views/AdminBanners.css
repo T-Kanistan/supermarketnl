@@ -1,0 +1,143 @@
+.admin-banners-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.admin-banners-search {
+  display: flex;
+  gap: 10px;
+  flex: 1;
+  min-width: 240px;
+}
+
+.admin-banners-search input {
+  flex: 1;
+  min-width: 180px;
+  padding: 10px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+}
+
+.admin-banners-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-banner-thumb {
+  width: 120px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.admin-banner-page-label {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.admin-banner-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 0 4px;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.admin-banner-modal-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+  gap: 24px;
+}
+
+.admin-banner-preview-panel {
+  position: sticky;
+  top: 0;
+}
+
+.admin-banner-live-preview {
+  position: relative;
+  min-height: 280px;
+  border-radius: 14px;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+  border: 1px solid #e2e8f0;
+}
+
+.admin-banner-live-overlay {
+  position: absolute;
+  inset: 0;
+}
+
+.admin-banner-live-content {
+  position: relative;
+  z-index: 1;
+  padding: 28px;
+  color: #fff;
+}
+
+.admin-banner-live-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin-bottom: 12px;
+}
+
+.admin-banner-live-title {
+  margin: 0 0 10px;
+  font-size: 1.6rem;
+  line-height: 1.2;
+}
+
+.admin-banner-live-highlight {
+  color: #86efac;
+}
+
+.admin-banner-live-desc {
+  margin: 0 0 16px;
+  max-width: 36ch;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.95rem;
+}
+
+.admin-banner-live-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-banner-live-btn {
+  display: inline-flex;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #16a34a;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.admin-banner-live-btn.secondary {
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+@media (max-width: 900px) {
+  .admin-banner-modal-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-banner-preview-panel {
+    position: static;
+  }
+}

@@ -1,0 +1,1 @@
+export { DEFAULT_FOOD_CORNER_CATEGORIES as default, DEFAULT_FOOD_CORNER_CATEGORIES } from './foodCornerMenu';
