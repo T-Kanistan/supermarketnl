@@ -2,6 +2,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import cmsService from '../services/cmsService';
 import footerService from '../services/footerService';
+import siteSettingsService from '../services/siteSettingsService';
 
 const CMSContext = createContext(null);
 
@@ -14,13 +15,21 @@ export const CMSProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const [home, footer] = await Promise.all([
+      const [home, footer, siteSettings] = await Promise.all([
         cmsService.getHomeSettings(),
         footerService.getFooterSettings(),
+        siteSettingsService.getSiteSettings().catch(() => null),
       ]);
       setCmsData({
         ...home,
         ...footer,
+        storeName: siteSettings?.storeName || home.storeName,
+        logo: siteSettings?.storeLogo || home.logo,
+        address: siteSettings?.physicalAddress || footer.address,
+        supermarketTimings:
+          siteSettings?.supermarketOpeningHours || home.supermarketTimings,
+        foodCornerTimings:
+          siteSettings?.foodCornerOpeningHours || home.foodCornerTimings,
       });
     } catch (err) {
       console.error('Failed to load CMS data:', err);

@@ -154,3 +154,12 @@ export const productCategoriesQueryRules = [
       return true;
     }),
 ];
+
+export const updateProductStatusRules = [
+  param('id').isMongoId().withMessage('Invalid product id'),
+  body('status')
+    .notEmpty()
+    .withMessage('Status is required')
+    .isIn(['active', 'inactive'])
+    .withMessage('Status must be active or inactive'),
+];

@@ -106,6 +106,9 @@ export const productService = {
           const q = params.search.toLowerCase();
           products = products.filter((p) => (p.productName || p.name).toLowerCase().includes(q));
         }
+        if (!admin) {
+          products = products.filter((p) => p.status !== 'inactive' && p.status !== 'deleted');
+        }
         return products;
       }
     );
@@ -117,7 +120,7 @@ export const productService = {
         const response = await api.get('/products/featured');
         return response.data.data ?? response.data;
       },
-      () => localDb.getProducts().filter((p) => p.isFeatured || p.featuredProduct)
+      () => localDb.getProducts().filter((p) => (p.isFeatured || p.featuredProduct) && p.status !== 'inactive')
     );
   },
 
@@ -195,6 +198,27 @@ export const productService = {
         const idx = products.findIndex((p) => p.id === id);
         if (idx === -1) throw new Error('Product not found');
         products[idx] = { ...products[idx], ...payload };
+        localDb.saveProducts(products);
+        return products[idx];
+      }
+    );
+  },
+
+  updateProductStatus: async (id, status) => {
+    return request(
+      async () => {
+        try {
+          const response = await api.patch(`/products/${id}/status`, { status });
+          return response.data.data ?? response.data;
+        } catch (error) {
+          throw new Error(extractApiError(error, 'Failed to update product status'));
+        }
+      },
+      () => {
+        const products = localDb.getProducts();
+        const idx = products.findIndex((p) => p.id === id);
+        if (idx === -1) throw new Error('Product not found');
+        products[idx] = { ...products[idx], status };
         localDb.saveProducts(products);
         return products[idx];
       }

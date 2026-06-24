@@ -1,5 +1,6 @@
 import { body, param, query } from 'express-validator';
 import { VACANCY_DEPARTMENTS, VACANCY_STATUSES } from '../models/Vacancy.js';
+import { parseVacancyDate, assertClosingDateNotInPast } from '../utils/vacancyDate.js';
 
 export const adminVacancyListQueryRules = [
   query('department').optional().isIn(['all', 'supermarket', 'food-corner']),
@@ -34,7 +35,23 @@ export const vacancyBodyRules = [
   body('workingDays').optional().trim().isLength({ max: 120 }),
   body('workingHours').optional().trim().isLength({ max: 120 }),
   body('openDate').optional({ nullable: true }),
-  body('closingDate').optional({ nullable: true }),
+  body('closingDate')
+    .optional({ nullable: true })
+    .custom((value) => {
+      if (value === undefined || value === null || value === '') return true;
+      const parsed = parseVacancyDate(value);
+      assertClosingDateNotInPast(parsed);
+      return true;
+    }),
+  body('closeDate')
+    .optional({ nullable: true })
+    .custom((value, { req }) => {
+      const raw = value ?? req.body.closingDate;
+      if (raw === undefined || raw === null || raw === '') return true;
+      const parsed = parseVacancyDate(raw);
+      assertClosingDateNotInPast(parsed);
+      return true;
+    }),
   body('summary').optional().trim().isLength({ max: 1000 }),
   body('description').optional().trim().isLength({ max: 5000 }),
   body('jobDescription').optional().trim().isLength({ max: 5000 }),
@@ -48,5 +65,12 @@ export const vacancyStatusRules = [
 
 export const vacancyExtendRules = [
   ...vacancyIdRules,
-  body('closingDate').notEmpty().withMessage('Closing date is required'),
+  body('closingDate')
+    .notEmpty()
+    .withMessage('Closing date is required')
+    .custom((value) => {
+      const parsed = parseVacancyDate(value);
+      assertClosingDateNotInPast(parsed);
+      return true;
+    }),
 ];

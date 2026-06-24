@@ -7,6 +7,7 @@ import { emptyAboutPageForm, emptyAboutSectionForm } from '../../../constants/ab
 import { emptyContactPageForm, mergeContactPage } from '../../../constants/contactPageDefaults';
 import { emptyFooterPageForm, mergeFooterPage } from '../../../constants/footerPageDefaults';
 import contactSettingsService from '../../../services/contactSettingsService';
+import siteSettingsService from '../../../services/siteSettingsService';
 import aboutUsService from '../../../services/aboutUsService';
 import { FaUpload, FaPlus, FaTrash, FaFacebook, FaInstagram, FaWhatsapp, FaTiktok, FaYoutube } from 'react-icons/fa';
 import { FiMapPin, FiPhone, FiMail, FiClock } from 'react-icons/fi';
@@ -149,7 +150,7 @@ const FooterPreview = ({ formData }) => {
 };
 
 export const AdminSiteSettings = () => {
-  const { cmsData, updateHomeData, updateFooterData, loading } = useCMS();
+  const { cmsData, updateHomeData, updateFooterData, refreshCMS, loading } = useCMS();
   const { addToast } = useToast();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState('general');
@@ -193,16 +194,28 @@ export const AdminSiteSettings = () => {
       }
 
       try {
+        const siteSettings = await siteSettingsService.getSiteSettings();
+        if (siteSettings && isMounted) {
+          next = {
+            ...next,
+            storeName: siteSettings.storeName || next.storeName,
+            logo: siteSettings.storeLogo || next.logo,
+            address: siteSettings.physicalAddress || next.address,
+            supermarketTimings: siteSettings.supermarketOpeningHours || next.supermarketTimings,
+            foodCornerTimings: siteSettings.foodCornerOpeningHours || next.foodCornerTimings,
+          };
+        }
+      } catch (err) {
+        console.warn('Site settings API unavailable, using CMS fallback.', err);
+      }
+
+      try {
         const contactSettings = await contactSettingsService.getContactSettings();
         if (contactSettings && isMounted) {
           next = {
             ...next,
             contactPhone: contactSettings.contactPhone || next.contactPhone,
             contactEmail: contactSettings.contactEmail || next.contactEmail,
-            storeName: contactSettings.storeName || next.storeName,
-            address: contactSettings.address || next.address,
-            supermarketTimings: contactSettings.supermarketTimings || next.supermarketTimings,
-            foodCornerTimings: contactSettings.foodCornerTimings || next.foodCornerTimings,
             contactPage: mergeContactPage({
               ...next.contactPage,
               ...contactSettings.contactPage,
@@ -438,6 +451,7 @@ export const AdminSiteSettings = () => {
     try {
       if (activeTab === 'contact') {
         const updated = await contactSettingsService.updateContactSettings(formData);
+        await refreshCMS();
         setFormData((prev) => ({
           ...prev,
           contactPhone: updated.contactPhone,
@@ -462,16 +476,17 @@ export const AdminSiteSettings = () => {
         await updateFooterData(formData);
         addToast('Footer settings updated successfully!', 'success');
       } else {
-        await updateHomeData({
-          storeName: formData.storeName,
-          logo: formData.logo,
-          supermarketTimings: formData.supermarketTimings,
-          foodCornerTimings: formData.foodCornerTimings,
-          featuresSection: formData.featuresSection,
-          aboutSection: formData.aboutSection,
-          foodCornerPromo: formData.foodCornerPromo,
-        });
-        addToast('Homepage settings updated successfully!', 'success');
+        const updated = await siteSettingsService.updateSiteSettings(formData);
+        await refreshCMS();
+        setFormData((prev) => ({
+          ...prev,
+          storeName: updated.storeName || prev.storeName,
+          logo: updated.storeLogo || prev.logo,
+          address: updated.physicalAddress || prev.address,
+          supermarketTimings: updated.supermarketOpeningHours || prev.supermarketTimings,
+          foodCornerTimings: updated.foodCornerOpeningHours || prev.foodCornerTimings,
+        }));
+        addToast('Settings updated successfully', 'success');
       }
     } catch (err) {
       console.error('Failed to update settings', err);

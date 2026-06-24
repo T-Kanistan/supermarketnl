@@ -13,6 +13,7 @@ import { GiCook } from 'react-icons/gi';
 import foodCornerService from '../services/foodCornerService';
 import { getImageUrl } from '../services/api';
 import { useEnquiry } from '../context/EnquiryContext';
+import { useCMS } from '../context/CMSContext';
 import usePageBanner from '../hooks/usePageBanner';
 import { getBannerOverlayStyle } from '../utils/bannerOverlay';
 import './FoodCorner.css';
@@ -91,7 +92,9 @@ const FoodCorner = () => {
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [sortOption, setSortOption] = useState('default');
   const { openEnquiry } = useEnquiry();
+  const { cmsData } = useCMS();
   const { banner: pageBanner, loading: bannerLoading } = usePageBanner('food-corner');
+  const foodCornerHours = cmsData?.foodCornerTimings || '';
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -256,7 +259,7 @@ const FoodCorner = () => {
               </div>
               <div className="fc-hours-content">
                 <span className="fc-hours-label fc-hours-label--green">Weekend Dining Hours</span>
-                <strong className="fc-hours-time">6:00 PM – 10:00 PM</strong>
+                <strong className="fc-hours-time">{foodCornerHours}</strong>
                 <span className="fc-hours-note">Saturday &amp; Sunday</span>
               </div>
             </div>

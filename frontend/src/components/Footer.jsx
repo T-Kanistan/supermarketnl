@@ -134,9 +134,9 @@ const Footer = () => {
             <h4 className="footer-main-title">{footer.businessHoursTitle}</h4>
             <div className="footer-contact-list">
               <p><FiClock /> {footer.supermarketLabel}</p>
-              <p className="footer-hours-sub">{cmsData.supermarketTimings || '8:00 AM - 10:00 PM'}</p>
+              <p className="footer-hours-sub">{cmsData.supermarketTimings || ''}</p>
               <p><FiClock /> {footer.foodCornerLabel}</p>
-              <p className="footer-hours-sub">{cmsData.foodCornerTimings || '11:00 AM - 11:00 PM'}</p>
+              <p className="footer-hours-sub">{cmsData.foodCornerTimings || ''}</p>
               {footer.sundayHours && (
                 <p className="footer-hours-sub">{footer.sundayHours}</p>
               )}

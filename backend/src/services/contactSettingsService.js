@@ -1,5 +1,6 @@
 import ContactCMS, { getDefaultContactCMS } from '../models/ContactCMS.js';
 import FooterCMS from '../models/FooterCMS.js';
+import siteSettingsService from './siteSettingsService.js';
 
 const ensureContactSettings = async () => {
   let doc = await ContactCMS.findOne();
@@ -187,6 +188,28 @@ export const updateContactSettings = async (body) => {
   const mongoUpdate = apiPayloadToMongoUpdate(payload);
   const doc = await ContactCMS.findByIdAndUpdate(existing._id, { $set: mongoUpdate }, { new: true });
   const socialLinks = await getSocialLinks();
+
+  const hoursOrStoreUpdated =
+    payload.supermarketOpeningHours !== undefined ||
+    payload.foodCornerOpeningHours !== undefined ||
+    payload.storeName !== undefined ||
+    payload.storeAddress !== undefined;
+
+  if (hoursOrStoreUpdated) {
+    const settings = await siteSettingsService.getSiteSettings();
+    await siteSettingsService.updateSiteSettings(
+      {
+        storeName: payload.storeName ?? settings.storeName,
+        physicalAddress: payload.storeAddress ?? settings.physicalAddress,
+        supermarketOpeningHours: payload.supermarketOpeningHours ?? settings.supermarketOpeningHours,
+        foodCornerOpeningHours: payload.foodCornerOpeningHours ?? settings.foodCornerOpeningHours,
+        storeLogo: settings.storeLogo,
+      },
+      null,
+      null
+    );
+  }
+
   return mapDocToApi(doc, socialLinks);
 };
 

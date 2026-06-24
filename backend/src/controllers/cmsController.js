@@ -1,5 +1,6 @@
 import HomeCMS, { getDefaultHomeCMS } from '../models/HomeCMS.js';
 import { handleImageUpload, handleBase64Upload } from '../middlewares/uploadMiddleware.js';
+import siteSettingsService from '../services/siteSettingsService.js';
 
 const uploadIfBase64 = async (value) => {
   if (!value || typeof value !== 'string' || !value.startsWith('data:image')) return value;
@@ -100,6 +101,14 @@ export const updateCMS = async (req, res, next) => {
 
     home.updatedBy = req.user._id;
     await home.save();
+
+    const timingsUpdated =
+      req.body.supermarketTimings !== undefined || req.body.foodCornerTimings !== undefined;
+    const storeFieldsUpdated =
+      req.body.storeName !== undefined || req.body.logo !== undefined || req.file;
+    if (timingsUpdated || storeFieldsUpdated) {
+      await siteSettingsService.syncFromHomeCms(home);
+    }
 
     res.status(200).json({
       success: true,

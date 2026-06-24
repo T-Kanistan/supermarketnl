@@ -1,5 +1,6 @@
 import { logStartupEnvironment } from './config/env.js';
-import connectMongo, { disconnectMongo, isMongoConnected } from './config/mongo.js';
+import connectMongo, { disconnectMongo } from './config/mongo.js';
+import { migrateProductStatus } from './migrations/migrateProductStatus.js';
 import app from './app.js';
 import { startAnnouncementExpiryJob } from './jobs/announcementExpiryJob.js';
 
@@ -36,6 +37,7 @@ const startServer = async () => {
 
   try {
     await connectMongo();
+    await migrateProductStatus();
     startAnnouncementExpiryJob();
     console.log('[Server] Startup complete — MongoDB connected and routes ready.');
   } catch (error) {

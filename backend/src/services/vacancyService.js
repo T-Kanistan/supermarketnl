@@ -2,6 +2,11 @@ import mongoose from 'mongoose';
 import Vacancy from '../models/Vacancy.js';
 import JobApplication from '../models/JobApplication.js';
 import { parsePagination, buildPaginationMeta } from '../utils/pagination.js';
+import {
+  parseVacancyDate,
+  isClosingDatePassed,
+  assertClosingDateNotInPast,
+} from '../utils/vacancyDate.js';
 const PUBLIC_STATUSES = ['Active', 'Extended', 'Open', 'active', 'open', 'extended'];
 
 const normalizeDepartmentSlug = (department = '') => {
@@ -9,10 +14,18 @@ const normalizeDepartmentSlug = (department = '') => {
   return 'supermarket';
 };
 
+const resolveVacancyDisplayStatus = (status, closingDate) => {
+  if (isClosingDatePassed(closingDate) && ['Active', 'Extended'].includes(status)) {
+    return 'Expired';
+  }
+  return status;
+};
+
 const toPublicVacancy = (doc) => {
   const obj = doc?.toObject ? doc.toObject() : doc;
   const departmentLabel = obj.department || 'Supermarket';
   const departmentSlug = normalizeDepartmentSlug(departmentLabel);
+  const displayStatus = resolveVacancyDisplayStatus(obj.status, obj.closingDate);
 
   return {
     id: obj.legacyId || obj._id?.toString(),
@@ -21,7 +34,8 @@ const toPublicVacancy = (doc) => {
     department: departmentSlug,
     departmentLabel,
     employmentType: obj.employmentType,
-    status: obj.status,
+    status: displayStatus,
+    storedStatus: obj.status,
     location: obj.location,
     workingDays: obj.workingDays,
     workingHours: obj.workingHours,
@@ -52,7 +66,9 @@ export const getPublicVacancies = async ({ filter = 'all', sort } = {}) => {
       : { createdAt: -1 };
 
   const vacancies = await Vacancy.find(query).sort(sortOption).lean();
-  return vacancies.map(toPublicVacancy);
+  return vacancies
+    .map(toPublicVacancy)
+    .filter((vacancy) => vacancy.status !== 'Expired');
 };
 
 export const getVacancyById = async (id) => {
@@ -72,7 +88,14 @@ export const getVacancyById = async (id) => {
     throw error;
   }
 
-  return toPublicVacancy(vacancy);
+  const formatted = toPublicVacancy(vacancy);
+  if (formatted.status === 'Expired') {
+    const error = new Error('Vacancy not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  return formatted;
 };
 
 const toAdminVacancy = (doc, applicationCount = 0) => {
@@ -90,6 +113,25 @@ const toAdminVacancy = (doc, applicationCount = 0) => {
     closingDate: doc.closingDate,
     applicationCount,
   };
+};
+
+const buildVacancyUpdate = (payload) => {
+  const update = {};
+
+  if (payload.title !== undefined) update.title = payload.title;
+  if (payload.department !== undefined) update.department = payload.department;
+  if (payload.employmentType !== undefined) update.employmentType = payload.employmentType;
+  if (payload.status !== undefined) update.status = payload.status;
+  if (payload.location !== undefined) update.location = payload.location;
+  if (payload.workingDays !== undefined) update.workingDays = payload.workingDays;
+  if (payload.workingHours !== undefined) update.workingHours = payload.workingHours;
+  if (payload.closingDate !== undefined) update.closingDate = payload.closingDate;
+  if (payload.openDate !== undefined) update.openDate = payload.openDate;
+  if (payload.summary !== undefined) update.summary = payload.summary;
+  if (payload.description !== undefined) update.description = payload.description;
+  if (payload.icon !== undefined) update.icon = payload.icon;
+
+  return update;
 };
 const getApplicationCounts = async () => {
   const rows = await JobApplication.aggregate([
@@ -190,6 +232,10 @@ export const getAdminVacancyById = async (id) => {
 };
 
 export const createVacancy = async (payload) => {
+  if (payload.closingDate) {
+    assertClosingDateNotInPast(payload.closingDate);
+  }
+
   const vacancy = await Vacancy.create({
     title: payload.title,
     department: payload.department,
@@ -198,7 +244,7 @@ export const createVacancy = async (payload) => {
     location: payload.location,
     workingDays: payload.workingDays,
     workingHours: payload.workingHours,
-    closingDate: payload.closingDate || null,
+    closingDate: payload.closingDate ?? null,
     openDate: payload.openDate || new Date(),
     summary: payload.summary,
     description: payload.description,
@@ -211,26 +257,40 @@ export const createVacancy = async (payload) => {
 export const updateVacancy = async (id, payload) => {
   const lookup = [{ legacyId: id }];
   if (mongoose.Types.ObjectId.isValid(id)) lookup.unshift({ _id: id });
-  const update = {
-    title: payload.title,
-    department: payload.department,
-    employmentType: payload.employmentType,
-    status: payload.status,
-    location: payload.location,
-    workingDays: payload.workingDays,
-    workingHours: payload.workingHours,
-    closingDate: payload.closingDate,
-    summary: payload.summary,
-    description: payload.description,
-    icon: payload.icon,
-  };
-  if (payload.openDate) update.openDate = payload.openDate;
+
+  const existing = await Vacancy.findOne({ $or: lookup }).lean();
+  if (!existing) {
+    const error = new Error('Vacancy not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  if (payload.closingDate !== undefined && payload.closingDate !== null) {
+    const existingTime = existing.closingDate
+      ? new Date(existing.closingDate).setHours(0, 0, 0, 0)
+      : null;
+    const nextTime = new Date(payload.closingDate).setHours(0, 0, 0, 0);
+    const closingDateChanged = existingTime !== nextTime;
+
+    if (closingDateChanged) {
+      assertClosingDateNotInPast(payload.closingDate);
+    }
+  }
+
+  const update = buildVacancyUpdate(payload);
+  if (Object.keys(update).length === 0) {
+    const error = new Error('No valid fields provided for update');
+    error.statusCode = 400;
+    throw error;
+  }
 
   const vacancy = await Vacancy.findOneAndUpdate(
     { $or: lookup },
     update,
     { new: true, runValidators: true }
-  ).lean();  if (!vacancy) {
+  ).lean();
+
+  if (!vacancy) {
     const error = new Error('Vacancy not found');
     error.statusCode = 404;
     throw error;
@@ -257,11 +317,14 @@ export const updateVacancyStatus = async (id, status) => {
 };
 
 export const extendVacancyClosingDate = async (id, closingDate) => {
+  const parsedClosingDate = parseVacancyDate(closingDate);
+  assertClosingDateNotInPast(parsedClosingDate);
+
   const lookup = [{ legacyId: id }];
   if (mongoose.Types.ObjectId.isValid(id)) lookup.unshift({ _id: id });
   const vacancy = await Vacancy.findOneAndUpdate(
     { $or: lookup },
-    { closingDate, status: 'Extended' },
+    { closingDate: parsedClosingDate, status: 'Extended' },
     { new: true, runValidators: true }
   ).lean();
   if (!vacancy) {

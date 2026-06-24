@@ -1,6 +1,8 @@
 /**
  * Strip HTML tags and trim user-provided text fields.
  */
+import { parseVacancyDate } from './vacancyDate.js';
+
 export const sanitizeText = (value) => {
   if (value === undefined || value === null) return '';
   return String(value)
@@ -44,18 +46,30 @@ export const sanitizeJobApplicationInput = (body = {}) => ({
   address: sanitizeText(body.address),
 });
 
-export const sanitizeVacancyInput = (body = {}) => ({
-  title: sanitizeText(body.jobTitle || body.title),
-  department: sanitizeText(body.department),
-  employmentType: sanitizeText(body.employmentType),
-  status: sanitizeText(body.status),
-  location: sanitizeText(body.location),
-  workingDays: sanitizeText(body.workingDays),
-  workingHours: sanitizeText(body.workingHours),
-  summary: sanitizeText(body.summary),
-  description: sanitizeText(body.jobDescription || body.description),
-  icon: sanitizeText(body.icon),
-  legacyId: sanitizeText(body.legacyId),
-});
+export const sanitizeVacancyInput = (body = {}) => {
+  const closingDate =
+    body.closingDate !== undefined || body.closeDate !== undefined
+      ? parseVacancyDate(body.closingDate ?? body.closeDate)
+      : undefined;
+
+  const openDate =
+    body.openDate !== undefined ? parseVacancyDate(body.openDate) : undefined;
+
+  return {
+    title: sanitizeText(body.jobTitle || body.title),
+    department: sanitizeText(body.department),
+    employmentType: sanitizeText(body.employmentType),
+    status: sanitizeText(body.status),
+    location: sanitizeText(body.location),
+    workingDays: sanitizeText(body.workingDays),
+    workingHours: sanitizeText(body.workingHours),
+    summary: sanitizeText(body.summary),
+    description: sanitizeText(body.jobDescription || body.description),
+    icon: sanitizeText(body.icon),
+    legacyId: sanitizeText(body.legacyId),
+    ...(closingDate !== undefined ? { closingDate } : {}),
+    ...(openDate !== undefined ? { openDate } : {}),
+  };
+};
 
 export default { sanitizeText, sanitizeContactMessage, sanitizeEnquiryInput, sanitizeJobApplicationInput, sanitizeVacancyInput };

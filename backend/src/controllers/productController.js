@@ -2,7 +2,10 @@ import * as productService from '../services/productService.js';
 
 export const getProducts = async (req, res, next) => {
   try {
-    const data = await productService.listProducts(req.query, { publicOnly: true });
+    const data = await productService.listProducts(req.query, {
+      publicOnly: true,
+      publicListFormat: true,
+    });
     return res.status(200).json({
       success: true,
       count: data.length,
@@ -54,12 +57,15 @@ export const getProductCategories = async (req, res, next) => {
 
 export const getProduct = async (req, res, next) => {
   try {
-    const data = await productService.getProductById(req.params.id);
+    const data = await productService.getProductById(req.params.id, { publicOnly: true });
     return res.status(200).json({
       success: true,
       data,
     });
   } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({ success: false, message: error.message });
+    }
     next(error);
   }
 };
@@ -105,6 +111,23 @@ export const deleteProduct = async (req, res, next) => {
     return res.status(200).json({
       success: true,
       message: 'Product deleted successfully',
+    });
+  } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({ success: false, message: error.message });
+    }
+    next(error);
+  }
+};
+
+export const updateProductStatus = async (req, res, next) => {
+  try {
+    const { status } = req.body;
+    const data = await productService.updateProductStatus(req.params.id, status, req.user);
+    return res.status(200).json({
+      success: true,
+      message: 'Status updated',
+      data,
     });
   } catch (error) {
     if (error.statusCode) {

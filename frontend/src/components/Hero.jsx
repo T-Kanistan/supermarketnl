@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { FaShoppingBasket, FaUtensils, FaArrowRight } from 'react-icons/fa';
 import { mergePageBanner } from '../constants/pageBannerDefaults';
 import { getBannerOverlayStyle } from '../utils/bannerOverlay';
+import { useCMS } from '../context/CMSContext';
 import bannerService from '../services/bannerService';
 import { getImageUrl } from '../services/api';
 import './Hero.css';
@@ -20,13 +21,12 @@ const DEFAULT_BANNER = {
   showOpenTimeCard: true,
   cardTitle: 'Open Time',
   supermarketLabel: 'Supermarket',
-  supermarketHours: '8:00 AM - 10:00 PM',
   foodCornerLabel: 'Food Corner',
-  foodCornerHours: '11:00 AM - 11:00 PM',
 };
 
 const Hero = () => {
   const navigate = useNavigate();
+  const { cmsData } = useCMS();
   const [banner, setBanner] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -73,6 +73,16 @@ const Hero = () => {
     bannerData.secondaryButtonLink ||
     DEFAULT_BANNER.secondaryButtonLink;
   const showOpenTimeCard = true;
+  const supermarketHours =
+    cmsData?.supermarketTimings ||
+    bannerData.supermarketHours ||
+    bannerData.supermarketTimings ||
+    '';
+  const foodCornerHours =
+    cmsData?.foodCornerTimings ||
+    bannerData.foodCornerHours ||
+    bannerData.foodCornerTimings ||
+    '';
 
   return (
     <section
@@ -125,11 +135,7 @@ const Hero = () => {
                   <span className="timing-label">
                     {bannerData.supermarketLabel || DEFAULT_BANNER.supermarketLabel}
                   </span>
-                  <span className="timing-value">
-                    {bannerData.supermarketHours ||
-                      bannerData.supermarketTimings ||
-                      DEFAULT_BANNER.supermarketHours}
-                  </span>
+                  <span className="timing-value">{supermarketHours}</span>
                 </div>
               </div>
               <div className="timing-divider" />
@@ -141,11 +147,7 @@ const Hero = () => {
                   <span className="timing-label">
                     {bannerData.foodCornerLabel || DEFAULT_BANNER.foodCornerLabel}
                   </span>
-                  <span className="timing-value">
-                    {bannerData.foodCornerHours ||
-                      bannerData.foodCornerTimings ||
-                      DEFAULT_BANNER.foodCornerHours}
-                  </span>
+                  <span className="timing-value">{foodCornerHours}</span>
                 </div>
               </div>
             </div>

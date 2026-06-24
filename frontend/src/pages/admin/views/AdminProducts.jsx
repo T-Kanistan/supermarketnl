@@ -8,7 +8,7 @@ import { useToast } from '../../../context/ToastContext';
 import { useAuth } from '../../../context/AuthContext';
 
 export const AdminProducts = () => {
-  const { isAdmin } = useAuth();
+  const { isAdmin, isManager } = useAuth();
   const [searchParams] = useSearchParams();
   // Route-driven type view:
   // - /admin/dashboard/products            => grocery only
@@ -25,6 +25,7 @@ export const AdminProducts = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState(initialType);
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
@@ -40,6 +41,7 @@ export const AdminProducts = () => {
     productType: 'grocery',
     featuredProduct: false,
     menuDisplayTiming: '',
+    status: 'active',
   });
 
   const mapProductType = (value) => {
@@ -130,13 +132,21 @@ export const AdminProducts = () => {
   };
 
   const handleStatusToggle = async (product) => {
-    const nextStatus = product.status === 'active' ? 'inactive' : 'active';
+    const currentStatus = product.status === 'inactive' ? 'inactive' : 'active';
+    const nextStatus = currentStatus === 'active' ? 'inactive' : 'active';
     try {
-      await productService.updateProduct(product.id, { status: nextStatus });
-      setProducts((prev) => 
-        prev.map((p) => p.id === product.id ? { ...p, status: nextStatus } : p)
+      const updated = await productService.updateProductStatus(product.id, nextStatus);
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.id === product.id
+            ? { ...p, status: updated?.status || nextStatus }
+            : p
+        )
       );
-      addToast(`Product "${product.name}" status updated to ${nextStatus}`, 'success');
+      addToast(
+        `Product "${product.productName || product.name}" is now ${nextStatus}`,
+        'success'
+      );
     } catch (e) {
       console.error('Failed to update status', e);
       addToast(e.message || e.response?.data?.message || 'Failed to update status', 'error');
@@ -144,6 +154,10 @@ export const AdminProducts = () => {
   };
 
   const handleFeaturedToggle = async (product) => {
+    if (!isAdmin) {
+      addToast('Only administrators can change featured products', 'error');
+      return;
+    }
     const nextFeatured = !product.isFeatured;
     try {
       await productService.updateProduct(product.id, { isFeatured: nextFeatured });
@@ -158,6 +172,10 @@ export const AdminProducts = () => {
   };
 
   const openAddModal = async () => {
+    if (!isAdmin) {
+      addToast('Only administrators can add products', 'error');
+      return;
+    }
     setEditingProduct(null);
     const selectedProductType = typeFilter === 'food-corner' ? 'food-corner' : 'grocery';
     const cats = await loadModalCategories(selectedProductType);
@@ -171,6 +189,7 @@ export const AdminProducts = () => {
       productType: selectedProductType,
       featuredProduct: false,
       menuDisplayTiming: '',
+      status: 'active',
     });
     setIsModalOpen(true);
   };
@@ -189,6 +208,10 @@ export const AdminProducts = () => {
   };
 
   const openEditModal = (product) => {
+    if (!isAdmin) {
+      addToast('Only administrators can edit product details', 'error');
+      return;
+    }
     const productType = mapProductType(product.productType || product.type);
     setEditingProduct(product);
     setFormData({
@@ -201,6 +224,7 @@ export const AdminProducts = () => {
       productType,
       featuredProduct: Boolean(product.featuredProduct ?? product.isFeatured),
       menuDisplayTiming: product.menuDisplayTiming || product.displayTime || '',
+      status: product.status === 'inactive' ? 'inactive' : 'active',
     });
     setIsModalOpen(true);
   };
@@ -289,12 +313,17 @@ export const AdminProducts = () => {
     return products.filter((prod) => {
       const name = prod.productName || prod.name || '';
       const productType = mapProductType(prod.productType || prod.type);
+      const productStatus = prod.status === 'inactive' ? 'inactive' : 'active';
       const matchesSearch = name.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesType = productType === mapProductType(typeFilter);
       const matchesCategory = categoryFilter === 'all' || prod.categoryId === categoryFilter;
-      return matchesSearch && matchesType && matchesCategory;
+      const matchesStatus =
+        statusFilter === 'all' ||
+        (statusFilter === 'active' && productStatus === 'active') ||
+        (statusFilter === 'inactive' && productStatus === 'inactive');
+      return matchesSearch && matchesType && matchesCategory && matchesStatus;
     });
-  }, [products, searchQuery, typeFilter, categoryFilter]);
+  }, [products, searchQuery, typeFilter, categoryFilter, statusFilter]);
 
   // Paginated products
   const paginatedProducts = useMemo(() => {
@@ -322,16 +351,31 @@ export const AdminProducts = () => {
     return catId || 'General';
   };
 
+  const renderStatusBadge = (status) => {
+    const isActive = status !== 'inactive';
+    return (
+      <span className={`product-status-badge ${isActive ? 'active' : 'inactive'}`}>
+        {isActive ? '🟢 Active' : '🔴 Inactive'}
+      </span>
+    );
+  };
+
   return (
     <div>
       <div className="view-header">
         <div className="view-title-wrap">
           <h2>Catalog Products</h2>
-          <p>Create, update, and manage inventory products and ready-to-eat restaurant items.</p>
+          <p>
+            {isManager
+              ? 'Activate or deactivate products for the public storefront.'
+              : 'Create, update, and manage inventory products and ready-to-eat restaurant items.'}
+          </p>
         </div>
-        <button className="action-btn-primary" onClick={openAddModal}>
-          <FaPlus /> Add Product
-        </button>
+        {isAdmin && (
+          <button className="action-btn-primary" onClick={openAddModal}>
+            <FaPlus /> Add Product
+          </button>
+        )}
       </div>
 
       {/* Search and Filters Controls */}
@@ -344,6 +388,30 @@ export const AdminProducts = () => {
             value={searchQuery}
             onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
           />
+        </div>
+
+        <div className="filter-group-admin product-status-filters">
+          <button
+            type="button"
+            className={`status-filter-btn ${statusFilter === 'all' ? 'active' : ''}`}
+            onClick={() => { setStatusFilter('all'); setCurrentPage(1); }}
+          >
+            All Products
+          </button>
+          <button
+            type="button"
+            className={`status-filter-btn ${statusFilter === 'active' ? 'active' : ''}`}
+            onClick={() => { setStatusFilter('active'); setCurrentPage(1); }}
+          >
+            Active Products
+          </button>
+          <button
+            type="button"
+            className={`status-filter-btn ${statusFilter === 'inactive' ? 'active' : ''}`}
+            onClick={() => { setStatusFilter('inactive'); setCurrentPage(1); }}
+          >
+            Inactive Products
+          </button>
         </div>
 
         <div className="filter-group-admin">
@@ -435,35 +503,44 @@ export const AdminProducts = () => {
                     )}
                   </td>
                   <td data-label="Featured">
-                    <button 
-                      onClick={() => handleFeaturedToggle(prod)} 
-                      style={{ cursor: 'pointer', fontSize: '1.2rem', color: '#eab308' }}
-                      title={(prod.featuredProduct || prod.isFeatured) ? 'Unmark Featured' : 'Mark Featured'}
-                    >
-                      {(prod.featuredProduct || prod.isFeatured) ? <FaStar /> : <FaRegStar />}
-                    </button>
+                    {isAdmin ? (
+                      <button 
+                        onClick={() => handleFeaturedToggle(prod)} 
+                        style={{ cursor: 'pointer', fontSize: '1.2rem', color: '#eab308' }}
+                        title={(prod.featuredProduct || prod.isFeatured) ? 'Unmark Featured' : 'Mark Featured'}
+                      >
+                        {(prod.featuredProduct || prod.isFeatured) ? <FaStar /> : <FaRegStar />}
+                      </button>
+                    ) : (
+                      <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>—</span>
+                    )}
                   </td>
                   <td data-label="Status">
-                    <label className="toggle-switch-admin">
-                      <input 
-                        type="checkbox" 
-                        checked={prod.status === 'active'} 
-                        onChange={() => handleStatusToggle(prod)} 
-                      />
-                      <span className="toggle-slider-admin"></span>
-                    </label>
+                    <div className="product-status-cell">
+                      {renderStatusBadge(prod.status)}
+                      <label className="toggle-switch-admin" title={prod.status === 'active' ? 'Set inactive' : 'Set active'}>
+                        <input 
+                          type="checkbox" 
+                          checked={prod.status !== 'inactive'} 
+                          onChange={() => handleStatusToggle(prod)} 
+                        />
+                        <span className="toggle-slider-admin"></span>
+                      </label>
+                    </div>
                   </td>
                   <td data-label="Actions" className="admin-actions-cell">
-                    <div className="cell-actions">
-                      <button className="btn-action-cell edit" onClick={() => openEditModal(prod)} title="Edit Product">
-                        <FaEdit />
-                      </button>
-                      {isAdmin && (
+                    {isAdmin ? (
+                      <div className="cell-actions">
+                        <button className="btn-action-cell edit" onClick={() => openEditModal(prod)} title="Edit Product">
+                          <FaEdit />
+                        </button>
                         <button className="btn-action-cell delete" onClick={() => handleDelete(prod.id)} title="Delete Product">
                           <FaTrash />
                         </button>
-                      )}
-                    </div>
+                      </div>
+                    ) : (
+                      <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>Status only</span>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -663,8 +740,16 @@ export const AdminProducts = () => {
                       checked={formData.featuredProduct}
                       onChange={handleChange}
                     />
-                    Show on homepage (Featured Products)
+                    Show on Homepage (Featured Products)
                   </label>
+                </div>
+
+                <div className="admin-form-group">
+                  <label>Product Status</label>
+                  <select name="status" value={formData.status} onChange={handleChange}>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
                 </div>
               </div>
 

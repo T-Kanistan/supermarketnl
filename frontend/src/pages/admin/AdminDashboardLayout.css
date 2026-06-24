@@ -679,8 +679,83 @@
 }
 
 .status-badge-admin.inactive {
-  background-color: #fef3c7;
-  color: #b45309;
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+/* Product catalog status */
+.product-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.product-status-badge.active {
+  background: #22c55e;
+  color: #ffffff;
+}
+
+.product-status-badge.inactive {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.product-status-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.product-status-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.status-filter-btn {
+  border: 1px solid var(--admin-border);
+  background: #fff;
+  color: #475569;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.status-filter-btn:hover {
+  border-color: var(--admin-sidebar-active);
+  color: var(--admin-sidebar-active);
+}
+
+.status-filter-btn.active {
+  background: var(--admin-sidebar-active);
+  border-color: var(--admin-sidebar-active);
+  color: #fff;
+}
+
+@media (max-width: 768px) {
+  .product-status-cell {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .product-status-filters {
+    width: 100%;
+  }
+
+  .status-filter-btn {
+    flex: 1 1 auto;
+    text-align: center;
+  }
 }
 
 .status-badge-admin.scheduled {

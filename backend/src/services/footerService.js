@@ -1,5 +1,6 @@
 import FooterCMS, { getDefaultFooterCMS } from '../models/FooterCMS.js';
 import { deleteLocalImage, toPublicUrl } from '../middleware/upload.js';
+import siteSettingsService from './siteSettingsService.js';
 
 const LINK_TYPES = {
   quick: 'quickLinks',
@@ -198,6 +199,22 @@ export const updateFooterSettings = async (body) => {
   }
 
   const doc = await FooterCMS.findById(existing._id);
+
+  if (payload.supermarketHours !== undefined || payload.foodCornerHours !== undefined) {
+    const settings = await siteSettingsService.getSiteSettings();
+    await siteSettingsService.updateSiteSettings(
+      {
+        storeName: settings.storeName,
+        storeLogo: settings.storeLogo,
+        physicalAddress: settings.physicalAddress,
+        supermarketOpeningHours: payload.supermarketHours ?? settings.supermarketOpeningHours,
+        foodCornerOpeningHours: payload.foodCornerHours ?? settings.foodCornerOpeningHours,
+      },
+      null,
+      null
+    );
+  }
+
   return mapSettingsToApi(doc);
 };
 

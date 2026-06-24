@@ -139,6 +139,7 @@ export const formatProduct = (doc) => {
     specialBadge: plain.specialBadge || plain.badge || '',
     cookingStartTime: plain.cookingStartTime || '',
     cookingEndTime: plain.cookingEndTime || '',
+    status: plain.status || 'active',
     // Legacy aliases for storefront/admin compatibility
     name: productName,
     type: productType === 'food-corner' ? 'food' : 'grocery',
@@ -149,6 +150,25 @@ export const formatProduct = (doc) => {
     description: plain.shortDescription || plain.description || '',
     displayTime: plain.menuDisplayTiming || plain.displayTime || '',
     badge: plain.specialBadge || plain.badge || '',
+  };
+};
+
+export const formatProductListItem = (doc) => {
+  const plain = formatProduct(doc);
+  const status = plain.status === 'deleted' ? 'inactive' : plain.status || 'active';
+
+  return {
+    _id: plain._id,
+    id: plain.id,
+    productName: plain.productName,
+    category: plain.categoryName || plain.categoryId || '',
+    categoryId: plain.categoryId,
+    categoryName: plain.categoryName,
+    price: plain.price,
+    image: plain.imageUrl || plain.image || '',
+    imageUrl: plain.imageUrl || plain.image || '',
+    status,
+    createdAt: plain.createdAt,
   };
 };
 
@@ -255,7 +275,7 @@ export const normalizeProductPayload = async (body, { isUpdate = false } = {}) =
     price,
     featuredProduct:
       parseBoolean(body.featuredProduct ?? body.isFeatured ?? body.featured) ?? false,
-    status: body.status || 'active',
+    status: ['active', 'inactive'].includes(body.status) ? body.status : 'active',
   };
 
   if (productType === 'grocery') {
@@ -345,6 +365,11 @@ export const buildPartialProductUpdate = async (body, existing) => {
   }
 
   if (body.status !== undefined) {
+    if (!['active', 'inactive'].includes(body.status)) {
+      const error = new Error('Status must be active or inactive');
+      error.statusCode = 400;
+      throw error;
+    }
     update.status = body.status;
   }
 
@@ -388,6 +413,11 @@ export const buildPartialProductUpdate = async (body, existing) => {
 export const listProducts = async (query = {}, options = {}) => {
   const filter = buildProductFilter(query, options);
   const products = await Product.find(filter).sort({ createdAt: -1 });
+
+  if (options.publicListFormat) {
+    return products.map(formatProductListItem);
+  }
+
   return products.map(formatProduct);
 };
 
@@ -399,8 +429,13 @@ export const getFeaturedProducts = async () => {
   return products.map(formatProduct);
 };
 
-export const getProductById = async (id) => {
-  const product = await Product.findOne({ _id: id, status: { $ne: 'deleted' } });
+export const getProductById = async (id, options = {}) => {
+  const filter = { _id: id, status: { $ne: 'deleted' } };
+  if (options.publicOnly) {
+    filter.status = 'active';
+  }
+
+  const product = await Product.findOne(filter);
   if (!product) {
     const error = new Error('Product not found');
     error.statusCode = 404;
@@ -410,6 +445,13 @@ export const getProductById = async (id) => {
 };
 
 export const createProduct = async (body, user) => {
+  const role = user?.role || user?.accountType;
+  if (role === 'manager') {
+    const error = new Error('Managers cannot create products');
+    error.statusCode = 403;
+    throw error;
+  }
+
   const payload = await normalizeProductPayload(body);
   payload.createdBy = user?._id || null;
   payload.updatedBy = user?._id || null;
@@ -427,6 +469,13 @@ export const createProduct = async (body, user) => {
 };
 
 export const updateProduct = async (id, body, user) => {
+  const role = user?.role || user?.accountType;
+  if (role === 'manager') {
+    const error = new Error('Managers can only change product status');
+    error.statusCode = 403;
+    throw error;
+  }
+
   const product = await Product.findOne({ _id: id, status: { $ne: 'deleted' } });
   if (!product) {
     const error = new Error('Product not found');
@@ -476,6 +525,34 @@ export const softDeleteProduct = async (id, user) => {
   });
 
   return { success: true };
+};
+
+export const updateProductStatus = async (id, status, user) => {
+  if (!['active', 'inactive'].includes(status)) {
+    const error = new Error('Status must be active or inactive');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const product = await Product.findOne({ _id: id, status: { $ne: 'deleted' } });
+  if (!product) {
+    const error = new Error('Product not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  product.status = status;
+  product.updatedBy = user?._id || null;
+  await product.save();
+
+  await logManagerActivity({
+    user,
+    action: 'UPDATE_STATUS',
+    module: 'PRODUCT',
+    description: `Set ${product.productName || product.name} status to ${status}`,
+  });
+
+  return formatProduct(product);
 };
 
 export const getCategoriesForProductType = async (productTypeValue) => {
