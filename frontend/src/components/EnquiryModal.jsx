@@ -165,20 +165,19 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
     if (!validate()) return;
 
     setIsWhatsAppSubmitting(true);
+    const payload = getGeneralPayload();
     try {
-      const payload = getGeneralPayload();
-
       await enquiryService.submitGeneralEnquiry({
         ...payload,
         source: 'whatsapp',
       });
-
+    } catch (err) {
+      // Saving to the database is best-effort: if the API is unreachable we
+      // still open WhatsApp so the customer's enquiry is never blocked.
+      console.error('WhatsApp enquiry save failed (continuing to WhatsApp)', err);
+    } finally {
       openCustomerEnquiryWhatsApp(payload);
       completeSubmission();
-    } catch (err) {
-      console.error('WhatsApp enquiry submission failed', err);
-      addToast('Failed to submit enquiry. Please try again.', 'error');
-    } finally {
       setIsWhatsAppSubmitting(false);
     }
   };
