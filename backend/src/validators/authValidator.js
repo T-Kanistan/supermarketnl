@@ -111,6 +111,20 @@ export const forgotPasswordRules = [
     .normalizeEmail(),
 ];
 
+export const validateResetTokenRules = [
+  body('email')
+    .trim()
+    .notEmpty()
+    .withMessage('Email is required')
+    .isEmail()
+    .withMessage('Please provide a valid email address')
+    .normalizeEmail(),
+  body('token')
+    .trim()
+    .notEmpty()
+    .withMessage('Reset token is required'),
+];
+
 export const resetPasswordRules = [
   body('email')
     .trim()

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { FaLock, FaEye, FaEyeSlash, FaArrowLeft, FaCheckCircle } from 'react-icons/fa';
 import { useToast } from '../context/ToastContext';
@@ -26,16 +26,54 @@ export const ResetPasswordPage = () => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isValidating, setIsValidating] = useState(true);
+  const [tokenError, setTokenError] = useState('');
 
   const requirementStatus = useMemo(
     () => getPasswordRequirementStatus(newPassword),
     [newPassword]
   );
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const validateToken = async () => {
+      if (!token || !email) {
+        setTokenError('Invalid or expired reset link. Please request a new one.');
+        setIsValidating(false);
+        return;
+      }
+
+      try {
+        await authService.validateResetToken({
+          email: decodeURIComponent(email),
+          token,
+        });
+        if (!cancelled) {
+          setTokenError('');
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setTokenError(error.message || 'Invalid or expired reset link. Please request a new one.');
+        }
+      } finally {
+        if (!cancelled) {
+          setIsValidating(false);
+        }
+      }
+    };
+
+    validateToken();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token, email]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!token || !email) {
+    if (!token || !email || tokenError) {
       addToast('Invalid or expired reset link. Please request a new one.', 'error');
       return;
     }
@@ -68,11 +106,22 @@ export const ResetPasswordPage = () => {
     }
   };
 
-  if (!token || !email) {
+  if (isValidating) {
+    return (
+      <AuthLayout
+        formTitle="Reset Password"
+        formSubtitle="Validating your reset link..."
+      >
+        <p className="auth-success-note">Please wait while we verify your reset link.</p>
+      </AuthLayout>
+    );
+  }
+
+  if (!token || !email || tokenError) {
     return (
       <AuthLayout
         formTitle="Invalid Reset Link"
-        formSubtitle="This password reset link is invalid or has expired."
+        formSubtitle={tokenError || 'This password reset link is invalid or has expired.'}
       >
         <p className="auth-redirect auth-back-link">
           <Link to="/forgot-password">Request a new reset link</Link>
@@ -89,7 +138,7 @@ export const ResetPasswordPage = () => {
   return (
     <AuthLayout
       formTitle="Reset Password"
-      formSubtitle="Create a new password for your account. The reset link expires in 15 minutes."
+      formSubtitle="Create a new password for your account. The reset link expires in 1 hour."
     >
       <form className="modern-auth-form" onSubmit={handleSubmit}>
         <div className="form-group">

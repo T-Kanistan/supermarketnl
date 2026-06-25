@@ -1,0 +1,68 @@
+# =============================================================================
+# Nginx reverse-proxy config for Wins Wereld Winkel (own-server / VPS deploy)
+# -----------------------------------------------------------------------------
+# Serves the built frontend (Frontend/dist) and forwards /api and /uploads to
+# the Node/Express backend running on the SAME server (default 127.0.0.1:5000).
+#
+# Because the frontend calls a RELATIVE "/api" base, this keeps everything on
+# one origin: no CORS config and no VITE_API_URL needed.
+#
+# 1) Build the frontend:        npm run build      (output: Frontend/dist)
+# 2) Copy Frontend/dist to:     /var/www/winswereldwinkel   (adjust path below)
+# 3) Run the backend (pm2):     pm2 start backend/src/server.js --name www-api
+# 4) Put this file in:          /etc/nginx/sites-available/winswereldwinkel
+#    then: ln -s ... /etc/nginx/sites-enabled/ && nginx -t && systemctl reload nginx
+# =============================================================================
+
+server {
+    listen 80;
+    server_name raguwinswereldwinkel.nl www.raguwinswereldwinkel.nl;  # <-- your domain
+
+    # Built React SPA
+    root /var/www/raguwinswereldwinkel;   # <-- folder that contains index.html (Frontend/dist contents)
+    index index.html;
+
+    # ---- API: forward to the Express backend on the same server ----
+    location /api/ {
+        proxy_pass http://127.0.0.1:5000;   # <-- backend host:port
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # ---- Uploaded images served by the backend ----
+    location /uploads/ {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+    }
+
+    # ---- SPA client-side routing: always fall back to index.html ----
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Optional: long cache for hashed assets
+    location /assets/ {
+        try_files $uri =404;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+}
+
+# -----------------------------------------------------------------------------
+# After confirming HTTP works, add HTTPS with certbot:
+#   sudo certbot --nginx -d raguwinswereldwinkel.nl -d www.raguwinswereldwinkel.nl
+# certbot rewrites this server block to listen 443 with your certificate.
+#
+# NOTE: Your site already serves HTTPS, so these /api and /uploads location
+# blocks must be added to the EXISTING `server { listen 443 ... }` block for
+# raguwinswereldwinkel.nl (not only the port-80 block). The frontend already
+# calls https://raguwinswereldwinkel.nl/api — so once these blocks proxy to
+# 127.0.0.1:5000, the site works WITHOUT rebuilding the frontend.
+#
+# After it works, firewall off public port 5000 (e.g. `ufw deny 5000`) so the
+# backend is only reachable through Nginx.
+# -----------------------------------------------------------------------------

@@ -4,15 +4,71 @@ import Admin from '../models/Admin.js';
 import ManagerAccount from '../models/ManagerAccount.js';
 import User from '../models/User.js';
 import Manager from '../models/Manager.js';
-import PasswordResetToken from '../models/PasswordResetToken.js';
 import { signToken } from '../utils/jwt.js';
 import { MANAGER_PERMISSIONS } from '../constants/managerPermissions.js';
 import * as managerService from './managerService.js';
 import { sendPasswordResetEmail } from './emailService.js';
-import { getSmtpConfigurationError } from '../config/smtp.js';
+import { getSmtpConfigurationError, isSmtpConfigured, logSmtpRuntimeDiagnostics } from '../config/smtp.js';
 import { validatePasswordStrength } from '../utils/passwordPolicy.js';
 
-const RESET_TOKEN_EXPIRY_MS = 15 * 60 * 1000; // 15 minutes
+const RESET_TOKEN_EXPIRY_MS = 60 * 60 * 1000; // 1 hour
+
+const persistResetToken = async (accountModel, accountId, tokenHash, expiresAt) => {
+  const updates = { passwordResetToken: tokenHash, passwordResetExpires: expiresAt };
+
+  switch (accountModel) {
+    case 'Admin':
+      await Admin.findByIdAndUpdate(accountId, updates);
+      break;
+    case 'ManagerAccount':
+      await ManagerAccount.findByIdAndUpdate(accountId, updates);
+      break;
+    case 'User':
+      await User.findByIdAndUpdate(accountId, updates);
+      break;
+    case 'Manager':
+      await Manager.findByIdAndUpdate(accountId, updates);
+      break;
+    default:
+      throw new Error(`Unknown account model: ${accountModel}`);
+  }
+};
+
+const clearResetToken = async (accountModel, accountId) => {
+  const updates = { passwordResetToken: null, passwordResetExpires: null };
+
+  switch (accountModel) {
+    case 'Admin':
+      await Admin.findByIdAndUpdate(accountId, updates);
+      break;
+    case 'ManagerAccount':
+      await ManagerAccount.findByIdAndUpdate(accountId, updates);
+      break;
+    case 'User':
+      await User.findByIdAndUpdate(accountId, updates);
+      break;
+    case 'Manager':
+      await Manager.findByIdAndUpdate(accountId, updates);
+      break;
+    default:
+      break;
+  }
+};
+
+const loadAccountWithResetFields = async (accountModel, accountId) => {
+  switch (accountModel) {
+    case 'Admin':
+      return Admin.findById(accountId).select('+passwordResetToken');
+    case 'ManagerAccount':
+      return ManagerAccount.findById(accountId).select('+passwordResetToken');
+    case 'User':
+      return User.findById(accountId).select('+passwordResetToken');
+    case 'Manager':
+      return Manager.findById(accountId).select('+passwordResetToken');
+    default:
+      return null;
+  }
+};
 
 export const formatAuthUser = (account, role) => ({
   id: account._id.toString(),
@@ -168,12 +224,22 @@ export const loginWithEmailPassword = async (email, password) => {
 const findAccountForPasswordReset = async (email) => {
   const admin = await Admin.findOne({ email, isActive: true });
   if (admin) {
-    return { account: admin, accountType: 'admin', accountId: admin._id };
+    return {
+      account: admin,
+      accountType: 'admin',
+      accountId: admin._id,
+      accountModel: 'Admin',
+    };
   }
 
   const manager = await ManagerAccount.findOne({ email, isActive: true });
   if (manager) {
-    return { account: manager, accountType: 'manager', accountId: manager._id };
+    return {
+      account: manager,
+      accountType: 'manager',
+      accountId: manager._id,
+      accountModel: 'ManagerAccount',
+    };
   }
 
   const user = await User.findOne({ email, isActive: true });
@@ -182,15 +248,45 @@ const findAccountForPasswordReset = async (email) => {
       account: user,
       accountType: user.role === 'admin' ? 'admin' : 'manager',
       accountId: user._id,
+      accountModel: 'User',
     };
   }
 
   const legacyManager = await managerService.findManagerForLogin(email);
   if (legacyManager?.status) {
-    return { account: legacyManager, accountType: 'manager', accountId: legacyManager._id };
+    return {
+      account: legacyManager,
+      accountType: 'manager',
+      accountId: legacyManager._id,
+      accountModel: 'Manager',
+    };
   }
 
   return null;
+};
+
+const verifyResetTokenOnAccount = async (accountModel, accountId, rawToken) => {
+  const account = await loadAccountWithResetFields(accountModel, accountId);
+
+  if (!account?.passwordResetToken) {
+    return { valid: false, reason: 'invalid', message: 'Invalid reset token. Please request a new password reset link.' };
+  }
+
+  if (!account.passwordResetExpires || account.passwordResetExpires <= new Date()) {
+    await clearResetToken(accountModel, accountId);
+    return {
+      valid: false,
+      reason: 'expired',
+      message: 'This password reset link has expired. Please request a new one.',
+    };
+  }
+
+  const tokenMatches = await bcrypt.compare(rawToken, account.passwordResetToken);
+  if (!tokenMatches) {
+    return { valid: false, reason: 'invalid', message: 'Invalid reset token. Please request a new password reset link.' };
+  }
+
+  return { valid: true, account };
 };
 
 export const requestPasswordReset = async (email) => {
@@ -205,7 +301,7 @@ export const requestPasswordReset = async (email) => {
   const accountInfo = await findAccountForPasswordReset(normalizedEmail);
 
   if (!accountInfo) {
-    const error = new Error('No account found with this email address.');
+    const error = new Error('Invalid email address. No account found with this email.');
     error.statusCode = 404;
     throw error;
   }
@@ -214,15 +310,10 @@ export const requestPasswordReset = async (email) => {
   const tokenHash = await bcrypt.hash(rawToken, 10);
   const expiresAt = new Date(Date.now() + RESET_TOKEN_EXPIRY_MS);
 
-  await PasswordResetToken.deleteMany({ email: normalizedEmail, usedAt: null });
-
-  await PasswordResetToken.create({
-    email: normalizedEmail,
-    tokenHash,
-    accountType: accountInfo.accountType,
-    accountId: accountInfo.accountId,
-    expiresAt,
-  });
+  await persistResetToken(accountInfo.accountModel, accountInfo.accountId, tokenHash, expiresAt);
+  console.log(
+    `[auth] Password reset token saved for ${normalizedEmail} (expires ${expiresAt.toISOString()})`
+  );
 
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
   const resetUrl = `${frontendUrl}/reset-password?token=${rawToken}&email=${encodeURIComponent(normalizedEmail)}`;
@@ -233,28 +324,36 @@ export const requestPasswordReset = async (email) => {
   });
 
   if (!emailResult.sent) {
-    await PasswordResetToken.deleteMany({ email: normalizedEmail, usedAt: null });
+    await clearResetToken(accountInfo.accountModel, accountInfo.accountId);
+
+    logSmtpRuntimeDiagnostics('forgot-password');
 
     if (process.env.NODE_ENV !== 'production') {
       console.warn('[auth] Password reset email not sent. Reset URL for testing:');
       console.warn(resetUrl);
     }
 
-    let errorMessage = 'Unable to send password reset email. Please try again later.';
+    let errorMessage = 'Password reset email could not be sent. Please try again later.';
 
-    if (emailResult.missingVars?.length || emailResult.simulated) {
-      const configError = getSmtpConfigurationError();
+    if (!isSmtpConfigured() || emailResult.missingVars?.length) {
+      const missing = emailResult.missingVars?.length
+        ? emailResult.missingVars
+        : getSmtpConfigurationError()?.missingVars || [];
       errorMessage =
-        configError?.message ||
-        `Email service is not configured. Missing: ${(emailResult.missingVars || []).join(', ')}`;
+        getSmtpConfigurationError()?.message ||
+        `Password reset email could not be sent. Set ${missing.join(', ')} in backend/.env and restart the server.`;
+      console.error(`[auth] SMTP not configured for forgot-password. Missing: ${missing.join(', ')}`);
     } else if (emailResult.error) {
-      errorMessage = `Unable to send password reset email: ${emailResult.error}`;
+      errorMessage = `Password reset email could not be sent: ${emailResult.error}`;
+      console.error(`[auth] SMTP send failed for ${normalizedEmail}: ${emailResult.error}`);
     }
 
     const error = new Error(errorMessage);
-    error.statusCode = 503;
+    error.statusCode = 500;
     throw error;
   }
+
+  console.log(`[auth] Password reset email sent successfully to ${normalizedEmail}`);
 
   return {
     success: true,
@@ -303,6 +402,38 @@ const updateAccountPassword = async (accountType, accountId, newPassword) => {
   return false;
 };
 
+export const validatePasswordResetToken = async ({ email, token }) => {
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  const rawToken = String(token || '').trim();
+
+  if (!normalizedEmail || !rawToken) {
+    const error = new Error('Email and reset token are required');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const accountInfo = await findAccountForPasswordReset(normalizedEmail);
+  if (!accountInfo) {
+    const error = new Error('Invalid email address. No account found with this email.');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const verification = await verifyResetTokenOnAccount(
+    accountInfo.accountModel,
+    accountInfo.accountId,
+    rawToken
+  );
+
+  if (!verification.valid) {
+    const error = new Error(verification.message);
+    error.statusCode = verification.reason === 'expired' ? 410 : 400;
+    throw error;
+  }
+
+  return { success: true, valid: true, message: 'Reset token is valid.' };
+};
+
 export const resetPasswordWithToken = async ({ email, token, newPassword, confirmPassword }) => {
   const normalizedEmail = String(email || '').trim().toLowerCase();
   const rawToken = String(token || '').trim();
@@ -326,33 +457,28 @@ export const resetPasswordWithToken = async ({ email, token, newPassword, confir
     throw error;
   }
 
-  const resetRecord = await PasswordResetToken.findOne({
-    email: normalizedEmail,
-    usedAt: null,
-  }).sort({ createdAt: -1 });
-
-  if (!resetRecord) {
-    const error = new Error('Invalid reset token. Please request a new password reset link.');
-    error.statusCode = 400;
+  const accountInfo = await findAccountForPasswordReset(normalizedEmail);
+  if (!accountInfo) {
+    const error = new Error('Invalid email address. No account found with this email.');
+    error.statusCode = 404;
     throw error;
   }
 
-  if (resetRecord.expiresAt <= new Date()) {
-    const error = new Error('This reset link has expired. Please request a new password reset link.');
-    error.statusCode = 400;
-    throw error;
-  }
+  const verification = await verifyResetTokenOnAccount(
+    accountInfo.accountModel,
+    accountInfo.accountId,
+    rawToken
+  );
 
-  const tokenMatches = await bcrypt.compare(rawToken, resetRecord.tokenHash);
-  if (!tokenMatches) {
-    const error = new Error('Invalid reset token. Please request a new password reset link.');
-    error.statusCode = 400;
+  if (!verification.valid) {
+    const error = new Error(verification.message);
+    error.statusCode = verification.reason === 'expired' ? 410 : 400;
     throw error;
   }
 
   const updated = await updateAccountPassword(
-    resetRecord.accountType,
-    resetRecord.accountId,
+    accountInfo.accountType,
+    accountInfo.accountId,
     newPassword
   );
 
@@ -362,10 +488,8 @@ export const resetPasswordWithToken = async ({ email, token, newPassword, confir
     throw error;
   }
 
-  resetRecord.usedAt = new Date();
-  await resetRecord.save();
-
-  await PasswordResetToken.deleteMany({ email: normalizedEmail, usedAt: null });
+  await clearResetToken(accountInfo.accountModel, accountInfo.accountId);
+  console.log(`[auth] Password reset completed and token cleared for ${normalizedEmail}`);
 
   return {
     success: true,

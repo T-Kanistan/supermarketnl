@@ -1,14 +1,16 @@
 import axios from 'axios';
 
-const DEFAULT_API_ORIGIN = 'http://localhost:5000';
-
-const normalizeApiOrigin = (value) => {
-  const rawValue = value || DEFAULT_API_ORIGIN;
-  return rawValue.replace(/\/+$/, '').replace(/\/api$/, '');
-};
+// Resolve the API location:
+// - If VITE_API_URL is set (e.g. a separate backend host), use it as an
+//   absolute origin: requests go to `${origin}/api`.
+// - If it is NOT set, use a same-origin relative base (`/api`). This works with
+//   the Vite dev/preview proxy locally, and with a reverse-proxy/rewrite in
+//   production — and never accidentally points at `localhost` in a deployed build.
+const normalizeApiOrigin = (value) =>
+  String(value || '').trim().replace(/\/+$/, '').replace(/\/api$/, '');
 
 export const API_ORIGIN = normalizeApiOrigin(import.meta.env.VITE_API_URL);
-export const API_BASE_URL = `${API_ORIGIN}/api`;
+export const API_BASE_URL = API_ORIGIN ? `${API_ORIGIN}/api` : '/api';
 
 const readAuthToken = () =>
   localStorage.getItem('supermarket_token') || sessionStorage.getItem('supermarket_token');

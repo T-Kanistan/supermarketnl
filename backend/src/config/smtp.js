@@ -1,12 +1,4 @@
-import dotenv from 'dotenv';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const backendEnvPath = path.resolve(__dirname, '../../.env');
-
-dotenv.config({ path: backendEnvPath });
-dotenv.config();
+import './loadEnv.js';
 
 export const REQUIRED_SMTP_VARS = ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASS'];
 
@@ -46,44 +38,35 @@ export const getSmtpConfigurationError = () => {
     return null;
   }
 
-  console.error('[smtp] Missing required environment variables:');
-  missing.forEach((key) => {
-    console.error(`[smtp]   - ${key} is not set in backend/.env`);
-  });
-  OPTIONAL_SMTP_VARS.forEach((key) => {
-    const value = trim(process.env[key]);
-    console.error(`[smtp]   - ${key}=${value || '(not set, using default if applicable)'}`);
-  });
-
   return {
-    message: `Email service is not configured. Missing environment variables: ${missing.join(', ')}`,
+    message: `SMTP is not configured. Set ${missing.join(', ')} in backend/.env and restart the server.`,
     missingVars: missing,
   };
 };
 
 export const logSmtpEnvironment = () => {
+  logSmtpRuntimeDiagnostics('startup');
+};
+
+/** Safe runtime SMTP diagnostics — never logs passwords. */
+export const logSmtpRuntimeDiagnostics = (context = 'runtime') => {
   const config = getSmtpConfig();
   const missing = getMissingSmtpVars();
+  const userPresent = Boolean(trim(process.env.SMTP_USER));
+  const passPresent = Boolean(trim(process.env.SMTP_PASS));
 
-  console.log('[smtp] Configuration status:');
+  console.log(`[smtp] Diagnostics (${context}):`);
   console.log(`[smtp]   SMTP_HOST=${config.host || 'MISSING'}`);
   console.log(`[smtp]   SMTP_PORT=${config.port}`);
   console.log(`[smtp]   SMTP_SECURE=${config.secure}`);
-  console.log(`[smtp]   SMTP_USER=${config.user || 'MISSING'}`);
-  console.log(`[smtp]   SMTP_PASS=${config.pass ? 'set' : 'MISSING'}`);
-  console.log(`[smtp]   SMTP_FROM=${config.from || 'MISSING'}`);
+  console.log(`[smtp]   SMTP_USER=${userPresent ? 'set' : 'MISSING'}${userPresent ? ` (${config.user})` : ''}`);
+  console.log(`[smtp]   SMTP_PASS=${passPresent ? 'set' : 'MISSING'}`);
+  console.log(`[smtp]   SMTP_FROM=${config.from || '(defaults to SMTP_USER)'}`);
+  console.log(`[smtp]   configured=${isSmtpConfigured()}`);
 
   if (missing.length) {
-    console.warn(`[smtp] Not ready — missing: ${missing.join(', ')}`);
-    return;
+    console.warn(`[smtp]   missing variables: ${missing.join(', ')}`);
   }
-
-  if (config.isGmail) {
-    console.log('[smtp] Gmail detected — use an App Password (not your regular Gmail password).');
-    console.log('[smtp] Recommended: SMTP_HOST=smtp.gmail.com SMTP_PORT=587 SMTP_SECURE=false');
-  }
-
-  console.log('[smtp] Required variables are present.');
 };
 
 export const buildNodemailerTransportOptions = (config = getSmtpConfig()) => ({

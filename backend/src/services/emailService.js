@@ -6,6 +6,7 @@ import {
   getSmtpConfigurationError,
   isSmtpConfigured,
   logSmtpEnvironment,
+  logSmtpRuntimeDiagnostics,
 } from '../config/smtp.js';
 import { buildWhatsAppLink } from '../utils/whatsapp.js';
 
@@ -43,7 +44,7 @@ const createTransporter = async () => {
   return cachedTransporter;
 };
 
-export { isSmtpConfigured, getMissingSmtpVars, getSmtpConfigurationError, logSmtpEnvironment };
+export { isSmtpConfigured, getMissingSmtpVars, getSmtpConfigurationError, logSmtpEnvironment, logSmtpRuntimeDiagnostics };
 
 export const verifySmtpConnection = async () => {
   logSmtpEnvironment();
@@ -226,23 +227,29 @@ export const sendJobApplicationApplicantEmail = async (application) => {
 
 export const sendPasswordResetEmail = async ({ to, resetUrl }) => {
   const { fromEmail, fromName } = getMailDefaults();
-  const subject = 'Reset Your Password - Wins Wereld Winkel';
+  const subject = 'Password Reset Request';
   const textBody = [
     'Hello,',
     '',
-    'We received a request to reset your password.',
+    'We received a request to reset your password for Wins Wereld Winkel.',
     '',
     'Click the link below to reset your password:',
     '',
     resetUrl,
     '',
-    'This link will expire in 15 minutes.',
+    'This link expires in 1 hour.',
     '',
-    'If you did not request a password reset, please ignore this email.',
+    'If you did not request this, please ignore this email.',
     '',
     'Regards,',
-    'Wins Wereld Winkel Team',
+    'Wins Wereld Winkel',
   ].join('\n');
+
+  console.log('[email-service] Preparing password reset email...');
+  console.log(`[email-service]   Recipient: ${to}`);
+  console.log(`[email-service]   Subject: ${subject}`);
+  console.log(`[email-service]   Reset URL: ${resetUrl}`);
+  logSmtpRuntimeDiagnostics('sendPasswordResetEmail');
 
   if (!isSmtpConfigured()) {
     const configError = getSmtpConfigurationError();
@@ -250,7 +257,7 @@ export const sendPasswordResetEmail = async ({ to, resetUrl }) => {
     return {
       sent: false,
       simulated: true,
-      missingVars: configError?.missingVars || [],
+      missingVars: configError?.missingVars || getMissingSmtpVars(),
       error: configError?.message,
     };
   }
@@ -262,12 +269,12 @@ export const sendPasswordResetEmail = async ({ to, resetUrl }) => {
     text: textBody,
     html: `
       <p>Hello,</p>
-      <p>We received a request to reset your password.</p>
+      <p>We received a request to reset your password for Wins Wereld Winkel.</p>
       <p>Click the link below to reset your password:</p>
       <p><a href="${resetUrl}">${resetUrl}</a></p>
-      <p>This link will expire in 15 minutes.</p>
-      <p>If you did not request a password reset, please ignore this email.</p>
-      <p>Regards,<br/>Wins Wereld Winkel Team</p>
+      <p>This link expires in 1 hour.</p>
+      <p>If you did not request this, please ignore this email.</p>
+      <p>Regards,<br/>Wins Wereld Winkel</p>
     `,
   });
 };

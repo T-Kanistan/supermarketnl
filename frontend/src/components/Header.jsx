@@ -15,12 +15,13 @@ const Header = () => {
   const { cmsData } = useCMS();
   const { openEnquiry } = useEnquiry();
 
+  const storeName = cmsData?.storeName || 'Wins Wereld Winkel';
+
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   if (path.startsWith('/admin') || path.startsWith('/manager') || path === '/login' || path === '/forgot-password' || path === '/reset-password') return null;
-  if (!cmsData) return null;
 
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
@@ -55,17 +56,32 @@ const Header = () => {
         <div className="main-header-content container">
           {/* Logo */}
           <div className="logo-container">
-            <Link to="/">
+            <Link to="/" className="logo-link" aria-label={storeName}>
               <img
-                src={getImageUrl(cmsData.logo) || '/logo.png'}
+                src={getImageUrl(cmsData?.logo) || '/logo.png'}
                 alt={buildStoreLogoAlt()}
                 className="logo"
                 width="180"
                 height="60"
                 loading="eager"
                 decoding="async"
-                onError={(e) => { e.target.src = '/logo.png'; }}
+                onError={(e) => {
+                  // First failure: fall back to the bundled logo asset.
+                  // Second failure: hide the image and show the store name text
+                  // so the Navbar branding is never blank.
+                  if (e.currentTarget.dataset.fallbackApplied) {
+                    e.currentTarget.style.display = 'none';
+                    const text = e.currentTarget.nextElementSibling;
+                    if (text) text.style.display = 'inline';
+                    return;
+                  }
+                  e.currentTarget.dataset.fallbackApplied = '1';
+                  e.currentTarget.src = '/logo.png';
+                }}
               />
+              <span className="logo-text-fallback" style={{ display: 'none' }}>
+                {storeName}
+              </span>
             </Link>
           </div>
 

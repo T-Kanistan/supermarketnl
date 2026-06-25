@@ -199,6 +199,19 @@ export const authService = {
     }
   },
 
+  validateResetToken: async ({ email, token }) => {
+    try {
+      const response = await api.post('/auth/validate-reset-token', { email, token });
+      return response.data;
+    } catch (error) {
+      const message = error.response?.data?.message;
+      if (message) {
+        throw new Error(message);
+      }
+      throw new Error('Invalid or expired reset token');
+    }
+  },
+
   resetPassword: async ({ email, token, newPassword, confirmPassword }) => {
     try {
       const response = await api.post('/auth/reset-password', {

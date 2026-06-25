@@ -37,7 +37,7 @@ export const ForgotPasswordPage = () => {
       formTitle="Forgot Password"
       formSubtitle={
         submitted
-          ? 'Check your inbox for a password reset link. The link expires in 15 minutes.'
+          ? 'Check your inbox for a password reset link. The link expires in 1 hour.'
           : 'Enter your registered email address and we will send you a reset link.'
       }
     >

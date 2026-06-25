@@ -44,7 +44,7 @@ const Footer = () => {
     return null;
   }
   if (loading) return null;
-  if (error || !cmsData) {
+  if (!cmsData) {
     return (
       <footer className="footer-main">
         <div className="container" style={{ padding: '24px', textAlign: 'center', color: '#64748b' }}>

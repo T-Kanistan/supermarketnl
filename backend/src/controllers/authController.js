@@ -31,10 +31,13 @@ export const login = async (req, res, next) => {
  */
 export const forgotPassword = async (req, res, next) => {
   try {
+    console.log(`[auth] forgot-password request for ${req.body?.email || '(no email)'}`);
     const result = await portalAuthService.requestPasswordReset(req.body.email);
+    console.log(`[auth] forgot-password succeeded for ${req.body.email}`);
     return res.status(200).json(result);
   } catch (error) {
     if (error.statusCode) {
+      console.error(`[auth] forgot-password failed (${error.statusCode}): ${error.message}`);
       return res.status(error.statusCode).json({
         success: false,
         message: error.message,
@@ -58,6 +61,26 @@ export const resetPassword = async (req, res, next) => {
       newPassword,
       confirmPassword,
     });
+    return res.status(200).json(result);
+  } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+      });
+    }
+    next(error);
+  }
+};
+
+/**
+ * @desc    Validate password reset token before showing reset form
+ * @route   POST /api/auth/validate-reset-token
+ * @access  Public
+ */
+export const validateResetToken = async (req, res, next) => {
+  try {
+    const result = await portalAuthService.validatePasswordResetToken(req.body);
     return res.status(200).json(result);
   } catch (error) {
     if (error.statusCode) {

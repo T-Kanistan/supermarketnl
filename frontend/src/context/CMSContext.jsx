@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import cmsService from '../services/cmsService';
-import footerService from '../services/footerService';
+import cmsService, { mapHomeResponse } from '../services/cmsService';
+import footerService, { mapFooterApiToFrontend } from '../services/footerService';
 import siteSettingsService from '../services/siteSettingsService';
 
 const CMSContext = createContext(null);
@@ -14,30 +14,41 @@ export const CMSProvider = ({ children }) => {
   const fetchCMSData = useCallback(async () => {
     setLoading(true);
     setError(null);
-    try {
-      const [home, footer, siteSettings] = await Promise.all([
-        cmsService.getHomeSettings(),
-        footerService.getFooterSettings(),
-        siteSettingsService.getSiteSettings().catch(() => null),
-      ]);
-      setCmsData({
-        ...home,
-        ...footer,
-        storeName: siteSettings?.storeName || home.storeName,
-        logo: siteSettings?.storeLogo || home.logo,
-        address: siteSettings?.physicalAddress || footer.address,
-        supermarketTimings:
-          siteSettings?.supermarketOpeningHours ?? home.supermarketTimings,
-        foodCornerTimings:
-          siteSettings?.foodCornerOpeningHours ?? home.foodCornerTimings,
-      });
-    } catch (err) {
-      console.error('Failed to load CMS data:', err);
-      setError(err.message || 'Failed to load site content. Please try again later.');
-      setCmsData(null);
-    } finally {
-      setLoading(false);
+
+    // Each request degrades independently so a single failure never blanks the
+    // shared layout (Navbar/Footer). Defaults come from the service mappers.
+    const [home, footer, siteSettings] = await Promise.all([
+      cmsService.getHomeSettings().catch((err) => {
+        console.error('Failed to load home CMS settings:', err);
+        return null;
+      }),
+      footerService.getFooterSettings().catch((err) => {
+        console.error('Failed to load footer CMS settings:', err);
+        return null;
+      }),
+      siteSettingsService.getSiteSettings().catch(() => null),
+    ]);
+
+    const safeHome = home || mapHomeResponse({});
+    const safeFooter = footer || mapFooterApiToFrontend({});
+
+    setCmsData({
+      ...safeHome,
+      ...safeFooter,
+      storeName: siteSettings?.storeName || safeHome.storeName || 'Wins Wereld Winkel',
+      logo: siteSettings?.storeLogo || safeHome.logo || safeFooter.logo || '/logo.png',
+      address: siteSettings?.physicalAddress || safeFooter.address,
+      supermarketTimings:
+        siteSettings?.supermarketOpeningHours ?? safeHome.supermarketTimings,
+      foodCornerTimings:
+        siteSettings?.foodCornerOpeningHours ?? safeHome.foodCornerTimings,
+    });
+
+    if (!home && !footer) {
+      setError('Some site content could not be loaded. Showing default content.');
     }
+
+    setLoading(false);
   }, []);
 
   useEffect(() => {

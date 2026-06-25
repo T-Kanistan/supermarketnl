@@ -1,18 +1,11 @@
-import dotenv from 'dotenv';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const backendEnvPath = path.resolve(__dirname, '../../.env');
-
-dotenv.config({ path: backendEnvPath });
-dotenv.config();
+import './loadEnv.js';
 
 import {
   getMissingSmtpVars,
   isSmtpConfigured,
   logSmtpEnvironment,
-} from '../config/smtp.js';
+} from './smtp.js';
+import { BACKEND_ENV_PATH } from './loadEnv.js';
 
 const maskValue = (value) => {
   if (!value) return 'MISSING';
@@ -21,6 +14,7 @@ const maskValue = (value) => {
 
 export const logStartupEnvironment = () => {
   console.log('[Env] Loading configuration...');
+  console.log(`[Env] .env path=${BACKEND_ENV_PATH}`);
   console.log(`[Env] NODE_ENV=${process.env.NODE_ENV || 'development'}`);
   console.log(`[Env] PORT=${process.env.PORT || '(not set, default 5000)'}`);
   console.log(`[Env] MONGODB_URI=${maskValue(process.env.MONGODB_URI || process.env.MONGO_URI)}`);

@@ -37,6 +37,18 @@
   object-fit: contain;
 }
 
+.logo-link {
+  display: inline-flex;
+  align-items: center;
+}
+
+.logo-text-fallback {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--dark-blue, #0f2d52);
+  white-space: nowrap;
+}
+
 .navigation {
   display: flex;
   align-items: center;

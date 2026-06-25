@@ -29,7 +29,9 @@
     "db:sync-careers": "node src/scripts/syncCareersCollections.js",
     "seed-portal-auth": "node src/scripts/seedPortalAuth.js",
     "db:test": "node src/scripts/testMongoConnection.js",
-    "test:smtp": "node scripts/test-smtp.js"
+    "test:smtp": "node scripts/test-smtp.js",
+    "test:forgot-password": "node scripts/test-forgot-password.js",
+    "check:smtp-env": "node scripts/check-smtp-env.js"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",

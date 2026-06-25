@@ -1,3 +1,4 @@
+import './config/loadEnv.js';
 import { logStartupEnvironment } from './config/env.js';
 import connectMongo, { disconnectMongo } from './config/mongo.js';
 import { migrateProductStatus } from './migrations/migrateProductStatus.js';

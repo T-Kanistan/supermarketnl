@@ -3,6 +3,7 @@ import {
   login,
   forgotPassword,
   resetPassword,
+  validateResetToken,
   getProfile,
   changePassword,
   logout,
@@ -17,6 +18,7 @@ import { validateRequest } from '../middlewares/validationMiddleware.js';
 import {
   loginRules,
   forgotPasswordRules,
+  validateResetTokenRules,
   resetPasswordRules,
   changePasswordRules,
 } from '../validators/authValidator.js';
@@ -26,6 +28,7 @@ const router = express.Router();
 
 router.post('/login', authRateLimiter, loginRules, validateRequest, login);
 router.post('/forgot-password', authRateLimiter, forgotPasswordRules, validateRequest, forgotPassword);
+router.post('/validate-reset-token', authRateLimiter, validateResetTokenRules, validateRequest, validateResetToken);
 router.post('/reset-password', authRateLimiter, resetPasswordRules, validateRequest, resetPassword);
 router.post('/manager-login', authRateLimiter, managerLoginRules, validateRequest, managerLogin);
 router.post('/manager-logout', managerLogout);
