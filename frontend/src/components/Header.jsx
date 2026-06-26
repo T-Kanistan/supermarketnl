@@ -3,6 +3,7 @@ import { FiSearch, FiX, FiMenu } from 'react-icons/fi';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useCMS } from '../context/CMSContext';
 import { useEnquiry } from '../context/EnquiryContext';
+import { useAuth } from '../context/AuthContext';
 import { getImageUrl } from '../services/api';
 import { buildStoreLogoAlt } from '../utils/seoImageAlt';
 import './Header.css';
@@ -14,8 +15,10 @@ const Header = () => {
   
   const { cmsData } = useCMS();
   const { openEnquiry } = useEnquiry();
+  const { user, isAdmin, isManager } = useAuth();
 
   const storeName = cmsData?.storeName || 'Wins Wereld Winkel';
+  const showDashboard = user && (isAdmin || isManager);
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -46,7 +49,11 @@ const Header = () => {
 
   const handleDashboardClick = () => {
     closeMobileMenu();
-    navigate('/login');
+    if (user) {
+      navigate(isAdmin ? '/admin/dashboard' : '/manager/dashboard');
+    } else {
+      navigate('/login');
+    }
   };
 
   return (
@@ -101,15 +108,17 @@ const Header = () => {
                   Enquiry Now
                 </button>
               </li>
-              <li className="mobile-only-link">
-                <button
-                  type="button"
-                  onClick={handleDashboardClick}
-                  className="nav-link nav-link-dashboard nav-link-btn"
-                >
-                  Dashboard
-                </button>
-              </li>
+              {showDashboard && (
+                <li className="mobile-only-link">
+                  <button
+                    type="button"
+                    onClick={handleDashboardClick}
+                    className="nav-link nav-link-dashboard nav-link-btn"
+                  >
+                    Dashboard
+                  </button>
+                </li>
+              )}
             </ul>
           </nav>
 
@@ -135,13 +144,15 @@ const Header = () => {
               </button>
             )}
             <div className="auth-buttons">
-              <button
-                type="button"
-                className="auth-nav-btn auth-nav-login auth-nav-dashboard"
-                onClick={handleDashboardClick}
-              >
-                Dashboard
-              </button>
+              {showDashboard && (
+                <button
+                  type="button"
+                  className="auth-nav-btn auth-nav-login auth-nav-dashboard"
+                  onClick={handleDashboardClick}
+                >
+                  Dashboard
+                </button>
+              )}
               <button
                 type="button"
                 className="auth-nav-btn auth-nav-apply"
