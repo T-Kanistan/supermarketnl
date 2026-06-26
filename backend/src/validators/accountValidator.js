@@ -45,3 +45,24 @@ export const changeAccountPasswordRules = [
       return true;
     }),
 ];
+
+export const updateAccountProfileRules = [
+  body('name')
+    .optional()
+    .trim()
+    .notEmpty()
+    .withMessage('Name is required'),
+  body('fullName')
+    .optional()
+    .trim()
+    .notEmpty()
+    .withMessage('Full name is required'),
+  body('email')
+    .optional()
+    .trim()
+    .notEmpty()
+    .withMessage('Email is required')
+    .isEmail()
+    .withMessage('Invalid email address')
+    .normalizeEmail(),
+];

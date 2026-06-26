@@ -30,3 +30,18 @@ export const changeAccountPassword = async (req, res, next) => {
     return handleServiceError(error, res, next);
   }
 };
+
+export const updateAccountProfile = async (req, res, next) => {
+  try {
+    const metadata = getRequestMetadata(req);
+    const data = await accountService.updateAccountProfile(req.user, req.body, metadata);
+    return res.status(200).json({
+      success: true,
+      message: 'Profile updated successfully',
+      data,
+      ...data,
+    });
+  } catch (error) {
+    return handleServiceError(error, res, next);
+  }
+};

@@ -10,6 +10,12 @@ export const AdminProfile = () => {
   const [profile, setProfile] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
 
+  const [profileForm, setProfileForm] = useState({
+    name: '',
+    email: '',
+  });
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
     newPassword: '',
@@ -34,12 +40,58 @@ export const AdminProfile = () => {
     loadProfile();
   }, [addToast]);
 
+  useEffect(() => {
+    if (profile) {
+      setProfileForm({
+        name: profile.fullName || profile.name || '',
+        email: profile.email || '',
+      });
+    } else if (user) {
+      setProfileForm({
+        name: user.fullName || user.name || '',
+        email: user.email || '',
+      });
+    }
+  }, [profile, user]);
+
   const displayProfile = profile || user;
   const fullName = displayProfile?.fullName || displayProfile?.name || 'User';
   const email = displayProfile?.email || 'N/A';
   const role = displayProfile?.displayRole || displayProfile?.role || user?.displayRole || user?.role || 'User';
   const accountStatus = displayProfile?.accountStatus || 'Active';
   const securityStatus = displayProfile?.securityStatus || 'Authenticated';
+
+  const handleProfileChange = (e) => {
+    const { name, value } = e.target;
+    setProfileForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleProfileSubmit = async (e) => {
+    e.preventDefault();
+    if (!profileForm.name.trim() || !profileForm.email.trim()) {
+      addToast('Name and Email are required', 'error');
+      return;
+    }
+
+    setIsUpdatingProfile(true);
+    try {
+      const updated = await accountService.updateProfile({
+        name: profileForm.name.trim(),
+        email: profileForm.email.trim(),
+      });
+      setProfile(updated);
+      const storage = localStorage.getItem('supermarket_token') ? localStorage : sessionStorage;
+      storage.setItem('supermarket_user', JSON.stringify(updated));
+      addToast('Profile updated successfully', 'success');
+      setTimeout(() => {
+        window.location.reload();
+      }, 800);
+    } catch (err) {
+      addToast(err.response?.data?.message || err.message || 'Failed to update profile', 'error');
+    } finally {
+      setIsUpdatingProfile(false);
+    }
+  };
 
   const handlePasswordChange = (e) => {
     const { name, value } = e.target;
@@ -98,7 +150,7 @@ export const AdminProfile = () => {
         {loadingProfile ? (
           <div style={{ padding: '24px 0', color: '#64748b' }}>Loading profile...</div>
         ) : (
-          <div style={{ padding: '8px 0' }}>
+          <form onSubmit={handleProfileSubmit} style={{ padding: '8px 0' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '24px' }}>
               <div
                 style={{
@@ -125,18 +177,30 @@ export const AdminProfile = () => {
             </div>
 
             <div style={{ borderTop: '1px solid var(--admin-border)', paddingTop: '20px' }}>
-              <div style={{ marginBottom: '16px' }}>
-                <span style={{ display: 'block', fontSize: '0.8rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', marginBottom: '4px' }}>
-                  Full Name
-                </span>
-                <span style={{ fontSize: '0.95rem', fontWeight: 600, color: '#0f172a' }}>{fullName}</span>
+              <div className="admin-form-group">
+                <label>Full Name</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={profileForm.name}
+                  onChange={handleProfileChange}
+                  placeholder="Enter full name"
+                  required
+                />
               </div>
-              <div style={{ marginBottom: '16px' }}>
-                <span style={{ display: 'block', fontSize: '0.8rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', marginBottom: '4px' }}>
-                  Email Address
-                </span>
-                <span style={{ fontSize: '0.95rem', fontWeight: 600, color: '#0f172a' }}>{email}</span>
+
+              <div className="admin-form-group">
+                <label>Email Address</label>
+                <input
+                  type="email"
+                  name="email"
+                  value={profileForm.email}
+                  onChange={handleProfileChange}
+                  placeholder="Enter email address"
+                  required
+                />
               </div>
+
               <div style={{ marginBottom: '16px' }}>
                 <span style={{ display: 'block', fontSize: '0.8rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', marginBottom: '4px' }}>
                   Account Status
@@ -145,7 +209,8 @@ export const AdminProfile = () => {
                   {accountStatus}
                 </span>
               </div>
-              <div>
+
+              <div style={{ marginBottom: '24px' }}>
                 <span style={{ display: 'block', fontSize: '0.8rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', marginBottom: '4px' }}>
                   Security Status
                 </span>
@@ -153,8 +218,18 @@ export const AdminProfile = () => {
                   {securityStatus}
                 </span>
               </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  type="submit"
+                  className={`action-btn-primary ${isUpdatingProfile ? 'disabled' : ''}`}
+                  disabled={isUpdatingProfile}
+                >
+                  {isUpdatingProfile ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
             </div>
-          </div>
+          </form>
         )}
       </div>
 

@@ -299,3 +299,176 @@ export const changeAccountPassword = async (authUser, body, metadata = {}) => {
 
   return { success: true, message: 'Password changed successfully' };
 };
+
+export const updateAccountProfile = async (authUser, data, metadata = {}) => {
+  if (!authUser?._id) {
+    const error = new Error('Not authenticated');
+    error.statusCode = 401;
+    throw error;
+  }
+
+  const name = data.name || data.fullName;
+  const email = data.email ? String(data.email).trim().toLowerCase() : undefined;
+
+  // Validate email uniqueness if email is changed
+  const checkEmailUniqueness = async (model, excludeId) => {
+    if (!email) return;
+    const existing = await model.findOne({ email, _id: { $ne: excludeId } });
+    if (existing) {
+      const error = new Error('Email address is already in use');
+      error.statusCode = 400;
+      throw error;
+    }
+  };
+
+  const source = authUser.accountSource || authUser.accountType;
+  const isManager = authUser.accountType === 'manager' || authUser.role === 'manager';
+
+  if (source === 'admin') {
+    const admin = await Admin.findById(authUser._id);
+    if (admin) {
+      if (email) await checkEmailUniqueness(Admin, admin._id);
+      if (name) admin.name = name;
+      if (email) admin.email = email;
+      await admin.save();
+      
+      await logAuditEvent({
+        userId: admin._id,
+        accountType: 'admin',
+        action: 'PROFILE_UPDATED',
+        module: 'ACCOUNT',
+        description: `Admin updated profile (name: ${admin.name}, email: ${admin.email})`,
+        ipAddress: metadata.ipAddress,
+        browser: metadata.browser,
+        device: metadata.device,
+        userAgent: metadata.userAgent,
+      });
+
+      return formatAccountProfile({ ...admin.toObject(), name: admin.name, role: 'admin', isActive: admin.isActive }, 'admin');
+    }
+  }
+
+  if (source === 'manager') {
+    const managerAccount = await ManagerAccount.findById(authUser._id);
+    if (managerAccount) {
+      if (email) await checkEmailUniqueness(ManagerAccount, managerAccount._id);
+      if (name) managerAccount.name = name;
+      if (email) managerAccount.email = email;
+      await managerAccount.save();
+
+      await logAuditEvent({
+        userId: managerAccount._id,
+        accountType: 'manager',
+        action: 'PROFILE_UPDATED',
+        module: 'ACCOUNT',
+        description: `Manager updated profile (name: ${managerAccount.name}, email: ${managerAccount.email})`,
+        ipAddress: metadata.ipAddress,
+        browser: metadata.browser,
+        device: metadata.device,
+        userAgent: metadata.userAgent,
+      });
+
+      return formatAccountProfile({
+        ...managerAccount.toObject(),
+        fullName: managerAccount.name,
+        status: managerAccount.isActive,
+      }, 'manager');
+    }
+  }
+
+  if (isManager) {
+    const manager = await Manager.findById(authUser._id);
+    if (manager) {
+      if (email) await checkEmailUniqueness(Manager, manager._id);
+      if (name) manager.fullName = name;
+      if (email) manager.email = email;
+      await manager.save();
+
+      await logAuditEvent({
+        userId: manager._id,
+        accountType: 'manager',
+        action: 'PROFILE_UPDATED',
+        module: 'ACCOUNT',
+        description: `Manager updated profile (name: ${manager.fullName}, email: ${manager.email})`,
+        ipAddress: metadata.ipAddress,
+        browser: metadata.browser,
+        device: metadata.device,
+        userAgent: metadata.userAgent,
+      });
+
+      return formatAccountProfile(manager, 'manager');
+    }
+
+    const userAsManager = await User.findById(authUser._id);
+    if (userAsManager) {
+      if (email) await checkEmailUniqueness(User, userAsManager._id);
+      if (name) userAsManager.name = name;
+      if (email) userAsManager.email = email;
+      await userAsManager.save();
+
+      await logAuditEvent({
+        userId: userAsManager._id,
+        accountType: 'manager',
+        action: 'PROFILE_UPDATED',
+        module: 'ACCOUNT',
+        description: `Manager updated profile (name: ${userAsManager.name}, email: ${userAsManager.email})`,
+        ipAddress: metadata.ipAddress,
+        browser: metadata.browser,
+        device: metadata.device,
+        userAgent: metadata.userAgent,
+      });
+
+      return formatAccountProfile(userAsManager, 'manager');
+    }
+  }
+
+  const user = await User.findById(authUser._id);
+  if (user) {
+    if (email) await checkEmailUniqueness(User, user._id);
+    if (name) user.name = name;
+    if (email) user.email = email;
+    await user.save();
+
+    await logAuditEvent({
+      userId: user._id,
+      accountType: user.role === 'manager' ? 'manager' : 'admin',
+      action: 'PROFILE_UPDATED',
+      module: 'ACCOUNT',
+      description: `User updated profile (name: ${user.name}, email: ${user.email})`,
+      ipAddress: metadata.ipAddress,
+      browser: metadata.browser,
+      device: metadata.device,
+      userAgent: metadata.userAgent,
+    });
+
+    return formatAccountProfile(user, user.role === 'manager' ? 'manager' : 'admin');
+  }
+
+  // Fallback to Admin search
+  const fallbackAdmin = await Admin.findById(authUser._id);
+  if (fallbackAdmin) {
+    if (email) await checkEmailUniqueness(Admin, fallbackAdmin._id);
+    if (name) fallbackAdmin.name = name;
+    if (email) fallbackAdmin.email = email;
+    await fallbackAdmin.save();
+
+    await logAuditEvent({
+      userId: fallbackAdmin._id,
+      accountType: 'admin',
+      action: 'PROFILE_UPDATED',
+      module: 'ACCOUNT',
+      description: `Admin updated profile (name: ${fallbackAdmin.name}, email: ${fallbackAdmin.email})`,
+      ipAddress: metadata.ipAddress,
+      browser: metadata.browser,
+      device: metadata.device,
+      userAgent: metadata.userAgent,
+    });
+
+    return formatAccountProfile({ ...fallbackAdmin.toObject(), name: fallbackAdmin.name, role: 'admin', isActive: fallbackAdmin.isActive }, 'admin');
+  }
+
+  const error = new Error('User not found');
+  error.statusCode = 404;
+  throw error;
+};
+
