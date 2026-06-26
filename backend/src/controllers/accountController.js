@@ -45,3 +45,27 @@ export const updateAccountProfile = async (req, res, next) => {
     return handleServiceError(error, res, next);
   }
 };
+
+export const requestEmailChange = async (req, res, next) => {
+  try {
+    const result = await accountService.requestEmailChange(req.user, req.body);
+    return res.status(200).json(result);
+  } catch (error) {
+    return handleServiceError(error, res, next);
+  }
+};
+
+export const verifyEmailChange = async (req, res, next) => {
+  try {
+    const metadata = getRequestMetadata(req);
+    const data = await accountService.verifyEmailChange(req.user, req.body, metadata);
+    return res.status(200).json({
+      success: true,
+      message: 'Email address updated successfully',
+      data,
+      ...data,
+    });
+  } catch (error) {
+    return handleServiceError(error, res, next);
+  }
+};

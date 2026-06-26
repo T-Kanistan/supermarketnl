@@ -310,4 +310,59 @@ export const sendJobEnquiryNotificationEmail = async (enquiry) => {
   });
 };
 
+export const sendEmailChangeOtpEmail = async ({ to, otpCode }) => {
+  const { fromEmail, fromName } = getMailDefaults();
+  const subject = 'Verify Your New Email Address - Wins Wereld Winkel';
+  const textBody = [
+    'Hello,',
+    '',
+    'You are receiving this email because you requested to change your account email address on Wins Wereld Winkel.',
+    '',
+    'Please use the following One-Time Password (OTP) to complete the verification process:',
+    '',
+    `   ${otpCode}`,
+    '',
+    'This verification code is valid for 10 minutes.',
+    '',
+    'If you did not initiate this change, please ignore this email and ensure your account password remains secure.',
+    '',
+    'Regards,',
+    'Wins Wereld Winkel',
+  ].join('\n');
+
+  const htmlBody = `
+    <p>Hello,</p>
+    <p>You are receiving this email because you requested to change your account email address on Wins Wereld Winkel.</p>
+    <p>Please use the following One-Time Password (OTP) to complete the verification process:</p>
+    <h2 style="font-size: 24px; letter-spacing: 4px; padding: 12px; background-color: #f1f5f9; display: inline-block; border-radius: 4px; color: #1e3a8a;">${otpCode}</h2>
+    <p>This verification code is valid for <strong>10 minutes</strong>.</p>
+    <p>If you did not initiate this change, please ignore this email and ensure your account password remains secure.</p>
+    <p>Regards,<br/>Wins Wereld Winkel</p>
+  `;
+
+  console.log('[email-service] Preparing email change OTP email...');
+  console.log(`[email-service]   Recipient: ${to}`);
+  console.log(`[email-service]   Subject: ${subject}`);
+  logSmtpRuntimeDiagnostics('sendEmailChangeOtpEmail');
+
+  if (!isSmtpConfigured()) {
+    const configError = getSmtpConfigurationError();
+    logSimulatedEmail('Email change OTP', { To: to, Subject: subject, OTP: otpCode });
+    return {
+      sent: false,
+      simulated: true,
+      missingVars: configError?.missingVars || getMissingSmtpVars(),
+      error: configError?.message || 'SMTP not configured',
+    };
+  }
+
+  return sendMailSafe({
+    from: `"${fromName}" <${fromEmail}>`,
+    to,
+    subject,
+    text: textBody,
+    html: htmlBody,
+  });
+};
+
 export { buildWhatsAppLink, truncate };

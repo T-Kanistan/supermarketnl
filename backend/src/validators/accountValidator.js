@@ -66,3 +66,24 @@ export const updateAccountProfileRules = [
     .withMessage('Invalid email address')
     .normalizeEmail(),
 ];
+
+export const requestEmailChangeRules = [
+  body('newEmail')
+    .trim()
+    .notEmpty()
+    .withMessage('New email address is required')
+    .isEmail()
+    .withMessage('Please provide a valid email address')
+    .normalizeEmail(),
+];
+
+export const verifyEmailChangeRules = [
+  body('otpCode')
+    .trim()
+    .notEmpty()
+    .withMessage('Verification code is required')
+    .isLength({ min: 6, max: 6 })
+    .withMessage('Verification code must be exactly 6 digits')
+    .isNumeric()
+    .withMessage('Verification code must contain only numbers'),
+];

@@ -16,6 +16,12 @@ export const AdminProfile = () => {
   });
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
 
+  // OTP Verification States
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState('');
+
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
     newPassword: '',
@@ -68,28 +74,86 @@ export const AdminProfile = () => {
 
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
-    if (!profileForm.name.trim() || !profileForm.email.trim()) {
+    const newName = profileForm.name.trim();
+    const newEmail = profileForm.email.trim();
+
+    if (!newName || !newEmail) {
       addToast('Name and Email are required', 'error');
+      return;
+    }
+
+    const emailChanged = newEmail.toLowerCase() !== email.toLowerCase();
+    const nameChanged = newName !== fullName;
+
+    if (!nameChanged && !emailChanged) {
+      addToast('No changes detected', 'info');
       return;
     }
 
     setIsUpdatingProfile(true);
     try {
-      const updated = await accountService.updateProfile({
-        name: profileForm.name.trim(),
-        email: profileForm.email.trim(),
-      });
-      setProfile(updated);
-      const storage = localStorage.getItem('supermarket_token') ? localStorage : sessionStorage;
-      storage.setItem('supermarket_user', JSON.stringify(updated));
-      addToast('Profile updated successfully', 'success');
-      setTimeout(() => {
-        window.location.reload();
-      }, 800);
+      if (nameChanged && !emailChanged) {
+        // Name update only - save directly
+        const updated = await accountService.updateProfile({
+          name: newName,
+          email: email,
+        });
+        setProfile(updated);
+        const storage = localStorage.getItem('supermarket_token') ? localStorage : sessionStorage;
+        storage.setItem('supermarket_user', JSON.stringify(updated));
+        addToast('Profile name updated successfully', 'success');
+        setTimeout(() => {
+          window.location.reload();
+        }, 800);
+      } else {
+        // Email is changed (or both name and email changed)
+        // If name was updated, save the name update first under current email
+        if (nameChanged) {
+          const updated = await accountService.updateProfile({
+            name: newName,
+            email: email,
+          });
+          setProfile(updated);
+          const storage = localStorage.getItem('supermarket_token') ? localStorage : sessionStorage;
+          storage.setItem('supermarket_user', JSON.stringify(updated));
+        }
+
+        // Send OTP verification request for the new email address
+        const requestResult = await accountService.requestEmailChange(newEmail);
+        setPendingEmail(newEmail);
+        setShowOtpModal(true);
+        addToast(requestResult.message || 'Verification code sent to your new email.', 'success');
+      }
     } catch (err) {
       addToast(err.response?.data?.message || err.message || 'Failed to update profile', 'error');
     } finally {
       setIsUpdatingProfile(false);
+    }
+  };
+
+  const handleOtpVerify = async (e) => {
+    e.preventDefault();
+    if (otpCode.length !== 6) {
+      addToast('Please enter the complete 6-digit code', 'error');
+      return;
+    }
+
+    setIsVerifyingOtp(true);
+    try {
+      const updated = await accountService.verifyEmailChange(otpCode);
+      setProfile(updated);
+      const storage = localStorage.getItem('supermarket_token') ? localStorage : sessionStorage;
+      storage.setItem('supermarket_user', JSON.stringify(updated));
+      addToast('Email address verified and updated successfully', 'success');
+      setShowOtpModal(false);
+      setOtpCode('');
+      setTimeout(() => {
+        window.location.reload();
+      }, 800);
+    } catch (err) {
+      addToast(err.response?.data?.message || err.message || 'Verification failed. Please try again.', 'error');
+    } finally {
+      setIsVerifyingOtp(false);
     }
   };
 
@@ -297,6 +361,90 @@ export const AdminProfile = () => {
           </div>
         </form>
       </div>
+
+      {showOtpModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(15, 23, 42, 0.65)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            backdropFilter: 'blur(4px)',
+          }}
+        >
+          <div
+            style={{
+              background: 'white',
+              padding: '32px',
+              borderRadius: '12px',
+              width: '100%',
+              maxWidth: '420px',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            }}
+          >
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', marginBottom: '12px', marginTop: 0 }}>
+              Verify Your New Email
+            </h3>
+            <p style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '20px', lineHeight: 1.5 }}>
+              A 6-digit verification code has been sent to <strong>{pendingEmail}</strong>. Please enter it below to complete the change.
+            </p>
+
+
+
+            <form onSubmit={handleOtpVerify}>
+              <div className="admin-form-group" style={{ marginBottom: '20px' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '6px' }}>
+                  Verification Code (6-digits)
+                </label>
+                <input
+                  type="text"
+                  maxLength={6}
+                  placeholder="Enter 6-digit OTP"
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                  style={{
+                    letterSpacing: '4px',
+                    textAlign: 'center',
+                    fontSize: '1.5rem',
+                    fontWeight: 700,
+                    padding: '8px',
+                    borderColor: '#cbd5e1',
+                  }}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  className="action-btn-secondary"
+                  onClick={() => {
+                    setShowOtpModal(false);
+                    setOtpCode('');
+                    addToast('Email verification cancelled', 'info');
+                  }}
+                  disabled={isVerifyingOtp}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className={`action-btn-primary ${isVerifyingOtp ? 'disabled' : ''}`}
+                  disabled={isVerifyingOtp || otpCode.length !== 6}
+                >
+                  {isVerifyingOtp ? 'Verifying...' : 'Verify & Save'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

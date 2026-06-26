@@ -2,6 +2,8 @@ import User from '../models/User.js';
 import Manager from '../models/Manager.js';
 import Admin from '../models/Admin.js';
 import ManagerAccount from '../models/ManagerAccount.js';
+import EmailVerification from '../models/EmailVerification.js';
+import { sendEmailChangeOtpEmail } from './emailService.js';
 import { logManagerActivity } from './activityLogService.js';
 import { logAuditEvent } from './auditLogService.js';
 
@@ -470,5 +472,186 @@ export const updateAccountProfile = async (authUser, data, metadata = {}) => {
   const error = new Error('User not found');
   error.statusCode = 404;
   throw error;
+};
+
+// Request an email change: Validate, generate OTP, save verification doc, send email
+export const requestEmailChange = async (authUser, { newEmail }) => {
+  if (!authUser?._id) {
+    const error = new Error('Not authenticated');
+    error.statusCode = 401;
+    throw error;
+  }
+
+  const email = String(newEmail || '').trim().toLowerCase();
+  if (!email) {
+    const error = new Error('New email address is required');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  // Check email format
+  const emailRegex = /^\S+@\S+\.\S+$/;
+  if (!emailRegex.test(email)) {
+    const error = new Error('Please provide a valid email address');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const source = authUser.accountSource || authUser.accountType;
+
+  // Resolve user type and check uniqueness across all potential tables
+  const checkEmailUniquenessAll = async () => {
+    const matches = await Promise.all([
+      Admin.findOne({ email }),
+      ManagerAccount.findOne({ email }),
+      Manager.findOne({ email }),
+      User.findOne({ email }),
+    ]);
+    if (matches.some(Boolean)) {
+      const error = new Error('Email address is already in use by another account');
+      error.statusCode = 400;
+      throw error;
+    }
+  };
+  await checkEmailUniquenessAll();
+
+  // Find user's active model type
+  let userModel = 'User';
+  if (source === 'admin') userModel = 'Admin';
+  else if (source === 'manager') userModel = 'ManagerAccount';
+  else if (authUser.accountType === 'manager' || authUser.role === 'manager') {
+    const isMgr = await Manager.findById(authUser._id);
+    if (isMgr) userModel = 'Manager';
+  }
+
+  // Generate 6-digit OTP code
+  const rawOtp = Math.floor(100000 + Math.random() * 900000).toString();
+  const hashedOtp = await EmailVerification.hashOtp(rawOtp);
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
+
+  // Save or replace the verification request
+  await EmailVerification.deleteMany({ userId: authUser._id });
+  await EmailVerification.create({
+    userId: authUser._id,
+    userModel,
+    pendingEmail: email,
+    otpCode: hashedOtp,
+    expiresAt,
+  });
+
+  // Send verification email
+  const emailResult = await sendEmailChangeOtpEmail({ to: email, otpCode: rawOtp });
+  if (!emailResult.sent && !emailResult.simulated) {
+    const error = new Error(`Failed to send verification email: ${emailResult.error}`);
+    error.statusCode = 500;
+    throw error;
+  }
+
+  return {
+    success: true,
+    message: 'Verification code sent to your new email address. Please check your inbox.',
+  };
+};
+
+// Verify the email change: Check OTP, save new email, cleanup
+export const verifyEmailChange = async (authUser, { otpCode }, metadata = {}) => {
+  if (!authUser?._id) {
+    const error = new Error('Not authenticated');
+    error.statusCode = 401;
+    throw error;
+  }
+
+  const code = String(otpCode || '').trim();
+  if (!code) {
+    const error = new Error('Verification code is required');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  // Fetch pending verification
+  const verification = await EmailVerification.findOne({ userId: authUser._id });
+  if (!verification) {
+    const error = new Error('No pending email change request found, or verification code expired.');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  if (verification.expiresAt <= new Date()) {
+    await EmailVerification.deleteOne({ _id: verification._id });
+    const error = new Error('Verification code has expired. Please request a new one.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const isMatch = await verification.compareOtp(code);
+  if (!isMatch) {
+    const error = new Error('Invalid verification code.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const newEmail = verification.pendingEmail;
+  const userModel = verification.userModel;
+
+  let updatedRecord = null;
+
+  // Apply update to the resolved model
+  if (userModel === 'Admin') {
+    const doc = await Admin.findById(authUser._id);
+    if (doc) {
+      doc.email = newEmail;
+      await doc.save();
+      updatedRecord = formatAccountProfile({ ...doc.toObject(), name: doc.name, role: 'admin', isActive: doc.isActive }, 'admin');
+    }
+  } else if (userModel === 'ManagerAccount') {
+    const doc = await ManagerAccount.findById(authUser._id);
+    if (doc) {
+      doc.email = newEmail;
+      await doc.save();
+      updatedRecord = formatAccountProfile({
+        ...doc.toObject(),
+        fullName: doc.name,
+        status: doc.isActive,
+      }, 'manager');
+    }
+  } else if (userModel === 'Manager') {
+    const doc = await Manager.findById(authUser._id);
+    if (doc) {
+      doc.email = newEmail;
+      await doc.save();
+      updatedRecord = formatAccountProfile(doc, 'manager');
+    }
+  } else {
+    const doc = await User.findById(authUser._id);
+    if (doc) {
+      doc.email = newEmail;
+      await doc.save();
+      updatedRecord = formatAccountProfile(doc, doc.role === 'manager' ? 'manager' : 'admin');
+    }
+  }
+
+  if (!updatedRecord) {
+    const error = new Error('User record not found to update.');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  // Log auditing
+  await logAuditEvent({
+    userId: authUser._id,
+    accountType: userModel === 'Admin' ? 'admin' : 'manager',
+    action: 'EMAIL_CHANGED',
+    module: 'ACCOUNT',
+    description: `User successfully verified and changed email to ${newEmail}`,
+    ipAddress: metadata.ipAddress,
+    browser: metadata.browser,
+    device: metadata.device,
+    userAgent: metadata.userAgent,
+  });
+
+  // Clean up
+  await EmailVerification.deleteOne({ _id: verification._id });
+
+  return updatedRecord;
 };
 
