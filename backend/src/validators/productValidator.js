@@ -163,3 +163,40 @@ export const updateProductStatusRules = [
     .isIn(['active', 'inactive'])
     .withMessage('Status must be active or inactive'),
 ];
+
+export const batchAdjustPricesRules = [
+  body('productType')
+    .trim()
+    .notEmpty()
+    .withMessage('Product type is required')
+    .isIn(['grocery', 'food-corner'])
+    .withMessage('Product type must be grocery or food-corner'),
+  body('categoryId')
+    .trim()
+    .notEmpty()
+    .withMessage('Category ID is required'),
+  body('adjustmentType')
+    .trim()
+    .notEmpty()
+    .withMessage('Adjustment type is required')
+    .isIn(['percentage', 'fixed'])
+    .withMessage('Adjustment type must be percentage or fixed'),
+  body('direction')
+    .trim()
+    .notEmpty()
+    .withMessage('Adjustment direction is required')
+    .isIn(['increase', 'decrease'])
+    .withMessage('Adjustment direction must be increase or decrease'),
+  body('value')
+    .notEmpty()
+    .withMessage('Adjustment value is required')
+    .isNumeric()
+    .withMessage('Adjustment value must be a number')
+    .custom((value) => {
+      if (Number(value) <= 0) {
+        throw new Error('Adjustment value must be greater than 0');
+      }
+      return true;
+    }),
+];
+

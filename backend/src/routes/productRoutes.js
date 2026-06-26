@@ -11,6 +11,7 @@ import {
   updateProductStatus,
   deleteProduct,
   productImageUpload,
+  batchAdjustPrices,
 } from '../controllers/productController.js';
 
 import { protect, restrictTo, adminOnly } from '../middlewares/authMiddleware.js';
@@ -23,6 +24,7 @@ import {
   updateProductStatusRules,
   productIdRules,
   productCategoriesQueryRules,
+  batchAdjustPricesRules,
 } from '../validators/productValidator.js';
 
 const router = express.Router();
@@ -63,5 +65,14 @@ router.put(
 );
 
 router.delete('/:id', protect, adminOnly, productIdRules, validateRequest, deleteProduct);
+
+router.post(
+  '/batch-adjust-prices',
+  protect,
+  adminOnly,
+  batchAdjustPricesRules,
+  validateRequest,
+  batchAdjustPrices
+);
 
 export default router;

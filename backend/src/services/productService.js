@@ -602,3 +602,117 @@ export const getCategoriesForProductType = async (productTypeValue) => {
     name: cat.name,
   }));
 };
+
+export const batchAdjustPrices = async ({ productType, categoryId, adjustmentType, direction, value }, user) => {
+  const role = user?.role || user?.accountType;
+  if (role !== 'admin') {
+    const error = new Error('Only administrators can perform batch price adjustments');
+    error.statusCode = 403;
+    throw error;
+  }
+
+  if (!productType || !categoryId || !adjustmentType || !direction || value === undefined) {
+    const error = new Error('All fields are required');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const numValue = Number(value);
+  if (Number.isNaN(numValue) || numValue <= 0) {
+    const error = new Error('Adjustment value must be a positive number greater than 0');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const normalizedType = normalizeProductType(productType);
+  
+  // Resolve category name for logging
+  let categoryName = '';
+  if (normalizedType === 'food-corner') {
+    const cat = await FoodCornerCategory.findById(categoryId);
+    if (!cat) {
+      const error = new Error('Food Corner category not found');
+      error.statusCode = 404;
+      throw error;
+    }
+    categoryName = cat.categoryName || cat.name;
+  } else {
+    const cat = await findGroceryCategory(categoryId);
+    if (!cat) {
+      const error = new Error('Grocery category not found');
+      error.statusCode = 404;
+      throw error;
+    }
+    categoryName = cat.name;
+  }
+
+  // Construct search filter matching buildProductFilter
+  const filter = { status: { $ne: 'deleted' } };
+  const legacyTypeCondition =
+    normalizedType === 'food-corner' ? { $in: ['food', 'food-corner'] } : 'grocery';
+  filter.$or = [
+    { type: legacyTypeCondition },
+    { $and: [{ type: { $exists: false } }, { productType: normalizedType }] },
+  ];
+  filter.categoryId = categoryId;
+
+  const products = await Product.find(filter);
+  if (products.length === 0) {
+    return {
+      success: true,
+      count: 0,
+      message: `No products found under the selected category "${categoryName}".`,
+    };
+  }
+
+  const updatedProducts = [];
+  for (const product of products) {
+    const previousPrice = product.price;
+    let newPrice = previousPrice;
+
+    if (direction === 'increase') {
+      if (adjustmentType === 'percentage') {
+        newPrice = previousPrice * (1 + numValue / 100);
+      } else {
+        newPrice = previousPrice + numValue;
+      }
+    } else if (direction === 'decrease') {
+      if (adjustmentType === 'percentage') {
+        newPrice = previousPrice * (1 - numValue / 100);
+      } else {
+        newPrice = previousPrice - numValue;
+      }
+    }
+
+    // Round to 2 decimal places and ensure minimum price is 0.01
+    newPrice = Math.max(0.01, Math.round(newPrice * 100) / 100);
+
+    product.price = newPrice;
+    
+    // Update oldPrice for discount display
+    if (direction === 'decrease') {
+      product.oldPrice = previousPrice;
+    } else {
+      product.oldPrice = null;
+    }
+
+    product.updatedBy = user?._id || null;
+    await product.save();
+    updatedProducts.push(product);
+  }
+
+  // Log audit/activity
+  await logManagerActivity({
+    user,
+    action: 'BATCH_UPDATE_PRICES',
+    module: 'PRODUCT',
+    description: `Adjusted prices for category "${categoryName}" (${normalizedType === 'food-corner' ? 'Food Corner' : 'Grocery'}) by ${direction === 'increase' ? '+' : '-'}${numValue}${adjustmentType === 'percentage' ? '%' : ''}. Updated ${products.length} products.`,
+  });
+
+  return {
+    success: true,
+    count: products.length,
+    message: `Successfully adjusted prices for ${products.length} products in category "${categoryName}".`,
+  };
+};
+

@@ -159,3 +159,16 @@ export const uploadProductImage = async (req, res, next) => {
 };
 
 export { productImageUpload } from '../middlewares/productUploadMiddleware.js';
+
+export const batchAdjustPrices = async (req, res, next) => {
+  try {
+    const result = await productService.batchAdjustPrices(req.body, req.user);
+    return res.status(200).json(result);
+  } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({ success: false, message: error.message });
+    }
+    next(error);
+  }
+};
+

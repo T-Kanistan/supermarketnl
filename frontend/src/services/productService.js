@@ -263,6 +263,22 @@ export const productService = {
     );
   },
 
+  batchAdjustPrices: async (adjustmentData) => {
+    return request(
+      async () => {
+        try {
+          const response = await api.post('/products/batch-adjust-prices', adjustmentData);
+          return response.data;
+        } catch (error) {
+          throw new Error(extractApiError(error, 'Failed to adjust prices'));
+        }
+      },
+      () => {
+        return { success: true, message: 'Offline mode: simulated price adjustment complete.' };
+      }
+    );
+  },
+
   getFoodCornerItems: async (params = {}) => {
     return productService.getProducts({ ...params, productType: 'food-corner' });
   },

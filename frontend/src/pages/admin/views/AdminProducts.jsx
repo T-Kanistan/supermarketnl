@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams, useLocation } from 'react-router-dom';
-import { FaPlus, FaEdit, FaTrash, FaSearch, FaBoxOpen, FaStar, FaRegStar } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaSearch, FaBoxOpen, FaStar, FaRegStar, FaSlidersH } from 'react-icons/fa';
 import productService from '../../../services/productService';
 import foodCornerCategoryService from '../../../services/foodCornerCategoryService';
 import { getImageUrl } from '../../../services/api';
@@ -21,6 +21,17 @@ export const AdminProducts = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+
+  // Batch Price Adjustment States
+  const [isAdjustModalOpen, setIsAdjustModalOpen] = useState(false);
+  const [isAdjusting, setIsAdjusting] = useState(false);
+  const [adjustFormData, setAdjustFormData] = useState({
+    productType: 'grocery',
+    categoryId: '',
+    adjustmentType: 'percentage',
+    direction: 'decrease',
+    value: '',
+  });
 
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState(resolveCatalogType);
@@ -105,7 +116,7 @@ export const AdminProducts = () => {
   }, [fetchData]);
 
   useEffect(() => {
-    if (!isModalOpen) return undefined;
+    if (!isModalOpen && !isAdjustModalOpen) return undefined;
 
     const scrollY = window.scrollY;
     document.body.classList.add('modal-open');
@@ -126,7 +137,7 @@ export const AdminProducts = () => {
       document.body.style.width = '';
       window.scrollTo(0, scrollY);
     };
-  }, [isModalOpen]);
+  }, [isModalOpen, isAdjustModalOpen]);
 
   const closeModal = () => {
     setIsModalOpen(false);
@@ -200,6 +211,75 @@ export const AdminProducts = () => {
       status: 'active',
     });
     setIsModalOpen(true);
+  };
+
+  const openAdjustModal = () => {
+    if (!isAdmin) {
+      addToast('Only administrators can perform batch price adjustments', 'error');
+      return;
+    }
+    const currentType = typeFilter === 'food-corner' ? 'food-corner' : 'grocery';
+    const cats = currentType === 'food-corner' ? foodCornerCategories : categories;
+    setAdjustFormData({
+      productType: currentType,
+      categoryId: cats[0]?.categoryId || cats[0]?.id || cats[0]?.slug || '',
+      adjustmentType: 'percentage',
+      direction: 'decrease',
+      value: '',
+    });
+    setIsAdjustModalOpen(true);
+  };
+
+  const handleAdjustChange = (e) => {
+    const { name, value } = e.target;
+    if (name === 'productType') {
+      const cats = value === 'food-corner' ? foodCornerCategories : categories;
+      setAdjustFormData((prev) => ({
+        ...prev,
+        productType: value,
+        categoryId: cats[0]?.categoryId || cats[0]?.id || cats[0]?.slug || '',
+      }));
+      return;
+    }
+    setAdjustFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleAdjustSubmit = async (e) => {
+    e.preventDefault();
+    if (!isAdmin) {
+      addToast('Only administrators can perform batch price adjustments', 'error');
+      return;
+    }
+    if (!adjustFormData.categoryId) {
+      addToast('Please select a category', 'error');
+      return;
+    }
+    const val = Number(adjustFormData.value);
+    if (Number.isNaN(val) || val <= 0) {
+      addToast('Adjustment value must be a positive number greater than 0', 'error');
+      return;
+    }
+
+    const directionLabel = adjustFormData.direction === 'increase' ? 'increase' : 'decrease';
+    const typeLabel = adjustFormData.adjustmentType === 'percentage' ? '%' : '€';
+    const catName = getCategoryName(adjustFormData.categoryId, adjustFormData.productType);
+    
+    const confirmMessage = `Are you sure you want to ${directionLabel} the prices of all active products in category "${catName}" by ${adjustFormData.direction === 'increase' ? '+' : '-'}${val}${typeLabel}? This action cannot be undone.`;
+    
+    if (!window.confirm(confirmMessage)) return;
+
+    setIsAdjusting(true);
+    try {
+      const response = await productService.batchAdjustPrices(adjustFormData);
+      addToast(response.message || 'Batch price adjustment completed successfully', 'success');
+      setIsAdjustModalOpen(false);
+      fetchData();
+    } catch (err) {
+      console.error('Batch price adjustment failed', err);
+      addToast(err.message || err.response?.data?.message || 'Failed to adjust prices', 'error');
+    } finally {
+      setIsAdjusting(false);
+    }
   };
 
   const resolveFormCategoryId = (product, productType) => {
@@ -392,9 +472,14 @@ export const AdminProducts = () => {
           </p>
         </div>
         {isAdmin && (
-          <button className="action-btn-primary" onClick={openAddModal}>
-            <FaPlus /> Add Product
-          </button>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button className="action-btn-secondary" onClick={openAdjustModal}>
+              <FaSlidersH /> Adjust Prices
+            </button>
+            <button className="action-btn-primary" onClick={openAddModal}>
+              <FaPlus /> Add Product
+            </button>
+          </div>
         )}
       </div>
 
@@ -792,6 +877,138 @@ export const AdminProducts = () => {
                 <button type="button" className="action-btn-secondary" onClick={closeModal}>Cancel</button>
                 <button type="submit" className="action-btn-primary" disabled={isSubmitting}>
                   {isSubmitting ? 'Saving...' : 'Save Product'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Batch Price Adjustment Modal */}
+      {isAdjustModalOpen && (
+        <div
+          className="admin-modal-overlay"
+          onClick={() => setIsAdjustModalOpen(false)}
+          role="presentation"
+        >
+          <div
+            className="admin-modal-container"
+            style={{ maxWidth: '500px' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <h3>Batch Price Adjustment</h3>
+              <button 
+                type="button" 
+                className="modal-close-btn" 
+                onClick={() => setIsAdjustModalOpen(false)} 
+                aria-label="Close modal"
+              >
+                &times;
+              </button>
+            </div>
+            
+            <form onSubmit={handleAdjustSubmit}>
+              <div className="modal-body">
+                <div style={{ marginBottom: '16px', padding: '12px', background: '#fee2e2', color: '#991b1b', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600, borderLeft: '4px solid #dc2626', lineHeight: 1.4 }}>
+                  ⚠️ <strong>Warning:</strong> This operation will bulk update prices of all active products in the selected category directly in the database. This action is irreversible.
+                </div>
+
+                <div className="admin-form-group">
+                  <label>Product Catalog Type</label>
+                  <select
+                    name="productType"
+                    value={adjustFormData.productType}
+                    onChange={handleAdjustChange}
+                    required
+                  >
+                    <option value="grocery">Grocery (Supermarket Section)</option>
+                    <option value="food-corner">Food Corner (Kitchen Section)</option>
+                  </select>
+                </div>
+
+                <div className="admin-form-group">
+                  <label>Category Section</label>
+                  <select 
+                    name="categoryId" 
+                    value={adjustFormData.categoryId} 
+                    onChange={handleAdjustChange} 
+                    required
+                  >
+                    {adjustFormData.productType !== 'food-corner' ? (
+                      categories.map((cat) => (
+                        <option key={cat.id || cat.categoryId} value={cat.categoryId || cat.id}>
+                          {cat.name || cat.categoryName}
+                        </option>
+                      ))
+                    ) : (
+                      foodCornerCategories.map((cat) => (
+                        <option key={cat.id || cat.slug} value={cat.categoryId || cat.id || cat.slug}>
+                          {cat.categoryName || cat.name}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </div>
+
+                <div className="admin-form-group row-split" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div>
+                    <label>Adjustment Direction</label>
+                    <select 
+                      name="direction" 
+                      value={adjustFormData.direction} 
+                      onChange={handleAdjustChange} 
+                      required
+                    >
+                      <option value="decrease">Decrease Price (-)</option>
+                      <option value="increase">Increase Price (+)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label>Adjustment Type</label>
+                    <select 
+                      name="adjustmentType" 
+                      value={adjustFormData.adjustmentType} 
+                      onChange={handleAdjustChange} 
+                      required
+                    >
+                      <option value="percentage">Percentage (%)</option>
+                      <option value="fixed">Fixed Amount (€)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="admin-form-group">
+                  <label>
+                    Adjustment Value {adjustFormData.adjustmentType === 'percentage' ? '(%)' : '(€)'}
+                  </label>
+                  <input 
+                    type="number" 
+                    step="any"
+                    name="value" 
+                    value={adjustFormData.value} 
+                    onChange={handleAdjustChange} 
+                    placeholder={adjustFormData.adjustmentType === 'percentage' ? 'e.g. 10' : 'e.g. 1.50'}
+                    required 
+                  />
+                </div>
+              </div>
+
+              <div className="modal-footer">
+                <button 
+                  type="button" 
+                  className="action-btn-secondary" 
+                  onClick={() => setIsAdjustModalOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="action-btn-primary" 
+                  style={{ background: '#dc2626', borderColor: '#dc2626' }}
+                  disabled={isAdjusting}
+                >
+                  {isAdjusting ? 'Applying...' : 'Apply Adjustment'}
                 </button>
               </div>
             </form>
