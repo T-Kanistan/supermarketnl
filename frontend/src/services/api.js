@@ -123,7 +123,16 @@ export const getImageUrl = (imagePath) => {
     if (imagePath.startsWith('/images')) {
       return imagePath;
     }
-    return `${API_ORIGIN}${imagePath}`;
+    const isLocalhost = typeof window !== 'undefined' && 
+      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+    if (API_ORIGIN) {
+      if (API_ORIGIN.includes('localhost') || API_ORIGIN.includes('127.0.0.1')) {
+        return isLocalhost ? `${API_ORIGIN}${imagePath}` : imagePath;
+      }
+      return `${API_ORIGIN}${imagePath}`;
+    }
+    return imagePath;
   }
   return imagePath;
 };
