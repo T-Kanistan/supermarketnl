@@ -62,6 +62,30 @@ testimonialSchema.pre('save', function preSave(next) {
   next();
 });
 
+testimonialSchema.pre('findOneAndUpdate', function (next) {
+  const update = this.getUpdate();
+  if (update) {
+    const getField = (key) => {
+      if (update.$set && update.$set[key] !== undefined) return update.$set[key];
+      return update[key];
+    };
+
+    const setField = (key, val) => {
+      if (update.$set) {
+        update.$set[key] = val;
+      } else {
+        update[key] = val;
+      }
+    };
+
+    const avatarImage = getField('avatarImage');
+    const image = getField('image');
+    if (avatarImage !== undefined) setField('image', avatarImage);
+    else if (image !== undefined) setField('avatarImage', image);
+  }
+  next();
+});
+
 const Testimonial = mongoose.model('Testimonial', testimonialSchema);
 
 export { STATUS_TYPES };

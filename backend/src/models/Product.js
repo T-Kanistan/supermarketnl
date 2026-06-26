@@ -156,6 +156,82 @@ productSchema.pre('save', function preSave(next) {
   next();
 });
 
+productSchema.pre('findOneAndUpdate', function (next) {
+  const update = this.getUpdate();
+  if (update) {
+    const getField = (key) => {
+      if (update.$set && update.$set[key] !== undefined) return update.$set[key];
+      return update[key];
+    };
+
+    const setField = (key, val) => {
+      if (update.$set) {
+        update.$set[key] = val;
+      } else {
+        update[key] = val;
+      }
+    };
+
+    const productName = getField('productName');
+    const name = getField('name');
+    if (productName !== undefined) setField('name', productName);
+    else if (name !== undefined) setField('productName', name);
+
+    const productType = getField('productType');
+    const type = getField('type');
+    if (productType === 'food-corner') setField('type', 'food');
+    else if (productType === 'grocery') setField('type', 'grocery');
+    else if (type === 'food') setField('productType', 'food-corner');
+    else if (type === 'grocery') setField('productType', 'grocery');
+
+    const imageUrl = getField('imageUrl');
+    const image = getField('image');
+    if (imageUrl !== undefined) setField('image', imageUrl);
+    else if (image !== undefined) setField('imageUrl', image);
+
+    const weightUnit = getField('weightUnit');
+    const weight = getField('weight');
+    if (weightUnit !== undefined) setField('weight', weightUnit);
+    else if (weight !== undefined) setField('weightUnit', weight);
+
+    const showOnHomepage = getField('showOnHomepage');
+    const featuredProduct = getField('featuredProduct');
+    const isFeatured = getField('isFeatured');
+    if (showOnHomepage !== undefined || featuredProduct !== undefined || isFeatured !== undefined) {
+      const featured = Boolean(showOnHomepage ?? featuredProduct ?? isFeatured);
+      setField('showOnHomepage', featured);
+      setField('isFeatured', featured);
+      setField('featuredProduct', featured);
+    }
+
+    const stockStatus = getField('stockStatus');
+    const stock = getField('stock');
+    if (stockStatus === 'in_stock') setField('stock', 1);
+    if (stockStatus === 'out_of_stock') setField('stock', 0);
+    if (stock !== undefined) {
+      const numStock = Number(stock);
+      if (numStock > 0) setField('stockStatus', 'in_stock');
+      if (numStock === 0) setField('stockStatus', 'out_of_stock');
+    }
+
+    const shortDescription = getField('shortDescription');
+    const description = getField('description');
+    if (shortDescription !== undefined) setField('description', shortDescription);
+    else if (description !== undefined) setField('shortDescription', description);
+
+    const menuDisplayTiming = getField('menuDisplayTiming');
+    const displayTime = getField('displayTime');
+    if (menuDisplayTiming !== undefined) setField('displayTime', menuDisplayTiming);
+    else if (displayTime !== undefined) setField('menuDisplayTiming', displayTime);
+
+    const specialBadge = getField('specialBadge');
+    const badge = getField('badge');
+    if (specialBadge !== undefined) setField('badge', specialBadge);
+    else if (badge !== undefined) setField('specialBadge', badge);
+  }
+  next();
+});
+
 const Product = mongoose.model('Product', productSchema);
 
 export default Product;

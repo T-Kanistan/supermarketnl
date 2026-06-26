@@ -82,6 +82,35 @@ announcementSchema.pre('save', function preSave(next) {
   next();
 });
 
+announcementSchema.pre('findOneAndUpdate', function (next) {
+  const update = this.getUpdate();
+  if (update) {
+    const getField = (key) => {
+      if (update.$set && update.$set[key] !== undefined) return update.$set[key];
+      return update[key];
+    };
+
+    const setField = (key, val) => {
+      if (update.$set) {
+        update.$set[key] = val;
+      } else {
+        update[key] = val;
+      }
+    };
+
+    const bannerImage = getField('bannerImage');
+    const image = getField('image');
+    if (bannerImage !== undefined) setField('image', bannerImage);
+    else if (image !== undefined) setField('bannerImage', image);
+
+    const discountPercentage = getField('discountPercentage');
+    const offerPercentage = getField('offerPercentage');
+    if (discountPercentage !== undefined) setField('offerPercentage', discountPercentage);
+    else if (offerPercentage !== undefined) setField('discountPercentage', offerPercentage);
+  }
+  next();
+});
+
 const Announcement = mongoose.model('Announcement', announcementSchema);
 
 export default Announcement;
