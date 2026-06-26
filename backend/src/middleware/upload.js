@@ -2,8 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import multer from 'multer';
 import { deleteStoredFile, getLocalPublicUrl, persistUploadedFile } from '../services/uploadService.js';
-
-const UPLOAD_ROOT = path.join(process.cwd(), 'src/uploads');
+import { UPLOAD_ROOT } from '../config/paths.js';
 
 const ensureDir = (dir) => {
   if (!fs.existsSync(dir)) {

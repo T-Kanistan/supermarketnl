@@ -2,7 +2,9 @@ import fs from 'fs';
 import path from 'path';
 import multer from 'multer';
 
-const announcementsUploadDir = path.join(process.cwd(), 'src/uploads/announcements');
+import { UPLOAD_ROOT } from '../config/paths.js';
+
+const announcementsUploadDir = path.join(UPLOAD_ROOT, 'announcements');
 if (!fs.existsSync(announcementsUploadDir)) {
   fs.mkdirSync(announcementsUploadDir, { recursive: true });
 }

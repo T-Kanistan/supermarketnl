@@ -2,7 +2,9 @@ import fs from 'fs';
 import path from 'path';
 import multer from 'multer';
 
-const uploadDir = path.join(process.cwd(), 'src/uploads/testimonials');
+import { UPLOAD_ROOT } from '../config/paths.js';
+
+const uploadDir = path.join(UPLOAD_ROOT, 'testimonials');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }

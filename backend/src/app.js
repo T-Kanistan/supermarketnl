@@ -42,6 +42,7 @@ import managerJobEnquiryRoutes from './routes/managerJobEnquiryRoutes.js';
 import careersRoutes from './routes/careersRoutes.js';
 import { errorHandler } from './middlewares/errorMiddleware.js';
 import { isMongoConnected } from './config/mongo.js';
+import { UPLOAD_ROOT } from './config/paths.js';
 
 const app = express();
 
@@ -90,7 +91,7 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 // Serve uploaded assets statically
-app.use('/uploads', express.static(path.join(process.cwd(), 'src/uploads')));
+app.use('/uploads', express.static(UPLOAD_ROOT));
 
 // Register Routes
 app.use('/api/auth', authRoutes);

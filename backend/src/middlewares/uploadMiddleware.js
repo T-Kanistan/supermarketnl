@@ -6,7 +6,9 @@ import {
   persistBase64Upload,
 } from '../services/uploadService.js';
 
-const uploadDir = path.join(process.cwd(), 'src/uploads');
+import { UPLOAD_ROOT } from '../config/paths.js';
+
+const uploadDir = UPLOAD_ROOT;
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }

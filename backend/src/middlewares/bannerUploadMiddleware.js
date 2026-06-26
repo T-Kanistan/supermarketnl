@@ -2,7 +2,9 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 
-const bannerUploadDir = path.join(process.cwd(), 'src/uploads/banners');
+import { UPLOAD_ROOT } from '../config/paths.js';
+
+const bannerUploadDir = path.join(UPLOAD_ROOT, 'banners');
 
 if (!fs.existsSync(bannerUploadDir)) {
   fs.mkdirSync(bannerUploadDir, { recursive: true });

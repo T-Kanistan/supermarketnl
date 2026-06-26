@@ -2,8 +2,10 @@ import fs from 'fs';
 import path from 'path';
 import multer from 'multer';
 
-const cvUploadDir = path.join(process.cwd(), 'src/uploads/resumes');
-const legacyCvUploadDir = path.join(process.cwd(), 'src/uploads/job-applications');
+import { UPLOAD_ROOT } from '../config/paths.js';
+
+const cvUploadDir = path.join(UPLOAD_ROOT, 'resumes');
+const legacyCvUploadDir = path.join(UPLOAD_ROOT, 'job-applications');
 
 if (!fs.existsSync(cvUploadDir)) {
   fs.mkdirSync(cvUploadDir, { recursive: true });

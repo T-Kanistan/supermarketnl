@@ -1,7 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-
-const UPLOAD_ROOT = path.join(process.cwd(), 'src/uploads');
+import { UPLOAD_ROOT } from '../config/paths.js';
 
 export const isCloudinaryConfigured = () => false;
 
