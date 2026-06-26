@@ -26,7 +26,6 @@ export const logStartupEnvironment = () => {
     console.log(`[Env] SMTP missing=${getMissingSmtpVars().join(', ')}`);
   }
   logSmtpEnvironment();
-  console.log(`[Env] CLOUDINARY=${maskValue(process.env.CLOUDINARY_CLOUD_NAME)}`);
 };
 
 export const getRequiredEnv = (key) => {

@@ -1,15 +1,9 @@
 import fs from 'fs';
 import path from 'path';
-import cloudinary from '../config/cloudinary.js';
 
 const UPLOAD_ROOT = path.join(process.cwd(), 'src/uploads');
 
-export const isCloudinaryConfigured = () =>
-  Boolean(
-    process.env.CLOUDINARY_CLOUD_NAME?.trim() &&
-      process.env.CLOUDINARY_API_KEY?.trim() &&
-      process.env.CLOUDINARY_API_SECRET?.trim()
-  );
+export const isCloudinaryConfigured = () => false;
 
 export const getLocalPublicUrl = (file) => {
   if (!file?.path) return null;
@@ -19,22 +13,6 @@ export const getLocalPublicUrl = (file) => {
 
 export const persistUploadedFile = async (file) => {
   if (!file) return null;
-
-  if (isCloudinaryConfigured()) {
-    try {
-      const subdir = path.basename(path.dirname(file.path));
-      const result = await cloudinary.uploader.upload(file.path, {
-        folder: `supermarket/${subdir}`,
-      });
-      if (fs.existsSync(file.path)) {
-        fs.unlinkSync(file.path);
-      }
-      return result.secure_url;
-    } catch (error) {
-      console.error('[upload-service] Cloudinary upload failed, using local storage:', error.message);
-    }
-  }
-
   return getLocalPublicUrl(file);
 };
 
@@ -63,21 +41,6 @@ export const persistBase64Upload = async (base64Str) => {
     }
 
     fs.writeFileSync(filepath, data);
-
-    if (isCloudinaryConfigured()) {
-      try {
-        const result = await cloudinary.uploader.upload(filepath, {
-          folder: 'supermarket/base64',
-        });
-        if (fs.existsSync(filepath)) {
-          fs.unlinkSync(filepath);
-        }
-        return result.secure_url;
-      } catch (error) {
-        console.error('[upload-service] Cloudinary base64 upload failed:', error.message);
-        return `/uploads/${filename}`;
-      }
-    }
 
     return `/uploads/${filename}`;
   } catch (error) {
