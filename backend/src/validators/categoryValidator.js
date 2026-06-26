@@ -31,4 +31,17 @@ export const updateCategoryRules = [
     .withMessage('Status must be either active or inactive'),
 ];
 
-export const categoryIdRules = [param('id').isMongoId().withMessage('Invalid category id')];
+export const categoryIdRules = [
+  param('id')
+    .trim()
+    .notEmpty()
+    .withMessage('Category identifier is required')
+    .custom((value) => {
+      const isValidMongoId = /^[0-9a-fA-F]{24}$/.test(value);
+      const isValidSlug = /^[a-z0-9-]+$/.test(value);
+      if (!isValidMongoId && !isValidSlug) {
+        throw new Error('Invalid category identifier (must be a valid Mongo ID or slug)');
+      }
+      return true;
+    }),
+];
