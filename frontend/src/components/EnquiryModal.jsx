@@ -11,6 +11,7 @@ import {
   openCustomerEnquiryWhatsApp,
 } from '../utils/enquiryUtils';
 import { ENQUIRY_SUBMIT_SUCCESS_MESSAGE } from '../constants/enquiryMessages';
+import './EnquiryModal.css';
 
 const productEmptyForm = {
   fullName: '',
