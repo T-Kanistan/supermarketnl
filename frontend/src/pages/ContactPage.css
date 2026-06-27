@@ -63,7 +63,8 @@
   position: relative;
   z-index: 2;
   width: 100%;
-  padding: 48px 0;
+  padding-top: 48px;
+  padding-bottom: 48px;
 }
 
 .contact-hero-content {
@@ -496,15 +497,24 @@
 
 .social-icon:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.16);
+  box-shadow: 0 8px 20px rgba(46, 204, 113, 0.3);
   color: #ffffff;
 }
 
-.social-icon.facebook { background: #1877f2; }
-.social-icon.instagram { background: linear-gradient(45deg, #f09433, #dc2743, #bc1888); }
-.social-icon.whatsapp { background: #25d366; }
-.social-icon.tiktok { background: #000000; }
-.social-icon.youtube { background: #ff0000; }
+/* Uniform modern social icons (single brand colour for all platforms) */
+.social-icons .social-icon,
+.social-icon.facebook,
+.social-icon.instagram,
+.social-icon.whatsapp,
+.social-icon.tiktok,
+.social-icon.youtube {
+  background: var(--primary-green, #2ecc71);
+  color: #ffffff;
+}
+
+.social-icons .social-icon:hover {
+  background: var(--primary-green-dark, #27ae60);
+}
 
 /* ─── Location / Map section ─── */
 .contact-location-section {
@@ -827,7 +837,8 @@
   }
 
   .contact-hero-inner {
-    padding: 40px 0;
+    padding-top: 40px;
+    padding-bottom: 40px;
   }
 
   .contact-hero-content h1 {

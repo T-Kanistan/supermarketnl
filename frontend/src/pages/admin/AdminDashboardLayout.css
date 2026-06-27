@@ -650,6 +650,21 @@ body.admin-drawer-open {
   -webkit-overflow-scrolling: touch;
 }
 
+/* Vacancy & Job Application tables: always allow horizontal scroll so the
+   right-most columns (status, CV, action buttons) are never clipped by the
+   panel's overflow:hidden on laptop / tablet widths. */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (min-width: 768px) {
+  .table-responsive .admin-table {
+    min-width: 920px;
+  }
+}
+
 .admin-table {
   width: 100%;
   border-collapse: collapse;
@@ -984,6 +999,86 @@ body.admin-drawer-open {
   outline: none;
   border-color: var(--admin-sidebar-active);
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Shared inputs / controls used by Vacancy & Job Application views */
+.admin-search-input {
+  padding: 10px 14px;
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 0.9rem;
+  font-family: inherit;
+}
+
+.admin-search-input:focus {
+  outline: none;
+  border-color: var(--admin-sidebar-active);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.admin-status-select {
+  padding: 8px 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-width: 150px;
+}
+
+.admin-status-select:focus {
+  outline: none;
+  border-color: var(--admin-sidebar-active);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.admin-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--admin-border);
+  background: #ffffff;
+  color: var(--admin-sidebar-active);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.admin-link-btn:hover {
+  background: rgba(59, 130, 246, 0.08);
+  border-color: var(--admin-sidebar-active);
+}
+
+.dashboard-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.dashboard-panel-header h2 {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+/* Job Applications uses text labels ("View") inside the icon-sized action
+   button, so let those buttons grow to fit instead of clipping the text. */
+.table-responsive .btn-action-cell {
+  width: auto;
+  min-width: 32px;
+  padding: 0 12px;
+  gap: 6px;
+  white-space: nowrap;
 }
 
 .messages-unread-count {
@@ -1785,11 +1880,11 @@ body.modal-open {
   color: #fff;
 }
 
-.footer-admin-preview-socials .fb { background: #1877f2; }
-.footer-admin-preview-socials .ig { background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); }
-.footer-admin-preview-socials .wa { background: #25d366; }
-.footer-admin-preview-socials .tt { background: #000; }
-.footer-admin-preview-socials .yt { background: #ff0000; }
+.footer-admin-preview-socials .fb,
+.footer-admin-preview-socials .ig,
+.footer-admin-preview-socials .wa,
+.footer-admin-preview-socials .tt,
+.footer-admin-preview-socials .yt { background: var(--primary-green, #2ecc71); }
 
 .footer-admin-preview-bottom {
   margin-top: 16px;
@@ -2064,4 +2159,97 @@ body.modal-open {
   .footer-admin-preview-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* ============ Legal Pages (Terms & Privacy) admin view ============ */
+.legal-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.legal-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #475569;
+  font-weight: 600;
+  font-size: 0.92rem;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.legal-tab:hover {
+  border-color: var(--primary-green, #2ecc71);
+  color: var(--primary-green-dark, #27ae60);
+}
+
+.legal-tab.active {
+  background: var(--primary-green, #2ecc71);
+  border-color: var(--primary-green, #2ecc71);
+  color: #ffffff;
+  box-shadow: 0 6px 16px rgba(46, 204, 113, 0.28);
+}
+
+.legal-section-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 18px;
+  margin-bottom: 16px;
+  background: #f8fafc;
+}
+
+.legal-section-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.legal-section-index {
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.legal-section-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.legal-icon-btn {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #475569;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.legal-icon-btn:hover:not(:disabled) {
+  border-color: var(--primary-green, #2ecc71);
+  color: var(--primary-green-dark, #27ae60);
+}
+
+.legal-icon-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.legal-icon-btn--danger:hover:not(:disabled) {
+  border-color: #ef4444;
+  color: #ef4444;
 }

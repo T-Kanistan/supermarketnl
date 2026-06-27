@@ -4,7 +4,7 @@ import {
   FaChartBar, FaGlobe, FaImages, FaTags, FaBoxOpen, FaQuestionCircle,
   FaCommentDots, FaBullhorn, FaEnvelopeOpenText, FaUsers, FaUser,
   FaSignOutAlt, FaBars, FaTimes, FaExternalLinkAlt, FaHome, FaUtensils,
-  FaKey, FaBriefcase,
+  FaKey, FaBriefcase, FaFileContract,
 } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
 import AccessDenied from '../../components/AccessDenied';
@@ -99,6 +99,7 @@ export const AdminDashboardLayout = () => {
     if (path.includes('/about-us')) return 'About Us Management';
     if (path.includes('/site-settings')) return 'CMS Settings';
     if (path.includes('/homepage-about')) return 'Homepage About Section';
+    if (path.includes('/legal-pages')) return 'Legal Pages';
     if (path.includes('/banners')) return 'Banner Management';
     if (path.includes('/food-corner-categories')) return 'Food Corner Categories';
     if (path.endsWith('/food-corner')) return 'Food Corner';
@@ -129,6 +130,10 @@ export const AdminDashboardLayout = () => {
       <NavLink to={dashboardPath('/homepage-about')} className={() => sidebarClass('/homepage-about')} onClick={closeMobileMenu}>
         <FaHome className="sidebar-link-icon" />
         <span>Homepage About Section</span>
+      </NavLink>
+      <NavLink to={dashboardPath('/legal-pages')} className={() => sidebarClass('/legal-pages')} onClick={closeMobileMenu}>
+        <FaFileContract className="sidebar-link-icon" />
+        <span>Legal Pages</span>
       </NavLink>
 
       <div className="menu-section-title">Content Management</div>

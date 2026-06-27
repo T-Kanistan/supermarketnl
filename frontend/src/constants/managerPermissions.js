@@ -5,6 +5,7 @@ export const ADMIN_ONLY_DASHBOARD_ROUTES = [
   'categories',
   'food-corner-categories',
   'managers',
+  'legal-pages',
 ];
 
 export const MANAGER_ALLOWED_DASHBOARD_ROUTES = [

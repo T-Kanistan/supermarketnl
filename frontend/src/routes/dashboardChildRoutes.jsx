@@ -7,6 +7,7 @@ const AdminOverview = lazy(() => import('../pages/admin/views/AdminOverview'));
 const AdminSiteSettings = lazy(() => import('../pages/admin/views/AdminSiteSettings'));
 const AdminAboutUs = lazy(() => import('../pages/admin/views/AdminAboutUs'));
 const AdminHomepageAbout = lazy(() => import('../pages/admin/views/AdminHomepageAbout'));
+const AdminLegalPages = lazy(() => import('../pages/admin/views/AdminLegalPages'));
 const AdminBanners = lazy(() => import('../pages/admin/views/AdminBanners'));
 const AdminCategories = lazy(() => import('../pages/admin/views/AdminCategories'));
 const AdminFoodCornerCategories = lazy(() => import('../pages/admin/views/AdminFoodCornerCategories'));
@@ -31,6 +32,7 @@ export const dashboardChildRoutes = (
     <Route path="site-settings" element={<ProtectedRoute adminOnly><AdminSiteSettings /></ProtectedRoute>} />
     <Route path="about-us" element={<ProtectedRoute adminOnly><AdminAboutUs /></ProtectedRoute>} />
     <Route path="homepage-about" element={<AdminHomepageAbout />} />
+    <Route path="legal-pages" element={<ProtectedRoute adminOnly><AdminLegalPages /></ProtectedRoute>} />
     <Route path="banners" element={<AdminBanners />} />
     <Route path="categories" element={<ProtectedRoute adminOnly><AdminCategories /></ProtectedRoute>} />
     <Route

@@ -62,24 +62,6 @@
   gap: 4px;
 }
 
-.store-product-rating {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  margin-bottom: 8px;
-  font-size: 0.82rem;
-  color: #64748b;
-}
-
-.store-star-icon {
-  color: #d1d5db;
-  font-size: 0.9rem;
-}
-
-.store-star-icon.filled {
-  color: #fbbf24;
-}
-
 .store-product-name {
   margin: 0 0 6px;
   font-size: 0.95rem;

@@ -167,12 +167,21 @@ const Footer = () => {
         </div>
 
         <div className="footer-main-bottom">
-          <div className="footer-legal-links">
-            {legalLinks.map((link) => (
-              <Link key={link.id} to={link.path}>{link.label}</Link>
-            ))}
-          </div>
-          <p>&copy; {new Date().getFullYear()} {copyrightName}. All Rights Reserved.</p>
+          {legalLinks.length > 0 && (
+            <div className="footer-legal-links">
+              {legalLinks.map((link) => (
+                <Link key={link.id} to={link.path} className="footer-legal-pill">
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+          )}
+          <p className="footer-copyright">
+            <span>&copy; {new Date().getFullYear()} {copyrightName}. All Rights Reserved.</span>
+            <span className="footer-developed-by">
+              Developed By <span className="footer-developed-name">AppZmakers</span>
+            </span>
+          </p>
         </div>
       </div>
     </footer>

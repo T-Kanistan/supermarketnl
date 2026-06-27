@@ -10,7 +10,7 @@ import './AboutPage.css';
 
 const {
   FiArrowRight, FiEye, FiHeart, FiMapPin, FiPhone, FiMail, FiShoppingBag, FiTarget, FiUsers,
-  FiCheck, FiStar, FiGrid, FiGlobe, FiCoffee, FiHeadphones, FiCalendar, FiAward,
+  FiStar, FiGrid, FiGlobe, FiCoffee, FiHeadphones, FiCalendar, FiAward,
 } = FiIcons;
 
 const resolveIcon = (name, fallback = FiCalendar) => FiIcons[name] || fallback;
@@ -20,13 +20,6 @@ const INTRO_PILLARS = [
   { icon: FiGlobe, label: 'International Groceries' },
   { icon: FiCoffee, label: 'Food Corner' },
   { icon: FiHeadphones, label: 'Customer Service' },
-];
-
-const INTRO_FEATURES = [
-  'Fresh Produce',
-  'International Products',
-  'Food Corner Meals',
-  'Friendly Customer Service',
 ];
 
 const STORY_TIMELINE_ICONS = [FiCalendar, FiUsers, FiCoffee, FiAward];
@@ -192,11 +185,6 @@ const AboutPage = () => {
                     </div>
                   ))}
                 </div>
-                <ul className="about-intro-features">
-                  {INTRO_FEATURES.map((item) => (
-                    <li key={item}><FiCheck aria-hidden="true" /> {item}</li>
-                  ))}
-                </ul>
                 <div className="about-intro-actions">
                   <Link to={about.button1Url || '/products'} className="about-btn about-btn-primary">
                     {about.button1Text || 'Explore Products'} <FiArrowRight />

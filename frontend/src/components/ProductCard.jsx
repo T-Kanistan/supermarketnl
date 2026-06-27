@@ -1,4 +1,3 @@
-import { FiStar } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
 import { getImageUrl } from '../services/api';
 import { buildProductAlt } from '../utils/seoImageAlt';
@@ -14,7 +13,6 @@ const ProductCard = ({
   variant = 'default',
 }) => {
   const inStock = Number(product.stock) > 0;
-  const rating = Number(product.rating) || 4.0;
   const isMinimal = variant === 'minimal';
 
   return (
@@ -38,15 +36,6 @@ const ProductCard = ({
       </div>
 
       <div className="store-product-body">
-        {!isMinimal && (
-          <div className="store-product-rating" aria-label={`Rating ${rating.toFixed(1)} out of 5`}>
-            {[1, 2, 3, 4, 5].map((star) => (
-              <FiStar key={star} className={`store-star-icon ${star <= Math.round(rating) ? 'filled' : ''}`} />
-            ))}
-            <span>({rating.toFixed(1)})</span>
-          </div>
-        )}
-
         <h3 className="store-product-name" title={product.name}>
           {product.name}
         </h3>
