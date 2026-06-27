@@ -696,13 +696,17 @@ export const AdminSiteSettings = () => {
                   </div>
                 </div>
                 <div className="admin-form-group">
-                  <label>Google Maps Embed URL</label>
+                  <label>Google Maps Embed</label>
                   <textarea
                     value={formData.contactPage.mapEmbedUrl}
                     onChange={(e) => updateContactPage('mapEmbedUrl', e.target.value)}
                     rows="3"
-                    placeholder="Paste Google Maps embed iframe src URL"
+                    placeholder='Paste the full <iframe ...> embed code OR just the embed URL'
                   />
+                  <p className="admin-field-hint">
+                    In Google Maps, open Share &rarr; Embed a map &rarr; Copy HTML, then paste it here.
+                    You can paste the whole &lt;iframe&gt; code or just the URL &mdash; we&apos;ll handle the rest.
+                  </p>
                 </div>
               </div>
             </div>

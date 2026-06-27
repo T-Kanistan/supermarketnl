@@ -1,4 +1,5 @@
 import api, { apiRequest } from './api';
+import { extractMapEmbedUrl } from '../utils/mapEmbed';
 
 const mapSocials = (data) => ({
   facebook: data.facebookUrl || '',
@@ -44,7 +45,7 @@ const mapApiToForm = (data) => ({
     privacyNote: data.privacyNote,
     helpBoxText: data.helpBoxTitle,
     helpBoxSubtext: data.helpBoxSubtitle,
-    mapEmbedUrl: data.googleMapsEmbedUrl,
+    mapEmbedUrl: extractMapEmbedUrl(data.googleMapsEmbedUrl),
   },
 });
 
@@ -84,7 +85,7 @@ const mapFormToApi = (formData) => {
     privacyNote: cp.privacyNote,
     helpBoxTitle: cp.helpBoxText,
     helpBoxSubtitle: cp.helpBoxSubtext,
-    googleMapsEmbedUrl: cp.mapEmbedUrl,
+    googleMapsEmbedUrl: extractMapEmbedUrl(cp.mapEmbedUrl),
   };
 };
 

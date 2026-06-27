@@ -21,6 +21,7 @@ import cmsService from '../services/cmsService';
 import { ENQUIRY_SUBMIT_SUCCESS_MESSAGE } from '../constants/enquiryMessages';
 import usePageBanner from '../hooks/usePageBanner';
 import { getBannerOverlayStyle } from '../utils/bannerOverlay';
+import { extractMapEmbedUrl, toEmbeddableMapUrl } from '../utils/mapEmbed';
 import { getImageUrl } from '../services/api';
 import './ContactPage.css';
 
@@ -78,6 +79,7 @@ const ContactPage = () => {
   }
 
   const contact = mergeContactPage(contactData.contactPage);
+  const rawMapValue = extractMapEmbedUrl(contact.mapEmbedUrl);
   const heroBadge = pageBanner.badgeText || contact.heroBadge;
   const heroTitle = pageBanner.highlightedTitle || pageBanner.highlightText
     ? `${pageBanner.title || pageBanner.mainHeading} ${pageBanner.highlightedTitle || pageBanner.highlightText}`.trim()
@@ -95,9 +97,18 @@ const ContactPage = () => {
 
   const phoneHref = phone ? `tel:${phone.replace(/[^\d+]/g, '')}` : '#';
   const emailHref = email ? `mailto:${email}` : '#';
-  const mapsHref = address
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
-    : '#';
+  // The embedded map always derives from the admin "Google Maps Embed" field,
+  // normalized into a frame-safe URL (Google blocks normal Maps links in iframes).
+  const mapEmbedSrc = toEmbeddableMapUrl(contact.mapEmbedUrl, address);
+  // The "View on Google Maps" button should open a normal Maps page. Use the
+  // admin's raw link when it's a clickable Maps URL, otherwise search by address.
+  const rawIsClickableMapsLink =
+    /^https?:\/\//i.test(rawMapValue) && !/[?&]output=embed/i.test(rawMapValue) && !/\/maps\/embed/i.test(rawMapValue);
+  const mapsHref = rawIsClickableMapsLink
+    ? rawMapValue
+    : address
+      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
+      : '#';
   const whatsappHref = socials.whatsapp || '';
 
   const handleChange = (e) => {
@@ -382,9 +393,9 @@ const ContactPage = () => {
                   </a>
                 </div>
                 <div className="map-container">
-                  {contact.mapEmbedUrl ? (
+                  {mapEmbedSrc ? (
                     <iframe
-                      src={contact.mapEmbedUrl}
+                      src={mapEmbedSrc}
                       width="100%"
                       height="100%"
                       style={{ border: 0 }}

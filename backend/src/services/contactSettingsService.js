@@ -1,6 +1,7 @@
 import ContactCMS, { getDefaultContactCMS } from '../models/ContactCMS.js';
 import FooterCMS from '../models/FooterCMS.js';
 import siteSettingsService from './siteSettingsService.js';
+import { extractIframeSrc } from '../middleware/validation.js';
 
 const ensureContactSettings = async () => {
   let doc = await ContactCMS.findOne();
@@ -167,6 +168,11 @@ const normalizePayload = (body = {}) => {
       normalized[key] = typeof body[key] === 'string' ? body[key].trim() : body[key];
     }
   });
+
+  if (normalized.googleMapsEmbedUrl !== undefined) {
+    normalized.googleMapsEmbedUrl = extractIframeSrc(normalized.googleMapsEmbedUrl);
+  }
+
   return normalized;
 };
 
