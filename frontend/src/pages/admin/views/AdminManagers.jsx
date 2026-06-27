@@ -204,7 +204,7 @@ export const AdminManagers = () => {
             <tbody>
               {managers.map((mgr) => (
                 <tr key={mgr.id}>
-                  <td>
+                  <td data-label="Profile">
                     {mgr.profileImage ? (
                       <img
                         src={mgr.profileImage}
@@ -230,10 +230,10 @@ export const AdminManagers = () => {
                       </div>
                     )}
                   </td>
-                  <td style={{ fontWeight: 600 }}>{mgr.fullName}</td>
-                  <td>{mgr.email || '—'}</td>
-                  <td>{mgr.phoneNumber || '—'}</td>
-                  <td>
+                  <td data-label="Manager Name" style={{ fontWeight: 600 }}>{mgr.fullName}</td>
+                  <td data-label="Email">{mgr.email || '—'}</td>
+                  <td data-label="Phone Number">{mgr.phoneNumber || '—'}</td>
+                  <td data-label="Status">
                     <span
                       style={{
                         fontSize: '0.8rem',
@@ -248,8 +248,8 @@ export const AdminManagers = () => {
                       {mgr.status ? 'Active' : 'Inactive'}
                     </span>
                   </td>
-                  <td>{formatDate(mgr.createdAt)}</td>
-                  <td>
+                  <td data-label="Created Date">{formatDate(mgr.createdAt)}</td>
+                  <td data-label="Actions">
                     <div className="cell-actions">
                       <button type="button" className="btn-action-cell" onClick={() => openViewModal(mgr)} title="View">
                         <FaEye />

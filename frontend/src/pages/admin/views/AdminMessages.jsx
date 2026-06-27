@@ -245,26 +245,26 @@ export const AdminMessages = () => {
 
                 return (
                   <tr key={enquiry.id} className={isUnread ? 'message-row-unread' : ''}>
-                    <td style={{ fontWeight: 600 }}>{enquiry.senderName || enquiry.name}</td>
-                    <td>
+                    <td data-label="Sender Name" style={{ fontWeight: 600 }}>{enquiry.senderName || enquiry.name}</td>
+                    <td data-label="Contact Info">
                       <div>{enquiry.email}</div>
                       {enquiry.phone && <div>{enquiry.phone}</div>}
                     </td>
-                    <td>
+                    <td data-label="Type">
                       <span className="status-badge-admin scheduled">
                         {TYPE_LABELS[enquiry.enquiryType] || enquiry.enquiryType}
                       </span>
                     </td>
-                    <td>
+                    <td data-label="Source">
                       <span className={`status-badge-admin ${enquiry.source === 'whatsapp' ? 'active' : 'scheduled'}`}>
                         {SOURCE_LABELS[enquiry.source] || 'Website'}
                       </span>
                     </td>
-                    <td style={{ fontWeight: 600, color: 'var(--admin-sidebar-active)' }}>{enquiry.subject}</td>
-                    <td style={{ fontSize: '0.85rem', color: 'var(--admin-text-sub)' }}>
+                    <td data-label="Subject" style={{ fontWeight: 600, color: 'var(--admin-sidebar-active)' }}>{enquiry.subject}</td>
+                    <td data-label="Message" style={{ fontSize: '0.85rem', color: 'var(--admin-text-sub)' }}>
                       {truncateText(enquiry.messagePreview || enquiry.message)}
                     </td>
-                    <td>
+                    <td data-label="Status">
                       <select
                         id={`status-row-${enquiry.id}`}
                         className={`enquiry-status-select ${getStatusClassName(currentStatus)}`}
@@ -278,12 +278,12 @@ export const AdminMessages = () => {
                         ))}
                       </select>
                     </td>
-                    <td>
+                    <td data-label="Date">
                       <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
                         {new Date(enquiry.createdAt || enquiry.date).toLocaleDateString()}
                       </span>
                     </td>
-                    <td>
+                    <td data-label="Actions">
                       <div className="cell-actions">
                         <button
                           type="button"

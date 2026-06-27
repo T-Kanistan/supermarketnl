@@ -140,13 +140,13 @@ export const AdminJobApplications = () => {
             <tbody>
               {applications.map((app) => (
                 <tr key={app.id}>
-                  <td style={{ fontWeight: 600 }}>{app.applicantName}</td>
-                  <td>{app.jobTitle}</td>
-                  <td>{app.department || '—'}</td>
-                  <td>{app.email}</td>
-                  <td>{app.phoneNumber}</td>
-                  <td>{new Date(app.appliedDate || app.createdAt).toLocaleString()}</td>
-                  <td>
+                  <td data-label="Applicant Name" style={{ fontWeight: 600 }}>{app.applicantName}</td>
+                  <td data-label="Vacancy">{app.jobTitle}</td>
+                  <td data-label="Department">{app.department || '—'}</td>
+                  <td data-label="Email">{app.email}</td>
+                  <td data-label="Phone">{app.phoneNumber}</td>
+                  <td data-label="Applied Date">{new Date(app.appliedDate || app.createdAt).toLocaleString()}</td>
+                  <td data-label="Status">
                     <select
                       value={app.status}
                       onChange={(e) => handleStatusChange(app, e.target.value)}
@@ -157,7 +157,7 @@ export const AdminJobApplications = () => {
                       ))}
                     </select>
                   </td>
-                  <td>
+                  <td data-label="CV">
                     {app.cvFile ? (
                       <a
                         href={getImageUrl(app.cvFile)}
@@ -171,7 +171,7 @@ export const AdminJobApplications = () => {
                       '—'
                     )}
                   </td>
-                  <td>
+                  <td data-label="Actions">
                     <div style={{ display: 'flex', gap: 8 }}>
                       <button
                         type="button"

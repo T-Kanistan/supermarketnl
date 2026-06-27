@@ -288,7 +288,7 @@ export const AdminFaqs = () => {
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={() => handleDrop(index)}
                 >
-                  <td>
+                  <td data-label="Order">
                     <input
                       type="number"
                       min="1"
@@ -298,12 +298,12 @@ export const AdminFaqs = () => {
                       aria-label={`Order for ${stripLeadingNumberFromQuestion(faq.question)}`}
                     />
                   </td>
-                  <td style={{ fontWeight: 600 }}>{stripLeadingNumberFromQuestion(faq.question)}</td>
-                  <td style={{ color: 'var(--admin-text-sub)' }}>{faq.answer}</td>
-                  <td>
+                  <td data-label="Question" style={{ fontWeight: 600 }}>{stripLeadingNumberFromQuestion(faq.question)}</td>
+                  <td data-label="Answer" style={{ color: 'var(--admin-text-sub)' }}>{faq.answer}</td>
+                  <td data-label="Status">
                     <span className={`status-badge-admin ${faq.status}`}>{faq.status}</span>
                   </td>
-                  <td>
+                  <td data-label="Actions">
                     <div className="cell-actions">
                       <button type="button" className="btn-action-cell edit" onClick={() => openEditModal(faq)} title="Edit FAQ">
                         <FaEdit />

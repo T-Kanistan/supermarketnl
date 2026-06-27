@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Wins Wereld Winkel â€” Responsive Design System
  * Breakpoints:
  *   Mobile:  320px â€“ 767px   (max-width: 767px)
@@ -674,10 +674,11 @@ iframe {
 @media (max-width: 767px) {
   .admin-header {
     padding: 0 16px;
-    height: auto;
+    height: 56px;
     min-height: 56px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 8px;
+    overflow: hidden;
   }
 
   .admin-header-title {
@@ -838,3 +839,77 @@ iframe {
     display: none !important;
   }
 }
+
+/* ─── Admin Dashboard Extra Mobile Polish ─── */
+
+/* Stack the view-header (title + action button) vertically on small screens */
+@media (max-width: 600px) {
+  .view-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .view-header > button,
+  .view-header > a {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Admin title & subtext */
+  .view-title-wrap h2 {
+    font-size: 1.35rem;
+  }
+
+  /* Vacancy/Job Applications wrapper — use same card approach */
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 12px;
+    max-width: 100%;
+  }
+
+  /* Vacancy filter bar: stack vertically */
+  .vacancy-filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  /* Vacancy stats */
+  .vacancy-stats-row {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 12px !important;
+  }
+
+  /* Action button groups wrap */
+  .vacancy-action-group {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  /* Make cell action buttons touch-friendly */
+  .btn-action-cell,
+  .vacancy-icon-btn {
+    min-width: 36px;
+    min-height: 36px;
+  }
+
+  /* Stat cards on mobile */
+  .stat-card-admin {
+    padding: 16px;
+    gap: 12px;
+  }
+
+  /* Sidebar scrollable on mobile */
+  .admin-sidebar .sidebar-menu {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Prevent iOS bounce / momentum scrolling bugs in admin content body */
+@supports (-webkit-overflow-scrolling: touch) {
+  .admin-content-body {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+

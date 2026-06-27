@@ -234,7 +234,7 @@ export const AdminTestimonials = () => {
             <tbody>
               {testimonials.map((t) => (
                 <tr key={t.id}>
-                  <td>
+                  <td data-label="Customer Image">
                     <img
                       src={resolveAvatarSrc(t.avatarImage || t.image)}
                       alt={t.customerName}
@@ -243,21 +243,21 @@ export const AdminTestimonials = () => {
                       onError={(e) => { e.target.src = DEFAULT_AVATAR; }}
                     />
                   </td>
-                  <td style={{ fontWeight: 600 }}>{t.customerName}</td>
-                  <td>
+                  <td data-label="Customer Name" style={{ fontWeight: 600 }}>{t.customerName}</td>
+                  <td data-label="Rating">
                     <div style={{ display: 'flex', gap: '2px', color: '#eab308' }}>
                       {[...Array(t.rating || 0)].map((_, i) => (
                         <FaStar key={i} />
                       ))}
                     </div>
                   </td>
-                  <td style={{ color: 'var(--admin-text-sub)' }}>&ldquo;{t.review}&rdquo;</td>
-                  <td>
+                  <td data-label="Feedback Review" style={{ color: 'var(--admin-text-sub)' }}>&ldquo;{t.review}&rdquo;</td>
+                  <td data-label="Status">
                     <span className={`status-badge-admin ${t.status}`}>
                       {t.status}
                     </span>
                   </td>
-                  <td>
+                  <td data-label="Actions">
                     <div className="cell-actions">
                       <button className="btn-action-cell edit" onClick={() => openEditModal(t)} title="Edit Testimonial">
                         <FaEdit />

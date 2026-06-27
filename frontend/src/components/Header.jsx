@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FiSearch, FiX, FiMenu } from 'react-icons/fi';
+import { FiX, FiMenu } from 'react-icons/fi';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useCMS } from '../context/CMSContext';
 import { useEnquiry } from '../context/EnquiryContext';
@@ -12,7 +12,7 @@ const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const path = location.pathname;
-  
+
   const { cmsData } = useCMS();
   const { openEnquiry } = useEnquiry();
   const { user, isAdmin, isManager } = useAuth();
@@ -20,8 +20,6 @@ const Header = () => {
   const storeName = cmsData?.storeName || 'Wins Wereld Winkel';
   const showDashboard = user && (isAdmin || isManager);
 
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   if (path.startsWith('/admin') || path.startsWith('/manager') || path === '/login' || path === '/forgot-password' || path === '/reset-password') return null;
@@ -34,18 +32,7 @@ const Header = () => {
     openEnquiry({ enquirySource: 'general' });
   };
 
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
-      setIsSearchOpen(false);
-      setSearchQuery('');
-    }
-  };
 
-  const toggleSearch = () => {
-    setIsSearchOpen(!isSearchOpen);
-  };
 
   const handleDashboardClick = () => {
     closeMobileMenu();
@@ -124,25 +111,7 @@ const Header = () => {
 
           {/* Utilities */}
           <div className="header-utils">
-            {isSearchOpen ? (
-              <form className="search-form" onSubmit={handleSearchSubmit}>
-                <input 
-                  type="text" 
-                  className="search-input" 
-                  placeholder="Search products..." 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  autoFocus
-                />
-                <button type="button" className="util-btn close-btn" onClick={toggleSearch} aria-label="Close Search">
-                  <FiX />
-                </button>
-              </form>
-            ) : (
-              <button className="util-btn" aria-label="Search" onClick={toggleSearch}>
-                <FiSearch />
-              </button>
-            )}
+
             <div className="auth-buttons">
               {showDashboard && (
                 <button
@@ -161,7 +130,7 @@ const Header = () => {
                 Enquiry Now
               </button>
             </div>
-            
+
             <button className="mobile-menu-btn" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} aria-label="Toggle Menu">
               {isMobileMenuOpen ? <FiX /> : <FiMenu />}
             </button>

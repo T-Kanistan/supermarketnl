@@ -250,12 +250,12 @@ export const AdminFoodCornerCategories = () => {
             <tbody>
               {categories.map((cat) => (
                 <tr key={cat.id || cat.slug}>
-                  <td>
+                  <td data-label="Image/Icon">
                     <CategoryIconPreview category={cat} />
                   </td>
-                  <td style={{ fontWeight: 500, color: '#64748b' }}>{cat.slug || cat.id}</td>
-                  <td style={{ fontWeight: 600 }}>{cat.categoryName || cat.name}</td>
-                  <td>
+                  <td data-label="Category ID" style={{ fontWeight: 500, color: '#64748b' }}>{cat.slug || cat.id}</td>
+                  <td data-label="Category Name" style={{ fontWeight: 600 }}>{cat.categoryName || cat.name}</td>
+                  <td data-label="Status">
                     <button
                       type="button"
                       className={`status-badge-admin ${cat.status ? 'active' : 'inactive'}`}
@@ -266,7 +266,7 @@ export const AdminFoodCornerCategories = () => {
                       {cat.status ? 'active' : 'inactive'}
                     </button>
                   </td>
-                  <td>
+                  <td data-label="Actions">
                     <div className="cell-actions">
                       <button
                         type="button"

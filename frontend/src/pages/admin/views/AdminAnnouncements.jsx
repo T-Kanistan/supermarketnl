@@ -289,7 +289,7 @@ export const AdminAnnouncements = () => {
 
                 return (
                   <tr key={announcement.id}>
-                    <td>
+                    <td data-label="Banner">
                       {banner ? (
                         <img
                           src={getImageUrl(banner)}
@@ -302,19 +302,19 @@ export const AdminAnnouncements = () => {
                         <span style={{ fontSize: '0.8rem', color: '#64748b' }}>No banner</span>
                       )}
                     </td>
-                    <td style={{ fontWeight: 600 }}>{announcement.title}</td>
-                    <td style={{ color: 'var(--admin-text-sub)', maxWidth: '220px' }}>{announcement.description}</td>
-                    <td style={{ fontWeight: 600, color: 'var(--red-discount)' }}>
+                    <td data-label="Title" style={{ fontWeight: 600 }}>{announcement.title}</td>
+                    <td data-label="Description" style={{ color: 'var(--admin-text-sub)', maxWidth: '220px' }}>{announcement.description}</td>
+                    <td data-label="Discount %" style={{ fontWeight: 600, color: 'var(--red-discount)' }}>
                       {discount > 0 ? `${discount}% OFF` : 'N/A'}
                     </td>
-                    <td>
+                    <td data-label="Status">
                       <span className={`status-badge-admin ${statusClass}`}>
                         {statusClass}
                       </span>
                     </td>
-                    <td>{formatDate(announcement.startDate)}</td>
-                    <td>{formatDate(announcement.endDate)}</td>
-                    <td>
+                    <td data-label="Start Date">{formatDate(announcement.startDate)}</td>
+                    <td data-label="End Date">{formatDate(announcement.endDate)}</td>
+                    <td data-label="Actions">
                       <div className="cell-actions">
                         <button
                           className="btn-action-cell view"

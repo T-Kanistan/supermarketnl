@@ -150,7 +150,7 @@ export const AdminCategories = () => {
             <tbody>
               {categories.map((cat) => (
                 <tr key={cat.id}>
-                  <td>
+                  <td data-label="Image">
                     <img 
                       src={getImageUrl(cat.image)} 
                       alt={cat.name} 
@@ -158,14 +158,14 @@ export const AdminCategories = () => {
                       onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=800'; }}
                     />
                   </td>
-                  <td style={{ fontWeight: 500, color: '#64748b' }}>{cat.id}</td>
-                  <td style={{ fontWeight: 600 }}>{cat.name}</td>
-                  <td>
+                  <td data-label="Category ID" style={{ fontWeight: 500, color: '#64748b' }}>{cat.id}</td>
+                  <td data-label="Category Name" style={{ fontWeight: 600 }}>{cat.name}</td>
+                  <td data-label="Status">
                     <span className={`status-badge-admin ${cat.status}`}>
                       {cat.status}
                     </span>
                   </td>
-                  <td>
+                  <td data-label="Actions">
                     <div className="cell-actions">
                       <button className="btn-action-cell edit" onClick={() => openEditModal(cat)} title="Edit Category">
                         <FaEdit />

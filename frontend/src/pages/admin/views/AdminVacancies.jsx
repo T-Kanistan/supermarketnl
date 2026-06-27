@@ -458,20 +458,20 @@ export const AdminVacancies = () => {
                 ) : (
                   paginatedVacancies.map((vacancy, index) => (
                     <tr key={vacancy.id}>
-                      <td>{startIndex + index}</td>
-                      <td style={{ fontWeight: 700 }}>{vacancy.title}</td>
-                      <td>{vacancy.departmentLabel}</td>
-                      <td>{vacancy.employmentType}</td>
-                      <td>{formatDate(vacancy.openDate || vacancy.createdAt)}</td>
-                      <td>{formatDate(vacancy.closeDate || vacancy.closingDate)}</td>
-                      <td>{vacancy.cvRequired !== false ? '📄 Required' : '📄 Optional'}</td>
-                      <td>
+                      <td data-label="#">{startIndex + index}</td>
+                      <td data-label="Job Title" style={{ fontWeight: 700 }}>{vacancy.title}</td>
+                      <td data-label="Department">{vacancy.departmentLabel}</td>
+                      <td data-label="Type">{vacancy.employmentType}</td>
+                      <td data-label="Open Date">{formatDate(vacancy.openDate || vacancy.createdAt)}</td>
+                      <td data-label="Close Date">{formatDate(vacancy.closeDate || vacancy.closingDate)}</td>
+                      <td data-label="CV Requirement">{vacancy.cvRequired !== false ? '📄 Required' : '📄 Optional'}</td>
+                      <td data-label="Status">
                         <span className={`status-badge-vacancy ${vacancyStatusClass(vacancy.status)}`}>
                           {vacancy.status}
                         </span>
                       </td>
-                      <td>{vacancy.applicationCount || 0}</td>
-                      <td>
+                      <td data-label="Applications">{vacancy.applicationCount || 0}</td>
+                      <td data-label="Action">
                         <div className="vacancy-action-group">
                           <button type="button" className="vacancy-icon-btn edit" title="Edit" onClick={() => openEditModal(vacancy)}>
                             <FaEdit />

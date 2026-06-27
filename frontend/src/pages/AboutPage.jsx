@@ -170,51 +170,51 @@ const AboutPage = () => {
     <div className="about-page">
       {/* Section 1 – About Wins Wereld Winkel */}
       {about.heroIsActive !== false && (
-      <section className="about-intro">
-        <div className="container">
-          <article className="about-intro-card">
-            <div className="about-intro-content">
-              <span className="about-intro-eyebrow">{about.heroEyebrow}</span>
-              <h1 className="about-intro-title">
-                {about.heroHeading}{' '}
-                <span className="about-intro-highlight">{about.heroHighlight}</span>
-              </h1>
-              <div className="about-intro-copy">
-                {heroParagraphs.map((para) => (
-                  <p key={para.slice(0, 40)}>{highlightKeywords(para, highlightWords)}</p>
-                ))}
+        <section className="about-intro">
+          <div className="container">
+            <article className="about-intro-card">
+              <div className="about-intro-content">
+                <span className="about-intro-eyebrow">{about.heroEyebrow}</span>
+                <h1 className="about-intro-title">
+                  {about.heroHeading}{' '}
+                  <span className="about-intro-highlight">{about.heroHighlight}</span>
+                </h1>
+                <div className="about-intro-copy">
+                  {heroParagraphs.map((para) => (
+                    <p key={para.slice(0, 40)}>{highlightKeywords(para, highlightWords)}</p>
+                  ))}
+                </div>
+                <div className="about-intro-pillars">
+                  {INTRO_PILLARS.map(({ icon: Icon, label }) => (
+                    <div className="about-pillar" key={label}>
+                      <span className="about-pillar-icon" aria-hidden="true"><Icon /></span>
+                      <span>{label}</span>
+                    </div>
+                  ))}
+                </div>
+                <ul className="about-intro-features">
+                  {INTRO_FEATURES.map((item) => (
+                    <li key={item}><FiCheck aria-hidden="true" /> {item}</li>
+                  ))}
+                </ul>
+                <div className="about-intro-actions">
+                  <Link to={about.button1Url || '/products'} className="about-btn about-btn-primary">
+                    {about.button1Text || 'Explore Products'} <FiArrowRight />
+                  </Link>
+                  <Link to={about.button2Url || '/contact-us'} className="about-btn about-btn-outline">
+                    {about.button2Text || 'Contact Us'}
+                  </Link>
+                </div>
               </div>
-              <div className="about-intro-pillars">
-                {INTRO_PILLARS.map(({ icon: Icon, label }) => (
-                  <div className="about-pillar" key={label}>
-                    <span className="about-pillar-icon" aria-hidden="true"><Icon /></span>
-                    <span>{label}</span>
-                  </div>
-                ))}
+              <div className="about-intro-visual">
+                <img src={getImageUrl(about.heroImage)} alt={`${about.heroHighlight || 'About'} at Wins Wereld Winkel`} loading="lazy" decoding="async" />
+                {about.heroBadge && (
+                  <span className="about-intro-badge">{about.heroBadge}</span>
+                )}
               </div>
-              <ul className="about-intro-features">
-                {INTRO_FEATURES.map((item) => (
-                  <li key={item}><FiCheck aria-hidden="true" /> {item}</li>
-                ))}
-              </ul>
-              <div className="about-intro-actions">
-                <Link to={about.button1Url || '/products'} className="about-btn about-btn-primary">
-                  {about.button1Text || 'Explore Products'} <FiArrowRight />
-                </Link>
-                <Link to={about.button2Url || '/contact-us'} className="about-btn about-btn-outline">
-                  {about.button2Text || 'Contact Us'}
-                </Link>
-              </div>
-            </div>
-            <div className="about-intro-visual">
-              <img src={getImageUrl(about.heroImage)} alt={`${about.heroHighlight || 'About'} at Wins Wereld Winkel`} loading="lazy" decoding="async" />
-              {about.heroBadge && (
-                <span className="about-intro-badge">{about.heroBadge}</span>
-              )}
-            </div>
-          </article>
-        </div>
-      </section>
+            </article>
+          </div>
+        </section>
       )}
       <section className="about-story-block" ref={storyRef}>
         <div className="container">
@@ -335,94 +335,94 @@ const AboutPage = () => {
 
       {/* Section 4 – Founder & Owner */}
       {showOwner && (
-      <section className="about-owner">
-        <div className="container">
-          <div className="about-section-head">
-            <h2 className="about-section-title">Meet Our Founder</h2>
-            <div className="about-title-line" />
-          </div>
-          <article className="founder-panel">
-            <div className="founder-visual">
-              <div className="founder-photo-card">
-                <img
-                  src={getImageUrl(about.owner.photo)}
-                  alt={about.owner.name}
-                  className="founder-photo"
-                  loading="lazy"
-                />
-                <span className="founder-photo-badge">{ownerBadge}</span>
-              </div>
+        <section className="about-owner">
+          <div className="container">
+            <div className="about-section-head">
+              <h2 className="about-section-title">Meet Our Founder</h2>
+              <div className="about-title-line" />
             </div>
-            <div className="founder-details">
-              <h2 className="founder-name">{about.owner.name}</h2>
-              <p className="founder-role">{about.owner.designation}</p>
-              <div className="founder-badges-row">
-                <span className="founder-meta-badge since">
-                  Since {about.owner.sinceYear || '2022'}
-                </span>
-                <span className="founder-meta-badge experience">
-                  {about.owner.yearsServing || '5+ Years Serving Community'}
-                </span>
-              </div>
-              {about.owner.quote && (
-                <blockquote className="founder-quote-card">
-                  <span className="founder-quote-mark" aria-hidden="true">&ldquo;</span>
-                  <p>{about.owner.quote}</p>
-                </blockquote>
-              )}
-              <ul className="founder-contact-list">
-                <li>
-                  <a href={phoneHref} className="founder-contact-item">
-                    <span className="founder-contact-icon"><FiPhone /></span>
-                    <span>{phone}</span>
-                  </a>
-                </li>
-                <li>
-                  <a href={emailHref} className="founder-contact-item">
-                    <span className="founder-contact-icon"><FiMail /></span>
-                    <span>{email}</span>
-                  </a>
-                </li>
-                <li>
-                  <a href={mapsHref} target="_blank" rel="noreferrer" className="founder-contact-item">
-                    <span className="founder-contact-icon"><FiMapPin /></span>
-                    <span>{address}</span>
-                  </a>
-                </li>
-              </ul>
-              {(socials.facebook || socials.instagram || socials.whatsapp || socials.tiktok || socials.youtube) && (
-                <div className="founder-social-row">
-                  {socials.facebook && (
-                    <a href={socials.facebook} target="_blank" rel="noreferrer" aria-label="Facebook" className="founder-social-link">
-                      <FaFacebook />
-                    </a>
-                  )}
-                  {socials.instagram && (
-                    <a href={socials.instagram} target="_blank" rel="noreferrer" aria-label="Instagram" className="founder-social-link">
-                      <FaInstagram />
-                    </a>
-                  )}
-                  {socials.whatsapp && (
-                    <a href={socials.whatsapp} target="_blank" rel="noreferrer" aria-label="WhatsApp" className="founder-social-link">
-                      <FaWhatsapp />
-                    </a>
-                  )}
-                  {socials.tiktok && (
-                    <a href={socials.tiktok} target="_blank" rel="noreferrer" aria-label="TikTok" className="founder-social-link">
-                      <FaTiktok />
-                    </a>
-                  )}
-                  {socials.youtube && (
-                    <a href={socials.youtube} target="_blank" rel="noreferrer" aria-label="YouTube" className="founder-social-link">
-                      <FaYoutube />
-                    </a>
-                  )}
+            <article className="founder-panel">
+              <div className="founder-visual">
+                <div className="founder-photo-card">
+                  <img
+                    src={getImageUrl(about.owner.photo)}
+                    alt={about.owner.name}
+                    className="founder-photo"
+                    loading="lazy"
+                  />
+                  <span className="founder-photo-badge">{ownerBadge}</span>
                 </div>
-              )}
-            </div>
-          </article>
-        </div>
-      </section>
+              </div>
+              <div className="founder-details">
+                <h2 className="founder-name">{about.owner.name}</h2>
+                <p className="founder-role">{about.owner.designation}</p>
+                <div className="founder-badges-row">
+                  <span className="founder-meta-badge since">
+                    Since {about.owner.sinceYear || '2022'}
+                  </span>
+                  <span className="founder-meta-badge experience">
+                    {about.owner.yearsServing || '5+ Years Serving Community'}
+                  </span>
+                </div>
+                {about.owner.quote && (
+                  <blockquote className="founder-quote-card">
+                    <span className="founder-quote-mark" aria-hidden="true">&ldquo;</span>
+                    <p>{about.owner.quote}</p>
+                  </blockquote>
+                )}
+                <ul className="founder-contact-list">
+                  <li>
+                    <a href={phoneHref} className="founder-contact-item">
+                      <span className="founder-contact-icon"><FiPhone /></span>
+                      <span>{phone}</span>
+                    </a>
+                  </li>
+                  <li>
+                    <a href={emailHref} className="founder-contact-item">
+                      <span className="founder-contact-icon"><FiMail /></span>
+                      <span>{email}</span>
+                    </a>
+                  </li>
+                  <li>
+                    <a href={mapsHref} target="_blank" rel="noreferrer" className="founder-contact-item">
+                      <span className="founder-contact-icon"><FiMapPin /></span>
+                      <span>{address}</span>
+                    </a>
+                  </li>
+                </ul>
+                {(socials.facebook || socials.instagram || socials.whatsapp || socials.tiktok || socials.youtube) && (
+                  <div className="founder-social-row">
+                    {socials.facebook && (
+                      <a href={socials.facebook} target="_blank" rel="noreferrer" aria-label="Facebook" className="founder-social-link">
+                        <FaFacebook />
+                      </a>
+                    )}
+                    {socials.instagram && (
+                      <a href={socials.instagram} target="_blank" rel="noreferrer" aria-label="Instagram" className="founder-social-link">
+                        <FaInstagram />
+                      </a>
+                    )}
+                    {socials.whatsapp && (
+                      <a href={socials.whatsapp} target="_blank" rel="noreferrer" aria-label="WhatsApp" className="founder-social-link">
+                        <FaWhatsapp />
+                      </a>
+                    )}
+                    {socials.tiktok && (
+                      <a href={socials.tiktok} target="_blank" rel="noreferrer" aria-label="TikTok" className="founder-social-link">
+                        <FaTiktok />
+                      </a>
+                    )}
+                    {socials.youtube && (
+                      <a href={socials.youtube} target="_blank" rel="noreferrer" aria-label="YouTube" className="founder-social-link">
+                        <FaYoutube />
+                      </a>
+                    )}
+                  </div>
+                )}
+              </div>
+            </article>
+          </div>
+        </section>
       )}
     </div>
   );
