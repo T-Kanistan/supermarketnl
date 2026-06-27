@@ -306,8 +306,34 @@
     grid-template-columns: 1fr;
   }
 
+  .about-admin-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .about-admin-header-actions .about-admin-btn {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
+  .about-admin-search {
+    width: 100%;
+    min-width: 0;
+  }
+
   .about-admin-list-item {
-    grid-template-columns: auto 1fr;
-    grid-template-rows: auto auto;
+    grid-template-columns: auto 1fr auto;
+  }
+
+  .about-admin-meta {
+    grid-column: 2 / -1;
+  }
+
+  .about-admin-modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .about-admin-modal-actions > * {
+    width: 100%;
   }
 }

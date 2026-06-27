@@ -18,11 +18,23 @@
 .admin-layout {
   display: flex;
   height: 100vh;
+  height: 100dvh;
   min-height: 100vh;
+  min-height: 100dvh;
   overflow: hidden;
   background-color: var(--admin-body-bg);
   font-family: 'Inter', sans-serif;
   color: var(--admin-text-main);
+}
+
+/* Prevent background scroll/jitter when the mobile drawer is open */
+body.admin-drawer-open {
+  overflow: hidden;
+}
+
+/* Mobile drawer backdrop */
+.admin-sidebar-backdrop {
+  display: none;
 }
 
 /* Sidebar Styling */
@@ -73,6 +85,8 @@
   padding: 24px 16px;
   overflow-y: auto;
   overflow-anchor: none;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .menu-section-title {
@@ -193,17 +207,20 @@
   min-width: 0;
   min-height: 0;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 
 /* Admin Header */
 .admin-header {
   height: 70px;
+  flex-shrink: 0;
   background-color: var(--admin-header-bg);
   border-bottom: 1px solid var(--admin-border);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   padding: 0 32px;
   position: sticky;
   top: 0;
@@ -214,25 +231,42 @@
   display: flex;
   align-items: center;
   gap: 16px;
+  min-width: 0;
+  flex: 1;
 }
 
 .menu-toggle-btn {
   display: none;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
   font-size: 1.5rem;
   color: var(--admin-text-main);
   cursor: pointer;
+}
+
+.menu-toggle-btn:hover {
+  background: var(--admin-body-bg);
 }
 
 .admin-header-title {
   font-size: 1.25rem;
   font-weight: 700;
   color: var(--admin-text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .admin-header-right {
   display: flex;
   align-items: center;
   gap: 24px;
+  flex-shrink: 0;
 }
 
 .store-live-btn {
@@ -246,6 +280,7 @@
   font-weight: 600;
   color: var(--admin-text-sub);
   background: white;
+  white-space: nowrap;
   transition: all 0.2s;
 }
 
@@ -266,8 +301,10 @@
   min-height: 0;
   padding: 32px;
   overflow-y: auto;
+  overflow-x: hidden;
   overflow-anchor: none;
   overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* --- Common Dashboard Views Typography & Cards --- */
@@ -610,6 +647,7 @@
   box-shadow: var(--shadow-sm);
   overflow-x: auto;
   overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
 }
 
 .admin-table {
@@ -1832,21 +1870,45 @@ body.modal-open {
 @media (max-width: 992px) {
   .admin-sidebar {
     position: fixed;
-    left: -280px;
+    top: 0;
+    left: -300px;
+    width: 280px;
+    max-width: 85vw;
     height: 100vh;
+    height: 100dvh;
+    max-height: none;
   }
-  
+
   .admin-sidebar.open {
     left: 0;
   }
-  
-  .menu-toggle-btn {
+
+  .admin-sidebar-backdrop {
     display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 95;
+    border: none;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(2px);
+    animation: adminBackdropFade 0.2s ease;
   }
-  
+
+  .menu-toggle-btn {
+    display: inline-flex;
+  }
+
   .dashboard-grid-two-col {
     grid-template-columns: 1fr;
   }
+}
+
+@keyframes adminBackdropFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @media (max-width: 768px) {
@@ -1854,13 +1916,46 @@ body.modal-open {
     grid-template-columns: repeat(2, 1fr);
   }
   .admin-content-body {
-    padding: 20px;
+    padding: 20px 16px;
   }
   .admin-header {
-    padding: 0 20px;
+    padding: 0 16px;
+  }
+  .admin-header-title {
+    font-size: 1.05rem;
+  }
+  .admin-header-right {
+    gap: 12px;
+  }
+  .store-live-btn {
+    padding: 8px 12px;
+  }
+  .view-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .view-header .action-btn-primary,
+  .view-header .action-btn-secondary {
+    justify-content: center;
+    width: 100%;
+  }
+  .view-title-wrap h2 {
+    font-size: 1.4rem;
   }
   .settings-tabs-container {
     grid-template-columns: 1fr;
+    padding: 16px;
+  }
+  .settings-tabs-list {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .settings-tab-btn {
+    flex: 1 1 auto;
+    text-align: center;
   }
   .settings-form-content {
     border-left: none;
@@ -1875,7 +1970,7 @@ body.modal-open {
     padding: 12px;
   }
   .admin-modal-container {
-    max-height: calc(100vh - 24px);
+    max-height: calc(100dvh - 24px);
     border-radius: 12px;
   }
   .modal-header,
@@ -1883,6 +1978,32 @@ body.modal-open {
   .modal-footer {
     padding-left: 16px;
     padding-right: 16px;
+  }
+  .modal-footer {
+    flex-direction: column-reverse;
+  }
+  .modal-footer .action-btn-primary,
+  .modal-footer .action-btn-secondary {
+    width: 100%;
+    justify-content: center;
+  }
+  .dashboard-panel {
+    padding: 18px;
+  }
+  .stat-card-admin {
+    padding: 18px;
+    gap: 14px;
+  }
+  .quick-actions-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .admin-pagination {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+  .pagination-btns {
+    justify-content: center;
   }
   .footer-admin-preview-grid {
     grid-template-columns: 1fr 1fr;
@@ -1904,7 +2025,43 @@ body.modal-open {
     flex-direction: column;
     align-items: stretch;
   }
+  .filter-select-admin,
+  .admin-filter-select {
+    width: 100%;
+    min-width: 0;
+  }
   .search-box-admin {
     max-width: none;
+  }
+  .store-live-btn-label {
+    display: none;
+  }
+  .store-live-btn {
+    padding: 9px 11px;
+  }
+  .admin-header-title {
+    font-size: 1rem;
+  }
+  .sidebar-header {
+    padding: 18px 20px;
+  }
+  .view-title-wrap h2 {
+    font-size: 1.25rem;
+  }
+  .quick-actions-grid {
+    grid-template-columns: 1fr;
+  }
+  .admin-table th,
+  .admin-table td {
+    padding: 12px 14px;
+  }
+  .enquiry-stats-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .about-offering-row {
+    flex-wrap: wrap;
+  }
+  .footer-admin-preview-grid {
+    grid-template-columns: 1fr;
   }
 }

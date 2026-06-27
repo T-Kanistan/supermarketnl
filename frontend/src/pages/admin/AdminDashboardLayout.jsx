@@ -61,6 +61,28 @@ export const AdminDashboardLayout = () => {
   const closeMobileMenu = () => setMobileMenuOpen(false);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const DESKTOP_BREAKPOINT = 992;
+    const handleResize = () => {
+      if (window.innerWidth > DESKTOP_BREAKPOINT) {
+        setMobileMenuOpen(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return undefined;
+    document.body.classList.toggle('admin-drawer-open', mobileMenuOpen);
+    return () => document.body.classList.remove('admin-drawer-open');
+  }, [mobileMenuOpen]);
+
+  useEffect(() => {
+    closeMobileMenu();
+  }, [location.pathname]);
+
+  useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (location.pathname.endsWith('/products') && params.get('type') === 'food-corner') {
       navigate(`${dashboardBase}/food-corner`, { replace: true });
@@ -295,8 +317,8 @@ export const AdminDashboardLayout = () => {
           </div>
 
           <div className="admin-header-right">
-            <a href="/" target="_blank" rel="noreferrer" className="store-live-btn">
-              <span>View Storefront</span>
+            <a href="/" target="_blank" rel="noreferrer" className="store-live-btn" title="View Storefront">
+              <span className="store-live-btn-label">View Storefront</span>
               <FaExternalLinkAlt style={{ fontSize: '0.75rem' }} />
             </a>
           </div>

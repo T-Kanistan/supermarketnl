@@ -349,4 +349,34 @@
   .vacancy-form-grid {
     grid-template-columns: 1fr;
   }
+
+  .admin-vacancies-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-vacancies-add-btn {
+    justify-content: center;
+  }
+
+  .vacancy-filter-bar .admin-filter-select,
+  .vacancy-filter-bar .admin-search-input {
+    min-width: 0;
+    flex: 1 1 100%;
+  }
+
+  .vacancy-modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .vacancy-modal-actions > * {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .vacancy-stats-row {
+    grid-template-columns: 1fr;
+  }
 }
