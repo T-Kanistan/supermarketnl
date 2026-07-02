@@ -44,6 +44,21 @@ server {
         try_files $uri $uri/ /index.html;
     }
 
+    # ---- Vacancy share previews: social crawlers need server-rendered Open Graph tags ----
+    # Facebook, LinkedIn, WhatsApp, etc. request /vacancies/<id> and must receive OG HTML
+    # from the backend instead of the generic SPA index.html shell.
+    location ~ ^/vacancies/([^/?#]+)$ {
+        set $vacancy_og 0;
+        if ($http_user_agent ~* "(facebookexternalhit|Facebot|Twitterbot|LinkedInBot|WhatsApp|Slackbot|TelegramBot|Discordbot|Pinterest)") {
+            set $vacancy_og 1;
+        }
+        if ($vacancy_og = 1) {
+            proxy_pass http://127.0.0.1:5000/vacancies/$1;
+            break;
+        }
+        try_files $uri $uri/ /index.html;
+    }
+
     # Optional: long cache for hashed assets
     location /assets/ {
         try_files $uri =404;

@@ -73,5 +73,9 @@ export const getSeoForPath = (pathname) => {
     return page(`${SITE_NAME} Dashboard`, 'Admin dashboard access.', { noindex: true });
   }
 
+  if (/^\/vacancies\/[^/]+$/.test(normalized)) {
+    return null;
+  }
+
   return SEO_BY_PATH[normalized] || null;
 };

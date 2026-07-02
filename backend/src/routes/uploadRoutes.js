@@ -4,6 +4,7 @@ import {
   uploadProductImage,
   productImageUpload,
 } from '../controllers/productController.js';
+import { uploadOfferImage, offerImageUpload } from '../controllers/offerController.js';
 import { uploadAnnouncementBanner } from '../controllers/announcementController.js';
 import { uploadHomeBannerImage } from '../controllers/homeBannerController.js';
 import { uploadBannerImage } from '../controllers/bannerController.js';
@@ -26,6 +27,14 @@ router.post(
   restrictTo('admin', 'manager'),
   productImageUpload.single('image'),
   uploadProductImage
+);
+
+router.post(
+  '/offer-image',
+  protect,
+  restrictTo('admin', 'manager'),
+  offerImageUpload.single('image'),
+  uploadOfferImage
 );
 
 router.post(

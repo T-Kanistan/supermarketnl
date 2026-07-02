@@ -23,6 +23,7 @@ import usePageBanner from '../hooks/usePageBanner';
 import { getBannerOverlayStyle } from '../utils/bannerOverlay';
 import { extractMapEmbedUrl, toEmbeddableMapUrl } from '../utils/mapEmbed';
 import { getImageUrl } from '../services/api';
+import { parseContactPhones, buildPhoneHref } from '../utils/parseContactPhones';
 import './ContactPage.css';
 
 const ContactPage = () => {
@@ -86,6 +87,7 @@ const ContactPage = () => {
     : pageBanner.title || pageBanner.mainHeading || contact.heroTitle;
   const heroSubtitle = pageBanner.description || contact.heroSubtitle;
   const phone = contactData.contactPhone || '';
+  const helpPhones = parseContactPhones(phone);
   const email = contactData.contactEmail || '';
   const address = contactData.address || '';
   const storeName = contactData.storeName || '';
@@ -95,7 +97,7 @@ const ContactPage = () => {
     cmsData?.foodCornerTimings || contactData.foodCornerTimings || '';
   const socials = contactData.socials || {};
 
-  const phoneHref = phone ? `tel:${phone.replace(/[^\d+]/g, '')}` : '#';
+  const phoneHref = phone ? buildPhoneHref(phone) : '#';
   const emailHref = email ? `mailto:${email}` : '#';
   // The embedded map always derives from the admin "Google Maps Embed" field,
   // normalized into a frame-safe URL (Google blocks normal Maps links in iframes).
@@ -443,11 +445,17 @@ const ContactPage = () => {
                   <div className="help-text">
                     <p>{contact.helpBoxText}</p>
                     <span>{contact.helpBoxSubtext}</span>
-                    <strong>
-                      <a href={phoneHref} className="contact-link contact-link-strong">
-                        {phone}
-                      </a>
-                    </strong>
+                    <div className="help-phones">
+                      {(helpPhones.length ? helpPhones : [phone]).filter(Boolean).map((helpPhone) => (
+                        <a
+                          key={helpPhone}
+                          href={buildPhoneHref(helpPhone)}
+                          className="contact-link contact-link-strong help-phone-link"
+                        >
+                          {helpPhone}
+                        </a>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>

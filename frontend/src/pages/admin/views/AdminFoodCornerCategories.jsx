@@ -3,6 +3,7 @@ import { FaPlus, FaEdit, FaTrash, FaUtensils, FaSearch } from 'react-icons/fa';
 import foodCornerCategoryService from '../../../services/foodCornerCategoryService';
 import { useToast } from '../../../context/ToastContext';
 import { useAuth } from '../../../context/AuthContext';
+import { formatCategoryName } from '../../../utils/formatCategoryName';
 
 const slugify = (value) =>
   String(value || '')
@@ -254,7 +255,7 @@ export const AdminFoodCornerCategories = () => {
                     <CategoryIconPreview category={cat} />
                   </td>
                   <td data-label="Category ID" style={{ fontWeight: 500, color: '#64748b' }}>{cat.slug || cat.id}</td>
-                  <td data-label="Category Name" style={{ fontWeight: 600 }}>{cat.categoryName || cat.name}</td>
+                  <td data-label="Category Name" style={{ fontWeight: 600 }}>{formatCategoryName(cat.categoryName || cat.name)}</td>
                   <td data-label="Status">
                     <button
                       type="button"

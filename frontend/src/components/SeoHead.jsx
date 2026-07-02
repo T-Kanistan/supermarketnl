@@ -5,6 +5,7 @@ import {
   BUSINESS,
   DEFAULT_OG_IMAGE,
   SITE_NAME,
+  SITE_OG_NAME,
   SITE_URL,
   buildCanonicalUrl,
 } from '../seo/siteConfig';
@@ -103,7 +104,7 @@ const SeoHead = () => {
     upsertLink('canonical', canonicalUrl);
     upsertLink('alternate', canonicalUrl);
 
-    upsertMeta('property', 'og:site_name', SITE_NAME);
+    upsertMeta('property', 'og:site_name', SITE_OG_NAME);
     upsertMeta('property', 'og:title', seo.title);
     upsertMeta('property', 'og:description', seo.description);
     upsertMeta('property', 'og:image', ogImage);

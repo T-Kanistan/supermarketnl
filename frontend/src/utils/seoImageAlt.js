@@ -1,4 +1,5 @@
 import { SITE_NAME } from '../seo/siteConfig';
+import { formatCategoryName } from './formatCategoryName';
 
 export const buildProductAlt = (productName) =>
   productName
@@ -12,7 +13,7 @@ export const buildFoodAlt = (itemName) =>
 
 export const buildCategoryAlt = (categoryName) =>
   categoryName
-    ? `${categoryName} at ${SITE_NAME}`
+    ? `${formatCategoryName(categoryName)} at ${SITE_NAME}`
     : `Grocery category at ${SITE_NAME}`;
 
 export const buildStoreLogoAlt = () => `${SITE_NAME} logo`;

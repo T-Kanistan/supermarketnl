@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Swiper, SwiperSlide } from 'swiper/react';
-import { Navigation, Autoplay } from 'swiper/modules';
+import { Autoplay } from 'swiper/modules';
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
-import productService from '../services/productService';
+import { formatCategoryName } from '../utils/formatCategoryName';
 import categoryService from '../services/categoryService';
+import productService from '../services/productService';
 import { useEnquiry } from '../context/EnquiryContext';
 import ProductCard from './ProductCard';
 import './ProductCard.css';
@@ -19,27 +20,53 @@ const mapProductType = (value) => {
   return 'grocery';
 };
 
+const isActiveGroceryProduct = (product) =>
+  product?.status === 'active' &&
+  mapProductType(product.productType || product.type) === 'grocery';
+
+const FEATURED_EMPTY_MESSAGE =
+  'No featured products found. Please mark products as Featured in Product Management.';
+
+const getSlidesPerView = (swiper) => {
+  if (!swiper) return 1;
+  const value = swiper.params?.slidesPerView;
+  return typeof value === 'number' ? value : 1;
+};
+
 const FeaturedProducts = () => {
   const [products, setProducts] = useState([]);
   const [categoryMap, setCategoryMap] = useState({});
   const [loading, setLoading] = useState(true);
+  const [canNavigate, setCanNavigate] = useState(false);
+  const [isBeginning, setIsBeginning] = useState(true);
+  const [isEnd, setIsEnd] = useState(false);
+  const swiperRef = useRef(null);
   const { openEnquiry } = useEnquiry();
-  const prevRef = useRef(null);
-  const nextRef = useRef(null);
+
+  const syncNavigationState = useCallback(
+    (swiper) => {
+      if (!swiper) return;
+      const visibleSlides = getSlidesPerView(swiper);
+      setCanNavigate(products.length > visibleSlides);
+      setIsBeginning(swiper.isBeginning);
+      setIsEnd(swiper.isEnd);
+    },
+    [products.length]
+  );
 
   useEffect(() => {
-    const fetchFeaturedProducts = async () => {
+    let mounted = true;
+
+    const fetchFeaturedProducts = async (silent = false) => {
+      if (!silent) setLoading(true);
       try {
         const [productData, categoryData] = await Promise.all([
           productService.getFeaturedProducts(),
           categoryService.getCategories(),
         ]);
 
-        const list = (Array.isArray(productData) ? productData : []).filter(
-          (product) =>
-            product.status === 'active' &&
-            mapProductType(product.productType || product.type) === 'grocery'
-        );
+        const rawList = Array.isArray(productData) ? productData : [];
+        const list = rawList.filter(isActiveGroceryProduct);
 
         const categories = (Array.isArray(categoryData) ? categoryData : []).filter(
           (c) => c.status === 'active'
@@ -50,21 +77,37 @@ const FeaturedProducts = () => {
           return acc;
         }, {});
 
+        if (!mounted) return;
         setCategoryMap(map);
         setProducts(list);
       } catch (err) {
-        console.error('Failed to load featured products', err);
-        setProducts([]);
+        console.error('[FeaturedProducts] Failed to load featured products', err);
+        if (mounted) setProducts([]);
       } finally {
-        setLoading(false);
+        if (mounted && !silent) setLoading(false);
       }
     };
 
     fetchFeaturedProducts();
+
+    const handleRefresh = () => {
+      if (document.visibilityState === 'visible') {
+        fetchFeaturedProducts(true);
+      }
+    };
+
+    window.addEventListener('focus', handleRefresh);
+    document.addEventListener('visibilitychange', handleRefresh);
+
+    return () => {
+      mounted = false;
+      window.removeEventListener('focus', handleRefresh);
+      document.removeEventListener('visibilitychange', handleRefresh);
+    };
   }, []);
 
   const handleEnquiry = (product) => {
-    const categoryName = categoryMap[product.categoryId] || product.categoryId || '';
+    const categoryName = formatCategoryName(categoryMap[product.categoryId] || product.categoryId || '');
     openEnquiry({
       name: product.name || product.productName,
       category: categoryName,
@@ -73,7 +116,20 @@ const FeaturedProducts = () => {
     });
   };
 
-  const canLoop = products.length > 1;
+  const handlePrev = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    swiperRef.current?.slidePrev();
+  };
+
+  const handleNext = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    swiperRef.current?.slideNext();
+  };
+
+  const showPrev = canNavigate && !isBeginning;
+  const showNext = canNavigate && !isEnd;
 
   return (
     <section className="featured-products pt-40 pb-10" id="products">
@@ -90,96 +146,116 @@ const FeaturedProducts = () => {
         </div>
 
         {loading ? (
-          <div className="featured-carousel">
-            <div className="featured-swiper featured-swiper--loading">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="featured-slide-skeleton">
-                  <div className="store-product-skeleton store-product-skeleton--minimal" />
+          <div className="featured-carousel featured-carousel--loading">
+            <div className="featured-carousel-track">
+              <div className="featured-swiper-shell">
+                <div className="featured-swiper featured-swiper--loading">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="featured-slide-skeleton">
+                      <div className="store-product-skeleton store-product-skeleton--minimal" />
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
             </div>
           </div>
         ) : products.length > 0 ? (
           <div className="featured-carousel">
-            <button
-              type="button"
-              ref={prevRef}
-              className="featured-nav-btn featured-nav-prev"
-              aria-label="Previous featured products"
+            <div
+              className={`featured-carousel-track${
+                canNavigate ? ' featured-carousel-track--nav' : ''
+              }`}
             >
-              <FiChevronLeft aria-hidden="true" />
-            </button>
+              <button
+                type="button"
+                className={`featured-nav-btn featured-nav-prev${
+                  showPrev ? '' : ' featured-nav-btn--hidden'
+                }`}
+                aria-label="Previous featured products"
+                aria-hidden={!showPrev}
+                tabIndex={showPrev ? 0 : -1}
+                onClick={handlePrev}
+                disabled={!showPrev}
+              >
+                <FiChevronLeft aria-hidden="true" />
+              </button>
 
-            <Swiper
-              className="featured-swiper"
-              modules={[Navigation, Autoplay]}
-              spaceBetween={20}
-              slidesPerView={1}
-              speed={600}
-              loop={canLoop}
-              loopAdditionalSlides={Math.max(products.length, 4)}
-              watchOverflow
-              grabCursor
-              autoplay={
-                canLoop
-                  ? {
-                      delay: 5000,
-                      disableOnInteraction: false,
-                      pauseOnMouseEnter: true,
-                    }
-                  : false
-              }
-              breakpoints={{
-                768: {
-                  slidesPerView: 2,
-                  spaceBetween: 16,
-                },
-                1024: {
-                  slidesPerView: 3,
-                  spaceBetween: 18,
-                },
-                1440: {
-                  slidesPerView: 4,
-                  spaceBetween: 20,
-                },
-              }}
-              navigation={{
-                prevEl: prevRef.current,
-                nextEl: nextRef.current,
-              }}
-              onBeforeInit={(swiper) => {
-                swiper.params.navigation.prevEl = prevRef.current;
-                swiper.params.navigation.nextEl = nextRef.current;
-              }}
-              onInit={(swiper) => {
-                swiper.params.navigation.prevEl = prevRef.current;
-                swiper.params.navigation.nextEl = nextRef.current;
-                swiper.navigation.init();
-                swiper.navigation.update();
-              }}
-            >
-              {products.map((product) => (
-                <SwiperSlide key={product.id} className="featured-swiper-slide">
-                  <ProductCard
-                    product={product}
-                    onEnquiry={handleEnquiry}
-                    variant="minimal"
-                  />
-                </SwiperSlide>
-              ))}
-            </Swiper>
+              <div className="featured-swiper-shell">
+                <Swiper
+                  className="featured-swiper"
+                  modules={[Autoplay]}
+                  spaceBetween={20}
+                  slidesPerView={1}
+                  slidesPerGroup={1}
+                  speed={400}
+                  loop={false}
+                  watchOverflow
+                  grabCursor
+                  allowTouchMove
+                  centeredSlides={false}
+                  autoplay={
+                    products.length > 4
+                      ? {
+                          delay: 5000,
+                          disableOnInteraction: false,
+                          pauseOnMouseEnter: true,
+                        }
+                      : false
+                  }
+                  breakpoints={{
+                    768: {
+                      slidesPerView: 2,
+                      slidesPerGroup: 1,
+                      spaceBetween: 18,
+                    },
+                    1024: {
+                      slidesPerView: 3,
+                      slidesPerGroup: 1,
+                      spaceBetween: 20,
+                    },
+                    1440: {
+                      slidesPerView: 4,
+                      slidesPerGroup: 1,
+                      spaceBetween: 20,
+                    },
+                  }}
+                  onSwiper={(swiper) => {
+                    swiperRef.current = swiper;
+                    syncNavigationState(swiper);
+                  }}
+                  onSlideChange={syncNavigationState}
+                  onBreakpoint={syncNavigationState}
+                  onResize={syncNavigationState}
+                >
+                  {products.map((product) => (
+                    <SwiperSlide key={product.id} className="featured-swiper-slide">
+                      <ProductCard
+                        product={product}
+                        onEnquiry={handleEnquiry}
+                        variant="minimal"
+                      />
+                    </SwiperSlide>
+                  ))}
+                </Swiper>
+              </div>
 
-            <button
-              type="button"
-              ref={nextRef}
-              className="featured-nav-btn featured-nav-next"
-              aria-label="Next featured products"
-            >
-              <FiChevronRight aria-hidden="true" />
-            </button>
+              <button
+                type="button"
+                className={`featured-nav-btn featured-nav-next${
+                  showNext ? '' : ' featured-nav-btn--hidden'
+                }`}
+                aria-label="Next featured products"
+                aria-hidden={!showNext}
+                tabIndex={showNext ? 0 : -1}
+                onClick={handleNext}
+                disabled={!showNext}
+              >
+                <FiChevronRight aria-hidden="true" />
+              </button>
+            </div>
           </div>
         ) : (
-          <div className="featured-empty">No featured products available.</div>
+          <div className="featured-empty">{FEATURED_EMPTY_MESSAGE}</div>
         )}
       </div>
     </section>

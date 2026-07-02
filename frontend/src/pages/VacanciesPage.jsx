@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   FiCalendar,
   FiMapPin,
@@ -36,6 +36,8 @@ import {
 } from '../constants/vacancyDefaults';
 import usePageBanner from '../hooks/usePageBanner';
 import { getBannerOverlayStyle } from '../utils/bannerOverlay';
+import VacancySeoHead from '../components/VacancySeoHead';
+import { buildVacancyShareUrl } from '../utils/vacancyShareMeta';
 import './VacanciesPage.css';
 
 const JOB_ICONS = {
@@ -78,6 +80,9 @@ const getFilterParams = (filterValue) => {
 
 const VacanciesPage = () => {
   const navigate = useNavigate();
+  const { vacancyId: routeVacancyId } = useParams();
+  const [searchParams] = useSearchParams();
+  const jobQueryId = searchParams.get('job');
   const { addToast } = useToast();
   const [vacancyFilter, setVacancyFilter] = useState('all');
   const [vacancies, setVacancies] = useState([]);
@@ -100,6 +105,15 @@ const VacanciesPage = () => {
     [selectedId, filteredVacancies]
   );
 
+  const vacancyHeroImage = getImageUrl(pageBanner.backgroundImage || pageBanner.image);
+
+  const selectVacancy = (id, { updateUrl = true } = {}) => {
+    setSelectedId(id);
+    if (updateUrl && id) {
+      navigate(`/vacancies/${encodeURIComponent(id)}`, { replace: true });
+    }
+  };
+
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
@@ -116,7 +130,18 @@ const VacanciesPage = () => {
         if (!mounted) return;
         setVacancies(list);
         setCurrentPage(1);
-        setSelectedId(list[0]?.id || null);
+        const urlVacancyId = routeVacancyId || jobQueryId;
+        const matchedVacancy = urlVacancyId
+          ? list.find((job) => job.id === urlVacancyId)
+          : null;
+        if (matchedVacancy) {
+          setSelectedId(matchedVacancy.id);
+        } else {
+          setSelectedId(list[0]?.id || null);
+          if (urlVacancyId && list.length) {
+            navigate('/vacancies', { replace: true });
+          }
+        }
       } catch (error) {
         if (!mounted) return;
         console.error('Failed to load vacancies', error);
@@ -134,7 +159,11 @@ const VacanciesPage = () => {
         })();
         setVacancies(fallback);
         setCurrentPage(1);
-        setSelectedId(fallback[0]?.id || null);
+        const urlVacancyId = routeVacancyId || jobQueryId;
+        const matchedVacancy = urlVacancyId
+          ? fallback.find((job) => job.id === urlVacancyId)
+          : null;
+        setSelectedId(matchedVacancy?.id || fallback[0]?.id || null);
         addToast('Could not load vacancies from server. Showing cached listings.', 'error');
       } finally {
         if (mounted) setLoadingVacancies(false);
@@ -145,20 +174,35 @@ const VacanciesPage = () => {
     return () => {
       mounted = false;
     };
-  }, [vacancyFilter, addToast]);
+  }, [vacancyFilter, addToast, routeVacancyId, jobQueryId, navigate]);
 
   useEffect(() => {
-    if (filteredVacancies.length && !filteredVacancies.some((job) => job.id === selectedId)) {
+    if (!filteredVacancies.length) return;
+    const urlVacancyId = routeVacancyId || jobQueryId;
+    if (urlVacancyId && filteredVacancies.some((job) => job.id === urlVacancyId)) {
+      if (selectedId !== urlVacancyId) {
+        setSelectedId(urlVacancyId);
+      }
+      return;
+    }
+    if (!filteredVacancies.some((job) => job.id === selectedId)) {
       setSelectedId(filteredVacancies[0].id);
     }
-  }, [filteredVacancies, selectedId]);
+  }, [filteredVacancies, selectedId, routeVacancyId, jobQueryId]);
 
-  const shareUrl =
-    typeof window !== 'undefined'
-      ? `${window.location.origin}/vacancies${selectedVacancy ? `?job=${selectedVacancy.id}` : ''}`
-      : '';
+  useEffect(() => {
+    if (jobQueryId && !routeVacancyId && selectedVacancy?.id === jobQueryId) {
+      navigate(`/vacancies/${encodeURIComponent(jobQueryId)}`, { replace: true });
+    }
+  }, [jobQueryId, routeVacancyId, selectedVacancy, navigate]);
+
+  const shareUrl = selectedVacancy ? buildVacancyShareUrl(selectedVacancy.id) : buildVacancyShareUrl();
 
   const handleShareFacebook = () => {
+    if (!selectedVacancy) {
+      addToast('Please select a vacancy to share.', 'error');
+      return;
+    }
     window.open(
       `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`,
       '_blank',
@@ -184,6 +228,7 @@ const VacanciesPage = () => {
 
   return (
     <div className="vacancies-page">
+      <VacancySeoHead vacancy={selectedVacancy} heroImageUrl={vacancyHeroImage} />
       <section className={`careers-hero${bannerLoading ? ' careers-hero--loading' : ''}`}>
         <div
           className="careers-hero-bg"
@@ -344,7 +389,7 @@ const VacanciesPage = () => {
                       className={`careers-view-btn careers-view-btn--${
                         job.department === 'food-corner' ? 'food-corner' : 'supermarket'
                       }`}
-                      onClick={() => setSelectedId(job.id)}
+                      onClick={() => selectVacancy(job.id)}
                     >
                       View Details
                     </button>

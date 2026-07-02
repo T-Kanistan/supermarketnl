@@ -13,6 +13,7 @@ import { PRODUCTS_PAGE_HERO_IMAGE } from '../constants/productsPageDefaults';
 import usePageBanner from '../hooks/usePageBanner';
 import { getBannerOverlayStyle } from '../utils/bannerOverlay';
 import { buildCategoryAlt } from '../utils/seoImageAlt';
+import { formatCategoryName } from '../utils/formatCategoryName';
 import '../components/ProductCard.css';
 import './ProductsPage.css';
 
@@ -124,6 +125,7 @@ const ProductsPage = () => {
     name: 'All Items',
     image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=1600',
   };
+  const activeCategoryLabel = formatCategoryName(activeCategory.name);
 
   const buildProductsUrl = (categoryId) => {
     if (categoryId && categoryId !== 'all') {
@@ -204,7 +206,7 @@ const ProductsPage = () => {
     const categoryObj = categories.find((c) => c.id === product.categoryId);
     openEnquiry({
       name: product.name,
-      category: categoryObj?.name || product.categoryId || '',
+      category: formatCategoryName(categoryObj?.name || product.categoryId || ''),
       sku: product.id,
       id: product.id,
     });
@@ -217,7 +219,7 @@ const ProductsPage = () => {
   const heroBadge = isAllItems ? pageBanner.badgeText || 'OUR STORE' : 'CATEGORY';
   const heroSubtitle = isAllItems
     ? pageBanner.description
-    : `Explore our ${activeCategory.name.toLowerCase()} selection — quality products for your home.`;
+    : `Explore our ${activeCategoryLabel.toLowerCase()} selection — quality products for your home.`;
   const heroOverlayStyle = isAllItems ? getBannerOverlayStyle(pageBanner) : undefined;
 
   return (
@@ -246,7 +248,7 @@ const ProductsPage = () => {
                 </>
               ) : (
                 <>
-                  {activeCategory.name}
+                  {activeCategoryLabel}
                 </>
               )}
             </h1>
@@ -325,7 +327,7 @@ const ProductsPage = () => {
             <>
               <Link to="/products">Products</Link>
               <span className="breadcrumb-separator" aria-hidden="true">&gt;</span>
-              <span>{activeCategory.name}</span>
+              <span>{activeCategoryLabel}</span>
             </>
           )}
         </nav>
@@ -347,7 +349,7 @@ const ProductsPage = () => {
                 >
                   {categories.map((cat) => (
                     <option key={cat.id} value={cat.id}>
-                      {cat.name}
+                      {formatCategoryName(cat.name)}
                     </option>
                   ))}
                 </select>
@@ -360,7 +362,7 @@ const ProductsPage = () => {
                     onClick={() => handleCategoryClick(cat.id)}
                   >
                     <span className="cat-icon">{categoryIcons[cat.id] || categoryIcons.all}</span>
-                    {cat.name}
+                    {formatCategoryName(cat.name)}
                   </button>
                 ))}
               </div>
@@ -424,7 +426,7 @@ const ProductsPage = () => {
                   style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginTop: '15px' }}
                   onClick={() => openEnquiry({
                     name: debouncedSearchTerm || '',
-                    category: activeCategory.name !== 'All Items' ? activeCategory.name : '',
+                    category: activeCategory.name !== 'All Items' ? activeCategoryLabel : '',
                     initialMessage: debouncedSearchTerm
                       ? `I searched for "${debouncedSearchTerm}" on your website but could not find it. Can you help me order it?`
                       : 'I am looking for a product that is not listed on your website. Can you help me?',

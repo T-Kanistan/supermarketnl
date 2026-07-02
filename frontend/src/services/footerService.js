@@ -65,11 +65,6 @@ export const footerService = {
       api.put('/footer/settings', {
         footerDescription: formData.footerDescription,
         footerLogo: formData.logo,
-        facebookUrl: formData.socials?.facebook,
-        instagramUrl: formData.socials?.instagram,
-        whatsappUrl: formData.socials?.whatsapp,
-        tiktokUrl: formData.socials?.tiktok,
-        youtubeUrl: formData.socials?.youtube,
         businessHoursTitle: footer.businessHoursTitle,
         supermarketLabel: footer.supermarketLabel,
         supermarketHours: formData.supermarketTimings,

@@ -1,10 +1,11 @@
-/* Full-width section — edge-to-edge on large screens */
+/* Align with standard homepage content width */
 .featured-products .container {
   width: 100%;
-  max-width: none;
-  margin: 0;
-  padding-left: clamp(16px, 2vw, 28px);
-  padding-right: clamp(16px, 2vw, 28px);
+  max-width: var(--container-max, 1440px);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 20px;
+  padding-right: 20px;
 }
 
 .featured-header {
@@ -74,22 +75,44 @@
 
 /* Carousel */
 .featured-carousel {
-  position: relative;
-  padding: 8px 56px 4px;
+  width: 100%;
+}
+
+.featured-carousel-track {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 0;
+}
+
+.featured-carousel-track--nav {
+  gap: 24px;
+}
+
+.featured-swiper-shell {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
 }
 
 .featured-swiper {
   overflow: hidden;
-  padding: 4px 2px 12px;
+  width: 100%;
+  padding: 8px 0;
+}
+
+.featured-swiper .swiper-wrapper {
+  align-items: stretch;
 }
 
 .featured-swiper-slide {
   height: auto;
-  display: flex;
+  box-sizing: border-box;
 }
 
 .featured-swiper-slide .store-product-card {
   width: 100%;
+  max-width: 100%;
 }
 
 .featured-swiper--loading {
@@ -106,69 +129,51 @@
   width: 100%;
 }
 
-/* Navigation arrows */
+/* Navigation arrows — flex-aligned to card center, outside swiper track */
 .featured-nav-btn {
-  position: absolute;
-  top: 50%;
-  z-index: 10;
+  flex: 0 0 44px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   margin: 0;
   padding: 0;
   border: 1px solid #e8edf3;
   border-radius: 50%;
   background: #ffffff;
   color: var(--dark-blue, #0f172a);
-  font-size: 1.35rem;
+  font-size: 1.25rem;
   cursor: pointer;
-  transform: translateY(-50%);
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease,
+    opacity 0.2s ease;
 }
 
-.featured-nav-btn:hover {
+.featured-nav-btn:hover:not(:disabled) {
   background: var(--primary-green, #22c55e);
   color: #ffffff;
-  transform: translateY(-50%) scale(1.06);
+  transform: scale(1.06);
   box-shadow: 0 12px 28px rgba(34, 197, 94, 0.28);
 }
 
-.featured-nav-btn:active {
-  transform: translateY(-50%) scale(0.98);
+.featured-nav-btn:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
-.featured-nav-btn.swiper-button-disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-.featured-nav-prev {
-  left: 0;
-}
-
-.featured-nav-next {
-  right: 0;
+.featured-nav-btn:disabled,
+.featured-nav-btn--hidden {
+  display: none;
 }
 
 @media (max-width: 1024px) {
   .featured-swiper--loading {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
   }
 
-  .featured-carousel {
-    padding-left: 48px;
-    padding-right: 48px;
-  }
-
-  .featured-nav-btn {
-    width: 44px;
-    height: 44px;
-    font-size: 1.2rem;
+  .featured-carousel-track--nav {
+    gap: 20px;
   }
 }
 
@@ -177,6 +182,22 @@
     align-items: center;
     flex-wrap: wrap;
   }
+
+  .featured-swiper--loading {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .featured-carousel-track--nav {
+    gap: 18px;
+  }
+
+  .featured-nav-btn {
+    flex-basis: 40px;
+    width: 40px;
+    height: 40px;
+    font-size: 1.1rem;
+  }
 }
 
 @media (max-width: 640px) {
@@ -184,14 +205,14 @@
     grid-template-columns: 1fr;
   }
 
-  .featured-carousel {
-    padding-left: 44px;
-    padding-right: 44px;
+  .featured-carousel-track--nav {
+    gap: 16px;
   }
 
   .featured-nav-btn {
-    width: 40px;
-    height: 40px;
-    font-size: 1.1rem;
+    flex-basis: 36px;
+    width: 36px;
+    height: 36px;
+    font-size: 1rem;
   }
 }

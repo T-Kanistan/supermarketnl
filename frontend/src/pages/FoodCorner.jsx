@@ -13,6 +13,7 @@ import { GiCook } from 'react-icons/gi';
 import foodCornerService from '../services/foodCornerService';
 import { getImageUrl } from '../services/api';
 import { buildFoodAlt } from '../utils/seoImageAlt';
+import { formatCategoryName } from '../utils/formatCategoryName';
 import { useEnquiry } from '../context/EnquiryContext';
 import { useCMS } from '../context/CMSContext';
 import usePageBanner from '../hooks/usePageBanner';
@@ -162,7 +163,7 @@ const FoodCorner = () => {
   const handleEnquiry = (item) => {
     openEnquiry({
       name: item.name,
-      category: item.categoryName || item.categoryId,
+      category: formatCategoryName(item.categoryName || item.categoryId),
       sku: item.id,
       id: item.id,
       enquirySource: 'food-corner',
@@ -310,7 +311,7 @@ const FoodCorner = () => {
                 onClick={() => handleCategoryClick(cat.slug || cat.id)}
               >
                 {cat.icon && <span className="fc-tab-icon">{cat.icon}</span>}
-                {cat.categoryName || cat.name}
+                {formatCategoryName(cat.categoryName || cat.name)}
               </button>
             ))}
           </div>

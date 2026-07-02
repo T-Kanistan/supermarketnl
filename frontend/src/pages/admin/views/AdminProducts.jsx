@@ -6,6 +6,7 @@ import foodCornerCategoryService from '../../../services/foodCornerCategoryServi
 import { getImageUrl } from '../../../services/api';
 import { useToast } from '../../../context/ToastContext';
 import { useAuth } from '../../../context/AuthContext';
+import { formatCategoryName } from '../../../utils/formatCategoryName';
 
 export const AdminProducts = () => {
   const { isAdmin, isManager } = useAuth();
@@ -441,12 +442,12 @@ export const AdminProducts = () => {
           c.categoryName === catId ||
           c.name === catId
       );
-      if (fcCat) return fcCat.categoryName || fcCat.name;
+      if (fcCat) return formatCategoryName(fcCat.categoryName || fcCat.name);
     }
 
     const cat = categories.find((c) => c.id === catId);
-    if (cat) return cat.name;
-    return catId || 'General';
+    if (cat) return formatCategoryName(cat.name);
+    return formatCategoryName(catId) || 'General';
   };
 
   const renderStatusBadge = (status) => {
@@ -537,12 +538,12 @@ export const AdminProducts = () => {
           >
             <option value="all">All Categories</option>
             {typeFilter !== 'food-corner' && categories.map(cat => (
-              <option key={cat.id} value={cat.id}>{cat.name}</option>
+              <option key={cat.id} value={cat.id}>{formatCategoryName(cat.name)}</option>
             ))}
             {typeFilter === 'food-corner' && (
               foodCornerCategories.map((cat) => (
                 <option key={cat.id || cat.slug} value={cat.id || cat.slug}>
-                  {cat.categoryName || cat.name}
+                  {formatCategoryName(cat.categoryName || cat.name)}
                 </option>
               ))
             )}
@@ -733,12 +734,12 @@ export const AdminProducts = () => {
                     <select name="categoryId" value={formData.categoryId} onChange={handleChange} required>
                       {formData.productType !== 'food-corner' ? (
                         categories.map((cat) => (
-                          <option key={cat.id || cat.categoryId} value={cat.categoryId || cat.id}>{cat.name || cat.categoryName}</option>
+                          <option key={cat.id || cat.categoryId} value={cat.categoryId || cat.id}>{formatCategoryName(cat.name || cat.categoryName)}</option>
                         ))
                       ) : (
                         foodCornerCategories.map((cat) => (
                           <option key={cat.id || cat.slug} value={cat.categoryId || cat.id || cat.slug}>
-                            {cat.categoryName || cat.name}
+                            {formatCategoryName(cat.categoryName || cat.name)}
                           </option>
                         ))
                       )}
@@ -938,13 +939,13 @@ export const AdminProducts = () => {
                     {adjustFormData.productType !== 'food-corner' ? (
                       categories.map((cat) => (
                         <option key={cat.id || cat.categoryId} value={cat.categoryId || cat.id}>
-                          {cat.name || cat.categoryName}
+                          {formatCategoryName(cat.name || cat.categoryName)}
                         </option>
                       ))
                     ) : (
                       foodCornerCategories.map((cat) => (
                         <option key={cat.id || cat.slug} value={cat.categoryId || cat.id || cat.slug}>
-                          {cat.categoryName || cat.name}
+                          {formatCategoryName(cat.categoryName || cat.name)}
                         </option>
                       ))
                     )}

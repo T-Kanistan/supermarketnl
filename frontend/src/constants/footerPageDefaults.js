@@ -53,6 +53,7 @@ export const mergeFooterPage = (footerPage) => {
           label: link.label || '',
           path: link.path || '/',
           enabled: link.enabled !== false,
+          order: link.order ?? i + 1,
         }))
       : base.categoryLinks,
     legalLinks: Array.isArray(footerPage.legalLinks) && footerPage.legalLinks.length

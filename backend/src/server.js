@@ -4,6 +4,8 @@ import connectMongo, { disconnectMongo } from './config/mongo.js';
 import { migrateProductStatus } from './migrations/migrateProductStatus.js';
 import { migrateShowOnHomepage } from './migrations/migrateShowOnHomepage.js';
 import { seedPageBanners } from './migrations/migratePageBanners.js';
+import { migrateFestivalToSeasonalOffers } from './migrations/migrateFestivalToSeasonalOffers.js';
+import { seedBuy1Get1DealsCategory } from './migrations/seedBuy1Get1DealsCategory.js';
 import { verifySmtpConnection } from './services/emailService.js';
 import app from './app.js';
 import { startAnnouncementExpiryJob } from './jobs/announcementExpiryJob.js';
@@ -46,6 +48,8 @@ const startServer = async () => {
     await migrateProductStatus();
     await migrateShowOnHomepage();
     await seedPageBanners();
+    await migrateFestivalToSeasonalOffers();
+    await seedBuy1Get1DealsCategory();
     startAnnouncementExpiryJob();
     await verifySmtpConnection();
     console.log('[Server] Local server storage configured — uploads stored locally in backend/src/uploads.');

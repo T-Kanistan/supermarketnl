@@ -16,6 +16,7 @@ import settingsRoutes from './routes/settingsRoutes.js';
 import aboutRoutes from './routes/aboutRoutes.js';
 import aboutUsRoutes from './routes/aboutUsRoutes.js';
 import productRoutes from './routes/productRoutes.js';
+import offerRoutes from './routes/offerRoutes.js';
 import foodCornerRoutes from './routes/foodCornerRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
 import footerRoutes from './routes/footerRoutes.js';
@@ -41,6 +42,7 @@ import jobEnquiryRoutes from './routes/jobEnquiryRoutes.js';
 import adminJobEnquiryRoutes from './routes/adminJobEnquiryRoutes.js';
 import managerJobEnquiryRoutes from './routes/managerJobEnquiryRoutes.js';
 import careersRoutes from './routes/careersRoutes.js';
+import vacancyShareRoutes from './routes/vacancyShareRoutes.js';
 import { errorHandler } from './middlewares/errorMiddleware.js';
 import { isMongoConnected } from './config/mongo.js';
 import { UPLOAD_ROOT } from './config/paths.js';
@@ -101,6 +103,10 @@ app.use('/api/managers', managerRoutes);
 app.use('/api/manager', managerDashboardRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/storefront', storefrontRoutes);
+// Offers module (registered before the catch-all `/api` quick-action router so the
+// public `GET /api/offers` list endpoint is not shadowed by the legacy manager
+// quick-action `/offers` summary, which remains available at `/api/manager/offers`).
+app.use('/api/offers', offerRoutes);
 app.use('/api', quickActionRoutes);
 app.use('/api/cms', cmsRoutes);
 app.use('/api/banners', bannerRoutes);
@@ -128,6 +134,8 @@ app.use('/api/admin/applications', adminApplicationRoutes);
 app.use('/api/admin/dashboard', adminDashboardRoutes);
 app.use('/api/manager/job-applications', managerJobApplicationRoutes);
 app.use('/api/vacancies', vacancyRoutes);
+// Open Graph HTML for social crawlers (proxied from nginx for /vacancies/:id)
+app.use('/vacancies', vacancyShareRoutes);
 app.use('/api/careers', careersRoutes);
 app.use('/api/admin/vacancies', adminVacancyRoutes);
 app.use('/api/job-enquiries', jobEnquiryRoutes);

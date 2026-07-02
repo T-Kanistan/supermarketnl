@@ -229,6 +229,11 @@
   padding: 26px 0;
 }
 
+.timing-content {
+  flex: 1;
+  min-width: 0;
+}
+
 .timing-icon-wrap {
   width: 62px;
   height: 62px;
@@ -256,7 +261,37 @@
   letter-spacing: 0.6px;
   color: #64748b;
   font-weight: 600;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
+}
+
+.timing-schedules {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.timing-schedule {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.timing-days {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #334155;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.timing-hours {
+  display: block;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.35;
+  white-space: nowrap;
 }
 
 .timing-value {
@@ -313,6 +348,13 @@
     min-width: unset;
     padding: 22px 36px 12px;
   }
+  .timing-item {
+    gap: 18px;
+    padding: 22px 0;
+  }
+  .timing-hours {
+    font-size: 1rem;
+  }
   .btn-large {
     padding: 12px 18px;
     font-size: 0.82rem;
@@ -358,5 +400,23 @@
     min-width: unset;
     margin-top: 10px;
     padding: 20px 18px 10px;
+  }
+  .timing-item {
+    gap: 14px;
+    padding: 18px 0;
+  }
+  .timing-icon-wrap {
+    width: 54px;
+    height: 54px;
+    font-size: 1.15rem;
+  }
+  .timing-days {
+    font-size: 0.88rem;
+  }
+  .timing-hours {
+    font-size: 0.95rem;
+  }
+  .timing-schedules {
+    gap: 8px;
   }
 }

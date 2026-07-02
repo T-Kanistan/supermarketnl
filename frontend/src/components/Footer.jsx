@@ -7,6 +7,7 @@ import categoryService from '../services/categoryService';
 import { getImageUrl } from '../services/api';
 import { buildStoreLogoAlt } from '../utils/seoImageAlt';
 import { mergeFooterPage } from '../constants/footerPageDefaults';
+import { limitFooterCategoryLinks } from '../utils/footerCategories';
 import './Footer.css';
 
 const Footer = () => {
@@ -64,13 +65,17 @@ const Footer = () => {
   const mapsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
 
   const quickLinks = footer.quickLinks.filter((link) => link.enabled && link.label);
-  const cmsCategoryLinks = footer.categoryLinks.filter((link) => link.enabled && link.label);
+  const cmsCategoryLinks = limitFooterCategoryLinks(
+    footer.categoryLinks.filter((link) => link.enabled && link.label)
+  );
   const footerCategoryLinks = catalogCategories.length
-    ? catalogCategories.map((cat) => ({
-        id: cat.id,
-        label: cat.name,
-        path: `/products?category=${encodeURIComponent(cat.id)}`,
-      }))
+    ? limitFooterCategoryLinks(
+        catalogCategories.map((cat) => ({
+          id: cat.id,
+          label: cat.name,
+          path: `/products?category=${encodeURIComponent(cat.id)}`,
+        }))
+      )
     : cmsCategoryLinks;
   const legalLinks = footer.legalLinks.filter((link) => link.enabled && link.label);
   const copyrightName = footer.copyrightText || cmsData.storeName || 'Wins Wereld Winkel';
@@ -179,7 +184,16 @@ const Footer = () => {
           <p className="footer-copyright">
             <span>&copy; {new Date().getFullYear()} {copyrightName}. All Rights Reserved.</span>
             <span className="footer-developed-by">
-              Developed By <span className="footer-developed-name">AppZmakers</span>
+              <span className="footer-developed-label">Developed By</span>
+              {' '}
+              <a
+                className="footer-developed-name"
+                href="https://appzmake.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                AppZ Makers
+              </a>
             </span>
           </p>
         </div>

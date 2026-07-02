@@ -1,67 +1,18 @@
-import api, { request } from './api';
-import { localDb } from './localDb';
+import api, { apiRequest } from './api';
 
 export const categoryService = {
   getCategories: async (params = {}) => {
     const endpoint = params.admin ? '/categories/all' : '/categories';
-
-    return request(
-      async () => {
-        const response = await api.get(endpoint);
-        return response.data.data ?? response.data;
-      },
-      () => localDb.getCategories()
-    );
+    return apiRequest(() => api.get(endpoint));
   },
 
-  createCategory: async (categoryData) => {
-    return request(
-      async () => {
-        const response = await api.post('/categories', categoryData);
-        return response.data.data ?? response.data;
-      },
-      () => {
-        const categories = localDb.getCategories();
-        const newCat = {
-          id: categoryData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-          ...categoryData,
-        };
-        categories.push(newCat);
-        localDb.saveCategories(categories);
-        return newCat;
-      }
-    );
-  },
+  createCategory: async (categoryData) =>
+    apiRequest(() => api.post('/categories', categoryData)),
 
-  updateCategory: async (id, categoryData) => {
-    return request(
-      async () => {
-        const response = await api.put(`/categories/${id}`, categoryData);
-        return response.data.data ?? response.data;
-      },
-      () => {
-        const categories = localDb.getCategories();
-        const idx = categories.findIndex((c) => c.id === id);
-        if (idx === -1) throw new Error('Category not found');
-        
-        categories[idx] = { ...categories[idx], ...categoryData };
-        localDb.saveCategories(categories);
-        return categories[idx];
-      }
-    );
-  },
+  updateCategory: async (id, categoryData) =>
+    apiRequest(() => api.put(`/categories/${id}`, categoryData)),
 
-  deleteCategory: async (id) => {
-    return request(
-      () => api.delete(`/categories/${id}`),
-      () => {
-        const categories = localDb.getCategories();
-        const filtered = categories.filter((c) => c.id !== id);
-        localDb.saveCategories(filtered);
-        return { success: true };
-      }
-    );
-  },
+  deleteCategory: async (id) => apiRequest(() => api.delete(`/categories/${id}`)),
 };
 
 export default categoryService;

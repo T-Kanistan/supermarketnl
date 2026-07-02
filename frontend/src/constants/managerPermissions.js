@@ -13,6 +13,8 @@ export const MANAGER_ALLOWED_DASHBOARD_ROUTES = [
   'products',
   'food-corner',
   'food-corner-items',
+  'offers',
+  'offers-manager',
   'announcements',
   'messages',
   'vacancies',
@@ -22,7 +24,6 @@ export const MANAGER_ALLOWED_DASHBOARD_ROUTES = [
   'faqs',
   'testimonials',
   'profile',
-  'change-password',
 ];
 
 export const normalizeRole = (role) => {

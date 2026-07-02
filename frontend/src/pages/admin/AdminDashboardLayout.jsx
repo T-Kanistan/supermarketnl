@@ -4,7 +4,7 @@ import {
   FaChartBar, FaGlobe, FaImages, FaTags, FaBoxOpen, FaQuestionCircle,
   FaCommentDots, FaBullhorn, FaEnvelopeOpenText, FaUsers, FaUser,
   FaSignOutAlt, FaBars, FaTimes, FaExternalLinkAlt, FaHome, FaUtensils,
-  FaKey, FaBriefcase, FaFileContract,
+  FaBriefcase, FaFileContract,
 } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
 import AccessDenied from '../../components/AccessDenied';
@@ -105,6 +105,7 @@ export const AdminDashboardLayout = () => {
     if (path.endsWith('/food-corner')) return 'Food Corner';
     if (path.includes('/categories')) return 'Catalog Categories';
     if (path.includes('/products')) return 'Catalog Products';
+    if (path.includes('/offers')) return 'Offers Management';
     if (path.includes('/faqs')) return 'FAQs Board';
     if (path.includes('/testimonials')) return 'Testimonials Board';
     if (path.includes('/announcements')) return 'Offers Management';
@@ -150,6 +151,16 @@ export const AdminDashboardLayout = () => {
       <NavLink to={dashboardPath('/products')} className={() => sidebarClass('/products')} onClick={closeMobileMenu}>
         <FaBoxOpen className="sidebar-link-icon" />
         <span>Products</span>
+      </NavLink>
+
+      <div className="menu-section-title">Offers</div>
+      <NavLink to={dashboardPath('/offers')} className={() => sidebarClass('/offers')} onClick={closeMobileMenu}>
+        <FaTags className="sidebar-link-icon" />
+        <span>Offers Management</span>
+      </NavLink>
+      <NavLink to={dashboardPath('/offers-manager')} className={() => sidebarClass('/offers-manager')} onClick={closeMobileMenu}>
+        <FaBullhorn className="sidebar-link-icon" />
+        <span>Offers Studio (UI)</span>
       </NavLink>
 
       <div className="menu-section-title">Food Corner</div>
@@ -213,9 +224,17 @@ export const AdminDashboardLayout = () => {
       </NavLink>
 
       <div className="menu-section-title">Offers</div>
+      <NavLink to={dashboardPath('/offers')} className={() => sidebarClass('/offers')} onClick={closeMobileMenu}>
+        <FaTags className="sidebar-link-icon" />
+        <span>Offers Management</span>
+      </NavLink>
+      <NavLink to={dashboardPath('/offers-manager')} className={() => sidebarClass('/offers-manager')} onClick={closeMobileMenu}>
+        <FaBullhorn className="sidebar-link-icon" />
+        <span>Offers Studio (UI)</span>
+      </NavLink>
       <NavLink to={dashboardPath('/announcements')} className={() => sidebarClass('/announcements')} onClick={closeMobileMenu}>
         <FaBullhorn className="sidebar-link-icon" />
-        <span>Offers Management</span>
+        <span>Announcements</span>
       </NavLink>
 
       <div className="menu-section-title">Messages</div>
@@ -280,10 +299,6 @@ export const AdminDashboardLayout = () => {
           <NavLink to={dashboardPath('/profile')} className={() => sidebarClass('/profile')} onClick={closeMobileMenu}>
             <FaUser className="sidebar-link-icon" />
             <span>My Profile</span>
-          </NavLink>
-          <NavLink to={dashboardPath('/change-password')} className={() => sidebarClass('/change-password')} onClick={closeMobileMenu}>
-            <FaKey className="sidebar-link-icon" />
-            <span>Change Password</span>
           </NavLink>
           <button type="button" className="sidebar-link" onClick={handleLogout} style={{ border: 'none', background: 'transparent', width: '100%', cursor: 'pointer', textAlign: 'left' }}>
             <FaSignOutAlt className="sidebar-link-icon" />

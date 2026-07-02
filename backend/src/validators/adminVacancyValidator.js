@@ -13,6 +13,10 @@ export const adminVacancyListQueryRules = [
 
 export const vacancyIdRules = [param('id').isMongoId().withMessage('Invalid vacancy id')];
 
+export const publicVacancyIdRules = [
+  param('id').trim().notEmpty().withMessage('Vacancy id is required').isLength({ max: 100 }),
+];
+
 const titleRule = body().custom((_, { req }) => {
   const title = req.body.title || req.body.jobTitle;
   if (!title || !String(title).trim()) {

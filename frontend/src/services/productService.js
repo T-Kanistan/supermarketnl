@@ -1,5 +1,4 @@
-import api, { request } from './api';
-import { localDb } from './localDb';
+import api, { apiRequest } from './api';
 
 const mapProductType = (value) => {
   const raw = value == null ? '' : String(value).trim().toLowerCase();
@@ -104,74 +103,17 @@ export const productService = {
   getProducts: async (params = {}) => {
     const { admin, ...query } = params;
     const endpoint = admin ? '/products/all' : '/products';
-
-    return request(
-      async () => {
-        const response = await api.get(endpoint, { params: query });
-        return response.data.data ?? response.data;
-      },
-      () => {
-        let products = localDb.getProducts();
-        if (params.type || params.productType) {
-          const type = mapProductType(params.productType || params.type);
-          products = products.filter((p) => mapProductType(p.productType || p.type) === type);
-        }
-        if (params.categoryId && params.categoryId !== 'all') {
-          products = products.filter((p) => p.categoryId === params.categoryId);
-        }
-        if (params.search) {
-          const q = params.search.toLowerCase();
-          products = products.filter((p) => (p.productName || p.name).toLowerCase().includes(q));
-        }
-        if (!admin) {
-          products = products.filter((p) => p.status !== 'inactive' && p.status !== 'deleted');
-        }
-        return products;
-      }
-    );
+    return apiRequest(() => api.get(endpoint, { params: query }));
   },
 
-  getFeaturedProducts: async () => {
-    return request(
-      async () => {
-        const response = await api.get('/products/featured');
-        const products = response.data.data ?? response.data;
-        console.log('Featured Products:', products);
-        return products;
-      },
-      () =>
-        localDb
-          .getProducts()
-          .filter(
-            (p) =>
-              (p.showOnHomepage || p.isFeatured || p.featuredProduct) &&
-              p.status !== 'inactive' &&
-              p.status !== 'deleted'
-          )
-    );
-  },
+  getFeaturedProducts: async () => apiRequest(() => api.get('/products/featured')),
 
-  getProductCategories: async (productType) => {
-    return request(
-      async () => {
-        const response = await api.get('/products/categories', {
-          params: { productType: mapProductType(productType) },
-        });
-        return response.data.data ?? response.data;
-      },
-      () => []
-    );
-  },
+  getProductCategories: async (productType) =>
+    apiRequest(() =>
+      api.get('/products/categories', { params: { productType: mapProductType(productType) } })
+    ),
 
-  getProductById: async (id) => {
-    return request(
-      async () => {
-        const response = await api.get(`/products/${id}`);
-        return response.data.data ?? response.data;
-      },
-      () => localDb.getProducts().find((p) => p.id === id)
-    );
-  },
+  getProductById: async (id) => apiRequest(() => api.get(`/products/${id}`)),
 
   uploadProductImage: async (file) => {
     const formData = new FormData();
@@ -184,99 +126,38 @@ export const productService = {
 
   createProduct: async (productData) => {
     const payload = toApiPayload(productData);
-    return request(
-      async () => {
-        try {
-          const response = await api.post('/products', payload);
-          return response.data.data ?? response.data;
-        } catch (error) {
-          throw new Error(extractApiError(error, 'Failed to create product'));
-        }
-      },
-      () => {
-        const products = localDb.getProducts();
-        const newProduct = {
-          id: Date.now().toString(),
-          status: 'active',
-          featuredProduct: false,
-          ...payload,
-        };
-        products.push(newProduct);
-        localDb.saveProducts(products);
-        return newProduct;
-      }
-    );
+    try {
+      return await apiRequest(() => api.post('/products', payload));
+    } catch (error) {
+      throw new Error(extractApiError(error, 'Failed to create product'));
+    }
   },
 
   updateProduct: async (id, productData) => {
     const payload = toUpdatePayload(productData);
-
-    return request(
-      async () => {
-        try {
-          const response = await api.put(`/products/${id}`, payload);
-          return response.data.data ?? response.data;
-        } catch (error) {
-          throw new Error(extractApiError(error, 'Failed to update product'));
-        }
-      },
-      () => {
-        const products = localDb.getProducts();
-        const idx = products.findIndex((p) => p.id === id);
-        if (idx === -1) throw new Error('Product not found');
-        products[idx] = { ...products[idx], ...payload };
-        localDb.saveProducts(products);
-        return products[idx];
-      }
-    );
+    try {
+      return await apiRequest(() => api.put(`/products/${id}`, payload));
+    } catch (error) {
+      throw new Error(extractApiError(error, 'Failed to update product'));
+    }
   },
 
   updateProductStatus: async (id, status) => {
-    return request(
-      async () => {
-        try {
-          const response = await api.patch(`/products/${id}/status`, { status });
-          return response.data.data ?? response.data;
-        } catch (error) {
-          throw new Error(extractApiError(error, 'Failed to update product status'));
-        }
-      },
-      () => {
-        const products = localDb.getProducts();
-        const idx = products.findIndex((p) => p.id === id);
-        if (idx === -1) throw new Error('Product not found');
-        products[idx] = { ...products[idx], status };
-        localDb.saveProducts(products);
-        return products[idx];
-      }
-    );
+    try {
+      return await apiRequest(() => api.patch(`/products/${id}/status`, { status }));
+    } catch (error) {
+      throw new Error(extractApiError(error, 'Failed to update product status'));
+    }
   },
 
-  deleteProduct: async (id) => {
-    return request(
-      () => api.delete(`/products/${id}`),
-      () => {
-        const products = localDb.getProducts();
-        localDb.saveProducts(products.filter((p) => p.id !== id));
-        return { success: true };
-      }
-    );
-  },
+  deleteProduct: async (id) => apiRequest(() => api.delete(`/products/${id}`)),
 
   batchAdjustPrices: async (adjustmentData) => {
-    return request(
-      async () => {
-        try {
-          const response = await api.post('/products/batch-adjust-prices', adjustmentData);
-          return response.data;
-        } catch (error) {
-          throw new Error(extractApiError(error, 'Failed to adjust prices'));
-        }
-      },
-      () => {
-        return { success: true, message: 'Offline mode: simulated price adjustment complete.' };
-      }
-    );
+    try {
+      return await apiRequest(() => api.post('/products/batch-adjust-prices', adjustmentData));
+    } catch (error) {
+      throw new Error(extractApiError(error, 'Failed to adjust prices'));
+    }
   },
 
   getFoodCornerItems: async (params = {}) => {

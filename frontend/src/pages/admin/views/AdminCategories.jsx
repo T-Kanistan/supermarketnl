@@ -3,6 +3,7 @@ import { FaPlus, FaEdit, FaTrash, FaTags } from 'react-icons/fa';
 import categoryService from '../../../services/categoryService';
 import { getImageUrl } from '../../../services/api';
 import { useToast } from '../../../context/ToastContext';
+import { formatCategoryName } from '../../../utils/formatCategoryName';
 
 export const AdminCategories = () => {
   const [categories, setCategories] = useState([]);
@@ -159,7 +160,7 @@ export const AdminCategories = () => {
                     />
                   </td>
                   <td data-label="Category ID" style={{ fontWeight: 500, color: '#64748b' }}>{cat.id}</td>
-                  <td data-label="Category Name" style={{ fontWeight: 600 }}>{cat.name}</td>
+                  <td data-label="Category Name" style={{ fontWeight: 600 }}>{formatCategoryName(cat.name)}</td>
                   <td data-label="Status">
                     <span className={`status-badge-admin ${cat.status}`}>
                       {cat.status}

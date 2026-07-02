@@ -7,7 +7,8 @@ import { emptyContactPageForm, mergeContactPage } from '../../../constants/conta
 import { emptyFooterPageForm, mergeFooterPage } from '../../../constants/footerPageDefaults';
 import contactSettingsService from '../../../services/contactSettingsService';
 import siteSettingsService from '../../../services/siteSettingsService';
-import { FaUpload, FaPlus, FaTrash, FaFacebook, FaInstagram, FaWhatsapp, FaTiktok, FaYoutube } from 'react-icons/fa';
+import footerService from '../../../services/footerService';
+import { FaUpload, FaPlus, FaTrash } from 'react-icons/fa';
 import { FiMapPin, FiPhone, FiMail, FiClock } from 'react-icons/fi';
 
 const buildFormState = (cmsData) => ({
@@ -21,13 +22,6 @@ const buildFormState = (cmsData) => ({
   foodCornerTimings: cmsData?.foodCornerTimings || '',
   contactPage: mergeContactPage(cmsData?.contactPage),
   footerPage: mergeFooterPage(cmsData?.footerPage),
-  socials: {
-    facebook: cmsData?.socials?.facebook || '',
-    instagram: cmsData?.socials?.instagram || '',
-    whatsapp: cmsData?.socials?.whatsapp || '',
-    tiktok: cmsData?.socials?.tiktok || '',
-    youtube: cmsData?.socials?.youtube || '',
-  },
 });
 
 const FooterLinkRow = ({ link, onChange, onRemove, showEnabled = true }) => (
@@ -80,13 +74,6 @@ const FooterPreview = ({ formData }) => {
           <div className="footer-admin-preview-col brand">
             <img src={getImageUrl(formData.logo) || '/logo.png'} alt="Logo" className="footer-admin-preview-logo" />
             <p>{formData.footerDescription || 'Footer description...'}</p>
-            <div className="footer-admin-preview-socials">
-              {formData.socials.facebook && <span className="fb"><FaFacebook /></span>}
-              {formData.socials.instagram && <span className="ig"><FaInstagram /></span>}
-              {formData.socials.whatsapp && <span className="wa"><FaWhatsapp /></span>}
-              {formData.socials.tiktok && <span className="tt"><FaTiktok /></span>}
-              {formData.socials.youtube && <span className="yt"><FaYoutube /></span>}
-            </div>
           </div>
           <div className="footer-admin-preview-col">
             <h5>{footer.quickLinksTitle}</h5>
@@ -133,7 +120,7 @@ export const AdminSiteSettings = () => {
     footerPage: emptyFooterPageForm(),
   });
 
-  const allowedTabs = ['general', 'contact', 'footer', 'socials'];
+  const allowedTabs = ['general', 'contact', 'footer'];
 
   useEffect(() => {
     const tab = location.state?.settingsTab;
@@ -184,6 +171,18 @@ export const AdminSiteSettings = () => {
         console.warn('Contact settings API unavailable, using CMS fallback.', err);
       }
 
+      try {
+        const footerData = await footerService.getFooterSettings();
+        if (footerData && isMounted) {
+          next = {
+            ...next,
+            footerDescription: footerData.footerDescription || next.footerDescription,
+          };
+        }
+      } catch (err) {
+        console.warn('Footer settings API unavailable, using CMS fallback.', err);
+      }
+
       if (isMounted) {
         setFormData(next);
       }
@@ -195,17 +194,6 @@ export const AdminSiteSettings = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSocialChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      socials: {
-        ...prev.socials,
-        [name]: value
-      }
-    }));
   };
 
   const handleLogoUpload = (e) => {
@@ -291,7 +279,7 @@ export const AdminSiteSettings = () => {
         await updateFooterData(formData);
         await refreshCMS();
         addToast('Footer settings updated successfully!', 'success');
-      } else {
+      } else if (activeTab === 'general') {
         await siteSettingsService.updateSiteSettings(formData);
         await refreshCMS();
         const refreshed = await siteSettingsService.getSiteSettings();
@@ -343,12 +331,6 @@ export const AdminSiteSettings = () => {
           onClick={() => setActiveTab('footer')}
         >
           Footer Details
-        </button>
-        <button 
-          className={`settings-tab-btn ${activeTab === 'socials' ? 'active' : ''}`}
-          onClick={() => setActiveTab('socials')}
-        >
-          Social Media Links
         </button>
       </div>
 
@@ -449,9 +431,10 @@ export const AdminSiteSettings = () => {
                       name="contactPhone"
                       value={formData.contactPhone}
                       onChange={handleChange}
-                      placeholder="+31659046526"
+                      placeholder="+31659046526, +310644234955"
                       required
                     />
+                    <p className="admin-field-hint">Separate multiple numbers with commas or new lines for the help box.</p>
                   </div>
                   <div>
                     <label>Email Address</label>
@@ -753,30 +736,6 @@ export const AdminSiteSettings = () => {
                     required
                   />
                 </div>
-                <div className="admin-form-group row-split">
-                  <div>
-                    <label>Facebook URL</label>
-                    <input type="text" name="facebook" value={formData.socials.facebook} onChange={handleSocialChange} placeholder="https://facebook.com/..." />
-                  </div>
-                  <div>
-                    <label>Instagram URL</label>
-                    <input type="text" name="instagram" value={formData.socials.instagram} onChange={handleSocialChange} placeholder="https://instagram.com/..." />
-                  </div>
-                </div>
-                <div className="admin-form-group row-split">
-                  <div>
-                    <label>WhatsApp Link</label>
-                    <input type="text" name="whatsapp" value={formData.socials.whatsapp} onChange={handleSocialChange} placeholder="https://wa.me/31659046526" />
-                  </div>
-                  <div>
-                    <label>TikTok URL</label>
-                    <input type="text" name="tiktok" value={formData.socials.tiktok} onChange={handleSocialChange} placeholder="https://tiktok.com/@..." />
-                  </div>
-                </div>
-                <div className="admin-form-group">
-                  <label>YouTube Channel URL</label>
-                  <input type="text" name="youtube" value={formData.socials.youtube} onChange={handleSocialChange} placeholder="https://youtube.com/c/..." />
-                </div>
               </div>
 
               <div className="settings-subsection">
@@ -818,6 +777,7 @@ export const AdminSiteSettings = () => {
                     value={formData.footerPage.categoriesTitle}
                     onChange={(e) => updateFooterPage('categoriesTitle', e.target.value)}
                   />
+                  <p className="admin-field-hint">Only the first 7 visible categories (by order) appear in the website footer.</p>
                 </div>
                 {formData.footerPage.categoryLinks.map((link, index) => (
                   <FooterLinkRow
@@ -947,66 +907,6 @@ export const AdminSiteSettings = () => {
                     onRemove={() => removeFooterLink('legalLinks', index)}
                   />
                 ))}
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'socials' && (
-            <div>
-              <h3>Social Media Links</h3>
-              <div className="admin-form-group row-split">
-                <div>
-                  <label>Facebook URL</label>
-                  <input 
-                    type="text" 
-                    name="facebook" 
-                    value={formData.socials.facebook} 
-                    onChange={handleSocialChange} 
-                    placeholder="https://facebook.com/..." 
-                  />
-                </div>
-                <div>
-                  <label>Instagram URL</label>
-                  <input 
-                    type="text" 
-                    name="instagram" 
-                    value={formData.socials.instagram} 
-                    onChange={handleSocialChange} 
-                    placeholder="https://instagram.com/..." 
-                  />
-                </div>
-              </div>
-              <div className="admin-form-group row-split">
-                <div>
-                  <label>WhatsApp Link</label>
-                  <input 
-                    type="text" 
-                    name="whatsapp" 
-                    value={formData.socials.whatsapp} 
-                    onChange={handleSocialChange} 
-                    placeholder="https://wa.me/31659046526" 
-                  />
-                </div>
-                <div>
-                  <label>TikTok URL</label>
-                  <input 
-                    type="text" 
-                    name="tiktok" 
-                    value={formData.socials.tiktok} 
-                    onChange={handleSocialChange} 
-                    placeholder="https://tiktok.com/@..." 
-                  />
-                </div>
-              </div>
-              <div className="admin-form-group">
-                <label>YouTube Channel URL</label>
-                <input 
-                  type="text" 
-                  name="youtube" 
-                  value={formData.socials.youtube} 
-                  onChange={handleSocialChange} 
-                  placeholder="https://youtube.com/c/..." 
-                />
               </div>
             </div>
           )}

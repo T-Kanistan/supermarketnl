@@ -6,6 +6,7 @@ import { getBannerOverlayStyle } from '../utils/bannerOverlay';
 import { useCMS } from '../context/CMSContext';
 import bannerService from '../services/bannerService';
 import { getImageUrl } from '../services/api';
+import BusinessHoursDisplay from './BusinessHoursDisplay';
 import './Hero.css';
 
 const Hero = () => {
@@ -96,9 +97,9 @@ const Hero = () => {
               <div className="timing-icon-wrap supermarket">
                 <FaShoppingBasket />
               </div>
-              <div>
+              <div className="timing-content">
                 <span className="timing-label">Supermarket</span>
-                <span className="timing-value">{supermarketHours}</span>
+                <BusinessHoursDisplay value={supermarketHours} />
               </div>
             </div>
             <div className="timing-divider" />
@@ -106,9 +107,9 @@ const Hero = () => {
               <div className="timing-icon-wrap food-corner">
                 <FaUtensils />
               </div>
-              <div>
+              <div className="timing-content">
                 <span className="timing-label">Food Corner</span>
-                <span className="timing-value">{foodCornerHours}</span>
+                <BusinessHoursDisplay value={foodCornerHours} />
               </div>
             </div>
           </div>

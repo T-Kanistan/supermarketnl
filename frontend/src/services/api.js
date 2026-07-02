@@ -116,25 +116,37 @@ export const request = async (apiPromise, fallbackFn) => {
 
 export const getImageUrl = (imagePath) => {
   if (!imagePath) return '';
-  if (imagePath.startsWith('http://') || imagePath.startsWith('https://') || imagePath.startsWith('data:')) {
-    return imagePath;
+
+  // Self-heal: an absolute URL that points at a localhost/dev origin would break
+  // on the deployed site (it would target the visitor's own machine). Rewrite it
+  // to a same-origin relative path so it resolves against the production domain.
+  const localhostMatch = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/.*)?$/i.exec(imagePath);
+  const normalized = localhostMatch ? localhostMatch[3] || '/' : imagePath;
+
+  if (
+    normalized.startsWith('http://') ||
+    normalized.startsWith('https://') ||
+    normalized.startsWith('data:')
+  ) {
+    return normalized;
   }
-  if (imagePath.startsWith('/uploads') || imagePath.startsWith('/images')) {
-    if (imagePath.startsWith('/images')) {
-      return imagePath;
+
+  if (normalized.startsWith('/uploads') || normalized.startsWith('/images')) {
+    if (normalized.startsWith('/images')) {
+      return normalized;
     }
-    const isLocalhost = typeof window !== 'undefined' && 
+    const isLocalhost = typeof window !== 'undefined' &&
       (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
     if (API_ORIGIN) {
       if (API_ORIGIN.includes('localhost') || API_ORIGIN.includes('127.0.0.1')) {
-        return isLocalhost ? `${API_ORIGIN}${imagePath}` : imagePath;
+        return isLocalhost ? `${API_ORIGIN}${normalized}` : normalized;
       }
-      return `${API_ORIGIN}${imagePath}`;
+      return `${API_ORIGIN}${normalized}`;
     }
-    return imagePath;
+    return normalized;
   }
-  return imagePath;
+  return normalized;
 };
 
 export default api;

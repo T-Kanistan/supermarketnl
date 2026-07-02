@@ -33,7 +33,7 @@ export const getAllProducts = async (req, res, next) => {
 export const getFeaturedProducts = async (req, res, next) => {
   try {
     const data = await productService.getFeaturedProducts();
-    console.log('Featured Products:', data);
+    console.log(`[products/featured] Returning ${data.length} active featured product(s)`);
     return res.status(200).json({
       success: true,
       count: data.length,
