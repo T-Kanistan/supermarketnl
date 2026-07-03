@@ -39,9 +39,13 @@ export const CMSProvider = ({ children }) => {
       logo: siteSettings?.storeLogo || safeHome.logo || safeFooter.logo || '/logo.png',
       address: siteSettings?.physicalAddress || safeFooter.address,
       supermarketTimings:
-        siteSettings?.supermarketOpeningHours ?? safeHome.supermarketTimings,
+        siteSettings != null
+          ? siteSettings.supermarketOpeningHours ?? ''
+          : safeHome.supermarketTimings ?? '',
       foodCornerTimings:
-        siteSettings?.foodCornerOpeningHours ?? safeHome.foodCornerTimings,
+        siteSettings != null
+          ? siteSettings.foodCornerOpeningHours ?? ''
+          : safeHome.foodCornerTimings ?? '',
     });
 
     if (!home && !footer) {

@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import {
   FaWhatsapp, FaTags, FaArrowRight, FaRegClock, FaExclamationTriangle, FaRedo, FaSearch,
-  FaUtensils, FaShoppingCart,
+  FaUtensils, FaShoppingCart, FaFacebookF,
 } from 'react-icons/fa';
 import offerService from '../services/offerService';
 import { getImageUrl } from '../services/api';
 import { useEnquiry } from '../context/EnquiryContext';
+import OfferSeoHead from '../components/OfferSeoHead';
+import { buildOfferShareUrl } from '../utils/offerShareMeta';
 import './OffersPage.css';
 
 const FALLBACK_IMAGE =
@@ -116,7 +118,7 @@ const SmartButton = ({ link, className, children }) => {
   return <a href={target} className={className} target="_blank" rel="noreferrer">{children}</a>;
 };
 
-const OfferCard = ({ offer, onEnquiry }) => {
+const OfferCard = ({ offer, onEnquiry, onShare, isHighlighted = false }) => {
   const validTill = formatValidTill(offer.endDate);
   const department = offer.offerDepartment || offer.offerType || 'Supermarket';
   const isFoodCorner = department === 'Food Corner';
@@ -125,7 +127,12 @@ const OfferCard = ({ offer, onEnquiry }) => {
   const showOriginalPrice = hasPrice(offer.originalPrice);
 
   return (
-    <article className={`offer-card ${offer.isExpired ? 'offer-card--expired-state' : ''}`}>
+    <article
+      id={`offer-${offer.id}`}
+      className={`offer-card ${offer.isExpired ? 'offer-card--expired-state' : ''} ${
+        isHighlighted ? 'offer-card--highlighted' : ''
+      }`}
+    >
       <div className="offer-card-image-wrap">
         <img
           src={getImageUrl(offer.image || offer.imageUrl)}
@@ -183,15 +190,26 @@ const OfferCard = ({ offer, onEnquiry }) => {
           )}
         </div>
 
-        <button
-          type="button"
-          className="offer-card-enquiry-btn"
-          onClick={() => onEnquiry(offer)}
-          aria-label={`Enquire about ${offer.title}`}
-        >
-          <FaWhatsapp aria-hidden="true" />
-          Enquiry
-        </button>
+        <div className="offer-card-actions">
+          <button
+            type="button"
+            className="offer-card-enquiry-btn"
+            onClick={() => onEnquiry(offer)}
+            aria-label={`Enquire about ${offer.title}`}
+          >
+            <FaWhatsapp aria-hidden="true" />
+            Enquiry
+          </button>
+          <button
+            type="button"
+            className="offer-card-share-btn"
+            onClick={() => onShare(offer)}
+            aria-label={`Share ${offer.title} on Facebook`}
+            title="Share on Facebook"
+          >
+            <FaFacebookF aria-hidden="true" />
+          </button>
+        </div>
       </div>
     </article>
   );
@@ -211,6 +229,7 @@ const OfferCardSkeleton = () => (
 
 const OffersPage = () => {
   const { openEnquiry } = useEnquiry();
+  const { offerId: routeOfferId } = useParams();
 
   const [banner, setBanner] = useState(null);
   const [categories, setCategories] = useState([]);
@@ -304,11 +323,34 @@ const OffersPage = () => {
     [offers, showFeatured, sortOption],
   );
 
+  const sharedOffer = useMemo(
+    () => (routeOfferId ? offers.find((offer) => offer.id === routeOfferId) || null : null),
+    [routeOfferId, offers]
+  );
+
+  useEffect(() => {
+    if (!routeOfferId || !sharedOffer) return undefined;
+    const timer = setTimeout(() => {
+      const node = document.getElementById(`offer-${sharedOffer.id}`);
+      if (node) node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [routeOfferId, sharedOffer]);
+
   const handleEnquiry = (offer) => {
     openEnquiry({
       name: offer.title,
       initialMessage: `Hi, I'm interested in the offer "${offer.title}"${offer.category ? ` (${offer.category})` : ''}. Please share more details.`,
     });
+  };
+
+  const handleShareFacebook = (offer) => {
+    const shareUrl = buildOfferShareUrl(offer.id);
+    window.open(
+      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`,
+      '_blank',
+      'noopener,noreferrer'
+    );
   };
 
   const handleDepartmentChange = (departmentId) => {
@@ -336,6 +378,7 @@ const OffersPage = () => {
 
   return (
     <div className="offers-page">
+      <OfferSeoHead offer={sharedOffer} />
       <section className="offers-hero">
         {heroImage && (
           <div
@@ -447,7 +490,13 @@ const OffersPage = () => {
                 </div>
                 <div className="offers-grid">
                   {featuredOffers.map((offer) => (
-                    <OfferCard key={`featured-${offer.id}`} offer={offer} onEnquiry={handleEnquiry} />
+                    <OfferCard
+                      key={`featured-${offer.id}`}
+                      offer={offer}
+                      onEnquiry={handleEnquiry}
+                      onShare={handleShareFacebook}
+                      isHighlighted={routeOfferId === offer.id}
+                    />
                   ))}
                 </div>
               </section>
@@ -473,7 +522,13 @@ const OffersPage = () => {
               ) : sortedOffers.length > 0 ? (
                 <div className="offers-grid">
                   {sortedOffers.map((offer) => (
-                    <OfferCard key={offer.id} offer={offer} onEnquiry={handleEnquiry} />
+                    <OfferCard
+                      key={offer.id}
+                      offer={offer}
+                      onEnquiry={handleEnquiry}
+                      onShare={handleShareFacebook}
+                      isHighlighted={routeOfferId === offer.id}
+                    />
                   ))}
                 </div>
               ) : (

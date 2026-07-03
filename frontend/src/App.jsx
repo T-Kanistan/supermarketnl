@@ -56,7 +56,7 @@ function App() {
                       <Route path="/about-us" element={<AboutPage />} />
                       <Route path="/about" element={<Navigate to="/about-us" replace />} />
                       <Route path="/faq" element={<FAQPage />} />
-                      <Route path="/offers" element={<OffersPage />} />
+                      <Route path="/offers/:offerId?" element={<OffersPage />} />
                       <Route path="/vacancies/:vacancyId?" element={<VacanciesPage />} />
                       <Route path="/careers/apply/:vacancyId" element={<CareerApplyPage />} />
                       <Route path="/terms" element={<TermsPage />} />

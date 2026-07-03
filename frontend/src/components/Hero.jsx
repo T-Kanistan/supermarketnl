@@ -11,7 +11,7 @@ import './Hero.css';
 
 const Hero = () => {
   const navigate = useNavigate();
-  const { cmsData } = useCMS();
+  const { cmsData, loading: cmsLoading } = useCMS();
   const [banner, setBanner] = useState(() => mergePageBanner('home', null));
   const [loading, setLoading] = useState(true);
 
@@ -43,8 +43,9 @@ const Hero = () => {
   const primaryLink = bannerData.buttonUrl || bannerData.button1Url;
   const secondaryLabel = bannerData.button2Text;
   const secondaryLink = bannerData.button2Url;
-  const supermarketHours = cmsData?.supermarketTimings || '';
-  const foodCornerHours = cmsData?.foodCornerTimings || '';
+  const supermarketHours = cmsData?.supermarketTimings ?? '';
+  const foodCornerHours = cmsData?.foodCornerTimings ?? '';
+  const hoursLoading = cmsLoading;
 
   return (
     <section
@@ -99,7 +100,7 @@ const Hero = () => {
               </div>
               <div className="timing-content">
                 <span className="timing-label">Supermarket</span>
-                <BusinessHoursDisplay value={supermarketHours} />
+                <BusinessHoursDisplay value={supermarketHours} loading={hoursLoading} />
               </div>
             </div>
             <div className="timing-divider" />
@@ -109,7 +110,7 @@ const Hero = () => {
               </div>
               <div className="timing-content">
                 <span className="timing-label">Food Corner</span>
-                <BusinessHoursDisplay value={foodCornerHours} />
+                <BusinessHoursDisplay value={foodCornerHours} loading={hoursLoading} />
               </div>
             </div>
           </div>

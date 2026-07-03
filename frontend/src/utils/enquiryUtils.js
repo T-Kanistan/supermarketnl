@@ -14,9 +14,9 @@ export const ENQUIRY_TYPES = [
   'Product Details',
   'Product Availability',
   'Price Request',
-  'Bulk Order',
   'Delivery Information',
   'General Enquiry',
+  'Other',
 ];
 
 export const buildWhatsAppEnquiryMessage = ({

@@ -87,7 +87,8 @@ export const buildEnquiryFilter = (query = {}) => {
 };
 
 const validateEnquiryPayload = (sanitized, enquiryType) => {
-  if (!sanitized.senderName || sanitized.senderName.length < 3) {
+  // Full name is optional; only reject when a too-short value is supplied.
+  if (sanitized.senderName && sanitized.senderName.length < 3) {
     const error = new Error('Name must be at least 3 characters');
     error.statusCode = 400;
     throw error;
@@ -143,7 +144,7 @@ export const createEnquiry = async (body, enquiryType) => {
 
   const enquiry = await CustomerEnquiry.create({
     enquiryType,
-    senderName: sanitized.senderName,
+    senderName: sanitized.senderName || 'Guest Customer',
     email: sanitized.email,
     phone: sanitized.phone,
     subject: buildSubject(enquiryType, sanitized),

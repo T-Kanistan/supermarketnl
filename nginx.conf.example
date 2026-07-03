@@ -14,6 +14,30 @@
 #    then: ln -s ... /etc/nginx/sites-enabled/ && nginx -t && systemctl reload nginx
 # =============================================================================
 
+# -----------------------------------------------------------------------------
+# Social-crawler detection (Facebook, LinkedIn, WhatsApp, X/Twitter, etc.)
+# MUST live in the http { } context. If your main config already has other
+# `map` blocks (usually in /etc/nginx/nginx.conf), place this next to them.
+# Crawlers do NOT run JavaScript, so the React SPA cannot expose per-vacancy
+# Open Graph tags to them — they must be proxied to the backend HTML renderer.
+# -----------------------------------------------------------------------------
+map $http_user_agent $is_social_crawler {
+    default                                                                 0;
+    "~*facebookexternalhit"                                                 1;
+    "~*Facebot"                                                             1;
+    "~*Twitterbot"                                                          1;
+    "~*LinkedInBot"                                                         1;
+    "~*WhatsApp"                                                            1;
+    "~*Slackbot"                                                            1;
+    "~*TelegramBot"                                                         1;
+    "~*Discordbot"                                                          1;
+    "~*Pinterest"                                                           1;
+    "~*redditbot"                                                           1;
+    "~*Applebot"                                                            1;
+    "~*SkypeUriPreview"                                                     1;
+    "~*vkShare"                                                             1;
+}
+
 server {
     listen 80;
     server_name raguwinswereldwinkel.nl www.raguwinswereldwinkel.nl;  # <-- your domain
@@ -39,23 +63,20 @@ server {
         proxy_set_header Host $host;
     }
 
-    # ---- SPA client-side routing: always fall back to index.html ----
-    location / {
+    # ---- Share previews: social crawlers need server-rendered Open Graph tags ----
+    # Facebook, LinkedIn, WhatsApp, etc. request /vacancies/<id> or /offers/<id> and must
+    # receive OG HTML from the backend instead of the generic SPA index.html shell. Real
+    # users still get the normal SPA (their browsers run JS, so React Router handles them).
+    # NOTE: keep this block ABOVE the generic `location /` fallback.
+    location ~ ^/(vacancies|offers)/([^/?#]+)$ {
+        if ($is_social_crawler) {
+            proxy_pass http://127.0.0.1:5000/$1/$2;
+        }
         try_files $uri $uri/ /index.html;
     }
 
-    # ---- Vacancy share previews: social crawlers need server-rendered Open Graph tags ----
-    # Facebook, LinkedIn, WhatsApp, etc. request /vacancies/<id> and must receive OG HTML
-    # from the backend instead of the generic SPA index.html shell.
-    location ~ ^/vacancies/([^/?#]+)$ {
-        set $vacancy_og 0;
-        if ($http_user_agent ~* "(facebookexternalhit|Facebot|Twitterbot|LinkedInBot|WhatsApp|Slackbot|TelegramBot|Discordbot|Pinterest)") {
-            set $vacancy_og 1;
-        }
-        if ($vacancy_og = 1) {
-            proxy_pass http://127.0.0.1:5000/vacancies/$1;
-            break;
-        }
+    # ---- SPA client-side routing: always fall back to index.html ----
+    location / {
         try_files $uri $uri/ /index.html;
     }
 

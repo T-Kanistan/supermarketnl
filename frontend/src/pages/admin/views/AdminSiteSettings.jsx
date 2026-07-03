@@ -390,24 +390,24 @@ export const AdminSiteSettings = () => {
               <div className="admin-form-group row-split">
                 <div>
                   <label>Supermarket Opening Hours</label>
-                  <input 
-                    type="text" 
-                    name="supermarketTimings" 
-                    value={formData.supermarketTimings} 
-                    onChange={handleChange} 
-                    placeholder="e.g. 8:00 AM - 10:00 PM" 
-                    required 
+                  <textarea
+                    name="supermarketTimings"
+                    value={formData.supermarketTimings}
+                    onChange={handleChange}
+                    rows={3}
+                    placeholder={'MONDAY-SATURDAY (09:00 AM - 09:00 PM)\nSUNDAY (12:00 PM - 07:00 PM)'}
+                    required
                   />
                 </div>
                 <div>
                   <label>Food Corner Opening Hours</label>
-                  <input 
-                    type="text" 
-                    name="foodCornerTimings" 
-                    value={formData.foodCornerTimings} 
-                    onChange={handleChange} 
-                    placeholder="e.g. 11:00 AM - 11:00 PM" 
-                    required 
+                  <textarea
+                    name="foodCornerTimings"
+                    value={formData.foodCornerTimings}
+                    onChange={handleChange}
+                    rows={3}
+                    placeholder={'SATURDAY-SUNDAY (06:00 PM - 11:00 PM)'}
+                    required
                   />
                 </div>
               </div>
@@ -494,23 +494,23 @@ export const AdminSiteSettings = () => {
                 <div className="admin-form-group row-split">
                   <div>
                     <label>Supermarket Opening Hours</label>
-                    <input
-                      type="text"
+                    <textarea
                       name="supermarketTimings"
                       value={formData.supermarketTimings}
                       onChange={handleChange}
-                      placeholder="8:00 AM - 10:00 PM"
+                      rows={3}
+                      placeholder={'MONDAY-SATURDAY (09:00 AM - 09:00 PM)\nSUNDAY (12:00 PM - 07:00 PM)'}
                       required
                     />
                   </div>
                   <div>
                     <label>Food Corner Opening Hours</label>
-                    <input
-                      type="text"
+                    <textarea
                       name="foodCornerTimings"
                       value={formData.foodCornerTimings}
                       onChange={handleChange}
-                      placeholder="11:00 AM - 11:00 PM"
+                      rows={3}
+                      placeholder={'SATURDAY-SUNDAY (06:00 PM - 11:00 PM)'}
                       required
                     />
                   </div>
@@ -810,12 +810,12 @@ export const AdminSiteSettings = () => {
                   </div>
                   <div>
                     <label>Supermarket Hours</label>
-                    <input
-                      type="text"
+                    <textarea
                       name="supermarketTimings"
                       value={formData.supermarketTimings}
                       onChange={handleChange}
-                      placeholder="8:00 AM - 10:00 PM"
+                      rows={3}
+                      placeholder={'MONDAY-SATURDAY (09:00 AM - 09:00 PM)\nSUNDAY (12:00 PM - 07:00 PM)'}
                     />
                   </div>
                 </div>
@@ -830,12 +830,12 @@ export const AdminSiteSettings = () => {
                   </div>
                   <div>
                     <label>Food Corner Hours</label>
-                    <input
-                      type="text"
+                    <textarea
                       name="foodCornerTimings"
                       value={formData.foodCornerTimings}
                       onChange={handleChange}
-                      placeholder="11:00 AM - 11:00 PM"
+                      rows={3}
+                      placeholder={'SATURDAY-SUNDAY (06:00 PM - 11:00 PM)'}
                     />
                   </div>
                 </div>

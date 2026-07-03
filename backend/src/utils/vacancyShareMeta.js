@@ -11,15 +11,22 @@ export const formatVacancyShareDate = (value) => {
   });
 };
 
-export const truncateVacancyShareDescription = (text, maxLength = 140) => {
+export const truncateVacancyShareDescription = (text, maxLength = 180) => {
   const cleaned = String(text || '').replace(/\s+/g, ' ').trim();
   if (!cleaned) return '';
   if (cleaned.length <= maxLength) return cleaned;
 
   const slice = cleaned.slice(0, maxLength);
   const lastSpace = slice.lastIndexOf(' ');
-  const trimmed = (lastSpace > 80 ? slice.slice(0, lastSpace) : slice).trim();
+  const trimmed = (lastSpace > maxLength * 0.6 ? slice.slice(0, lastSpace) : slice).trim();
   return `${trimmed}...`;
+};
+
+export const buildVacancyShareTitle = (vacancy) => {
+  const title = String(vacancy?.title || '').trim();
+  const employmentType = String(vacancy?.employmentType || '').trim();
+  if (title && employmentType) return `${title} – ${employmentType}`;
+  return title || employmentType || 'Career Opportunity';
 };
 
 export const resolveShareImageUrl = (imagePath, siteUrl) => {
@@ -40,19 +47,18 @@ export const resolveShareImageUrl = (imagePath, siteUrl) => {
 export const buildVacancyShareDescription = (vacancy) => {
   const shortDescription = truncateVacancyShareDescription(
     vacancy?.description || vacancy?.summary || '',
-    140
+    180
   );
   const closingLabel = formatVacancyShareDate(vacancy?.closingDate);
-  const detailParts = [
-    vacancy?.employmentType,
-    vacancy?.location,
-    vacancy?.workingHours,
-    closingLabel ? `Closes ${closingLabel}` : '',
+  const metaParts = [
+    vacancy?.location ? `📍 ${vacancy.location}` : '',
+    vacancy?.workingHours ? `🕒 ${vacancy.workingHours}` : '',
+    closingLabel ? `📅 Closes ${closingLabel}` : '',
   ].filter(Boolean);
 
-  const prefix = detailParts.length ? `${detailParts.join(' · ')}.` : '';
-  if (prefix && shortDescription) return `${prefix} ${shortDescription}`;
-  return prefix || shortDescription;
+  const metaLine = metaParts.join('  ·  ');
+  if (metaLine && shortDescription) return `${metaLine}\n\n${shortDescription}`;
+  return metaLine || shortDescription;
 };
 
 export const buildVacancyShareMeta = ({
@@ -63,7 +69,7 @@ export const buildVacancyShareMeta = ({
 }) => {
   const normalizedSiteUrl = String(siteUrl || '').replace(/\/$/, '');
   const vacancyId = vacancy?.id || vacancy?._id || '';
-  const title = vacancy?.title || '';
+  const title = buildVacancyShareTitle(vacancy);
   const description = buildVacancyShareDescription(vacancy);
   const image =
     resolveShareImageUrl(heroImageUrl, normalizedSiteUrl) ||

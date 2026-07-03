@@ -282,7 +282,7 @@
   font-weight: 600;
   color: #334155;
   line-height: 1.35;
-  white-space: nowrap;
+  white-space: pre-line;
 }
 
 .timing-hours {
@@ -291,7 +291,45 @@
   font-weight: 700;
   color: #0f172a;
   line-height: 1.35;
-  white-space: nowrap;
+  white-space: pre-line;
+}
+
+.timing-unavailable {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #94a3b8;
+  line-height: 1.4;
+}
+
+.timing-schedules--loading {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.timing-skeleton-line {
+  display: block;
+  height: 14px;
+  width: 100%;
+  max-width: 220px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: hero-hours-shimmer 1.4s infinite;
+}
+
+.timing-skeleton-line--short {
+  max-width: 160px;
+}
+
+@keyframes hero-hours-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 .timing-value {

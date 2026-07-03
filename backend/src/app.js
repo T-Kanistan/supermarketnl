@@ -43,6 +43,7 @@ import adminJobEnquiryRoutes from './routes/adminJobEnquiryRoutes.js';
 import managerJobEnquiryRoutes from './routes/managerJobEnquiryRoutes.js';
 import careersRoutes from './routes/careersRoutes.js';
 import vacancyShareRoutes from './routes/vacancyShareRoutes.js';
+import offerShareRoutes from './routes/offerShareRoutes.js';
 import { errorHandler } from './middlewares/errorMiddleware.js';
 import { isMongoConnected } from './config/mongo.js';
 import { UPLOAD_ROOT } from './config/paths.js';
@@ -134,8 +135,9 @@ app.use('/api/admin/applications', adminApplicationRoutes);
 app.use('/api/admin/dashboard', adminDashboardRoutes);
 app.use('/api/manager/job-applications', managerJobApplicationRoutes);
 app.use('/api/vacancies', vacancyRoutes);
-// Open Graph HTML for social crawlers (proxied from nginx for /vacancies/:id)
+// Open Graph HTML for social crawlers (proxied from nginx for /vacancies/:id and /offers/:id)
 app.use('/vacancies', vacancyShareRoutes);
+app.use('/offers', offerShareRoutes);
 app.use('/api/careers', careersRoutes);
 app.use('/api/admin/vacancies', adminVacancyRoutes);
 app.use('/api/job-enquiries', jobEnquiryRoutes);

@@ -21,7 +21,7 @@ const sharedCustomerRules = [
     .notEmpty()
     .withMessage('Email is required')
     .isEmail()
-    .withMessage('Please provide a valid email address')
+    .withMessage('Please enter a valid email address.')
     .normalizeEmail(),
   body('phone')
     .optional({ values: 'falsy' })
@@ -49,8 +49,9 @@ const sharedCustomerRules = [
 ];
 
 const ensureNameProvided = body().custom((_, { req }) => {
+  // Full name is optional. Only validate the length when a value is provided.
   const name = (req.body.senderName || req.body.fullName || req.body.name || '').trim();
-  if (!name || name.length < 3) {
+  if (name && name.length < 3) {
     throw new Error('Name must be at least 3 characters');
   }
   return true;

@@ -38,6 +38,7 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isWhatsAppSubmitting, setIsWhatsAppSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [phoneHelperVisible, setPhoneHelperVisible] = useState(false);
 
   const isFoodCorner = product?.enquirySource === 'food-corner';
   const isGeneral = product?.enquirySource === 'general' || (!product?.name && !isFoodCorner);
@@ -47,6 +48,7 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
 
     setShowSuccess(false);
     setErrors({});
+    setPhoneHelperVisible(false);
 
     if (isGeneral) {
       setForm({
@@ -91,14 +93,14 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
   const validate = () => {
     const next = {};
 
-    if (!form.fullName.trim() || form.fullName.trim().length < 3) {
+    if (form.fullName.trim() && form.fullName.trim().length < 3) {
       next.fullName = 'Full name must be at least 3 characters';
     }
     if (!form.phone.trim()) next.phone = 'Phone number is required';
     else if (!/^[\d\s+()-]{8,}$/.test(form.phone.trim())) next.phone = 'Enter a valid phone number';
     if (!form.email.trim()) next.email = 'Email is required';
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
-      next.email = 'Enter a valid email address';
+      next.email = 'Please enter a valid email address.';
     }
     if (!isGeneral && !form.productName.trim()) next.productName = 'Product name is required';
     if (!form.message.trim()) next.message = 'Message is required';
@@ -198,7 +200,7 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
     ? 'Send us your enquiry and our team will get back to you shortly.'
     : isFoodCorner
       ? 'Ask about food items, availability, pricing, or special requests.'
-      : 'Ask about details, availability, pricing, bulk orders, or delivery.';
+      : 'Ask about details, availability, pricing, delivery, or other questions.';
 
   return (
     <div className="enquiry-modal-overlay" onClick={onClose} role="presentation">
@@ -235,7 +237,7 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
               <h3>Customer Information</h3>
               <div className="enquiry-grid">
                 <div className={`enquiry-field ${errors.fullName ? 'has-error' : ''}`}>
-                  <label htmlFor="enquiry-fullName">Full Name *</label>
+                  <label htmlFor="enquiry-fullName">Full Name</label>
                   <div className="enquiry-input-wrap">
                     <FiUser />
                     <input
@@ -258,10 +260,22 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
                       name="phone"
                       type="tel"
                       value={form.phone}
-                      onChange={handleChange}
+                      onChange={(e) => {
+                        handleChange(e);
+                        setPhoneHelperVisible(true);
+                      }}
+                      onFocus={() => setPhoneHelperVisible(true)}
+                      onBlur={() => setPhoneHelperVisible(false)}
                       placeholder="+31659046526"
+                      required
                     />
                   </div>
+                  {phoneHelperVisible && (
+                    <div className="enquiry-field-helper" role="status">
+                      <FiPhone className="enquiry-field-helper-icon" aria-hidden="true" />
+                      <span>We will contact you using this phone number regarding your enquiry.</span>
+                    </div>
+                  )}
                   {errors.phone && <span className="enquiry-error">{errors.phone}</span>}
                 </div>
 
@@ -276,6 +290,8 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
                       value={form.email}
                       onChange={handleChange}
                       placeholder="your@email.com"
+                      required
+                      autoComplete="email"
                     />
                   </div>
                   {errors.email && <span className="enquiry-error">{errors.email}</span>}

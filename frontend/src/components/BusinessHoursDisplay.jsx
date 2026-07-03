@@ -1,16 +1,32 @@
 import { useMemo } from 'react';
 import { parseBusinessHours } from '../utils/formatBusinessHours';
 
-const BusinessHoursDisplay = ({ value, className = '' }) => {
+const BusinessHoursDisplay = ({
+  value,
+  className = '',
+  loading = false,
+  emptyMessage = 'Opening hours not available.',
+}) => {
   const schedules = useMemo(() => parseBusinessHours(value), [value]);
 
-  if (!schedules.length) return null;
-
-  const isFallback = schedules.length === 1 && !schedules[0].days;
-
-  if (isFallback) {
+  if (loading) {
     return (
-      <div className={`timing-schedules timing-schedules--fallback ${className}`.trim()}>
+      <div className={`timing-schedules timing-schedules--loading ${className}`.trim()} aria-hidden="true">
+        <span className="timing-skeleton-line" />
+        <span className="timing-skeleton-line timing-skeleton-line--short" />
+      </div>
+    );
+  }
+
+  if (!schedules.length) {
+    return <p className={`timing-unavailable ${className}`.trim()}>{emptyMessage}</p>;
+  }
+
+  const isPlainText = schedules.length === 1 && !schedules[0].days;
+
+  if (isPlainText) {
+    return (
+      <div className={`timing-schedules timing-schedules--plain ${className}`.trim()}>
         <span className="timing-hours">{schedules[0].hours}</span>
       </div>
     );

@@ -23,9 +23,8 @@ const customerEnquirySchema = new mongoose.Schema(
     },
     senderName: {
       type: String,
-      required: [true, 'Name is required'],
       trim: true,
-      minlength: 3,
+      default: 'Guest Customer',
       maxlength: 150,
     },
     email: {
