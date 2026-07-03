@@ -25,6 +25,23 @@ const imageFilter = (req, file, cb) => {
   cb(new Error('Only jpg, jpeg, png, and webp images are allowed'));
 };
 
+const aboutImageMimeFilter = (req, file, cb) => {
+  const mime = (file.mimetype || '').toLowerCase();
+  const allowedMimes = new Set([
+    'image/jpeg',
+    'image/jpg',
+    'image/png',
+    'image/webp',
+    'image/gif',
+  ]);
+
+  if (allowedMimes.has(mime)) {
+    return cb(null, true);
+  }
+
+  cb(new Error('Only image files are allowed.'));
+};
+
 const footerLogoFilter = (req, file, cb) => {
   const allowed = /jpeg|jpg|png|webp|svg/;
   const ext = allowed.test(path.extname(file.originalname).toLowerCase());
@@ -49,7 +66,7 @@ const createStorage = (subdir) =>
 export const aboutImageUpload = multer({
   storage: createStorage('about'),
   limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: imageFilter,
+  fileFilter: aboutImageMimeFilter,
 });
 
 export const genericImageUpload = multer({

@@ -57,7 +57,11 @@ const ProductsPage = () => {
   const [searchTerm, setSearchTerm] = useState(urlSearchParam);
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(urlSearchParam.trim());
   const [sortOption, setSortOption] = useState('default');
-  const { banner: pageBanner, loading: bannerLoading } = usePageBanner('products');
+  const {
+    banner: pageBanner,
+    heroImageUrl,
+    ready: bannerReady,
+  } = usePageBanner('products');
 
   const activeCategoryId = categoryParam;
 
@@ -214,17 +218,22 @@ const ProductsPage = () => {
 
   const isAllItems = activeCategory.id === 'all';
   const heroImage = isAllItems
-    ? getImageUrl(pageBanner.backgroundImage || pageBanner.image) || PRODUCTS_PAGE_HERO_IMAGE
+    ? heroImageUrl || PRODUCTS_PAGE_HERO_IMAGE
     : getImageUrl(activeCategory.image) || PRODUCTS_PAGE_HERO_IMAGE;
   const heroBadge = isAllItems ? pageBanner.badgeText || 'OUR STORE' : 'CATEGORY';
   const heroSubtitle = isAllItems
     ? pageBanner.description
     : `Explore our ${activeCategoryLabel.toLowerCase()} selection — quality products for your home.`;
   const heroOverlayStyle = isAllItems ? getBannerOverlayStyle(pageBanner) : undefined;
+  // Category views use their own image and don't depend on the banner fetch,
+  // so only the "All items" hero waits for the preloaded banner image.
+  const heroReady = !isAllItems || bannerReady;
 
   return (
     <div className="products-page">
-      <section className={`products-hero${bannerLoading && isAllItems ? ' products-hero--loading' : ''}`}>
+      <section className={`products-hero${heroReady ? '' : ' products-hero--loading'}`}>
+        {heroReady ? (
+          <>
         <div
           className="products-hero-bg"
           style={{ backgroundImage: `url('${heroImage}')` }}
@@ -315,6 +324,12 @@ const ProductsPage = () => {
             </div>
           </aside>
         </div>
+          </>
+        ) : (
+          <div className="products-hero-skeleton" aria-hidden="true">
+            <div className="products-hero-skeleton-shimmer" />
+          </div>
+        )}
       </section>
 
       <div className="container products-breadcrumb-wrap">

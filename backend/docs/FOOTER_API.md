@@ -19,7 +19,6 @@ npm run dev
 | brand | `{ logo, description }` |
 | socialLinks | `{ facebook, instagram, whatsapp, tiktok, youtube }` |
 | quickLinks[] | `{ label, url, show, order }` |
-| categoryLinks[] | `{ label, url, show, order }` |
 | legalLinks[] | `{ label, url, show, order }` |
 | businessHours | `{ supermarket, foodCorner, specialNote }` |
 | contact | `{ address, phone, email }` |
@@ -35,8 +34,9 @@ npm run dev
 | POST | `/api/footer/upload-logo` | Admin (multipart `footer_logo`) |
 | DELETE | `/api/footer/logo` | Admin |
 | CRUD | `/api/footer/quick-links` | Admin |
-| CRUD | `/api/footer/category-links` | Admin |
 | CRUD | `/api/footer/legal-links` | Admin |
+
+Footer category links are **not** stored in Footer CMS. The website footer loads up to 7 active categories from the Product Categories module (`GET /api/categories`).
 
 ## Logo Upload
 
@@ -58,7 +58,6 @@ npm run dev
     "quickLinks": [
       { "id": "665a...", "label": "Home", "url": "/", "displayOrder": 1, "isVisible": true }
     ],
-    "categoryLinks": [],
     "legalLinks": []
   }
 }

@@ -14,6 +14,7 @@ const ProductCard = ({
 }) => {
   const inStock = Number(product.stock) > 0;
   const isMinimal = variant === 'minimal';
+  const weightUnit = (product.weightUnit || product.weight || '').trim();
 
   return (
     <article
@@ -39,6 +40,10 @@ const ProductCard = ({
         <h3 className="store-product-name" title={product.name}>
           {product.name}
         </h3>
+
+        {weightUnit && (
+          <p className="store-product-weight">{weightUnit}</p>
+        )}
 
         {!isMinimal && (
           <div className="store-product-price-block">

@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  FaPlus, FaEdit, FaTrash, FaSave, FaExternalLinkAlt, FaSearch, FaGripVertical,
+  FaPlus, FaEdit, FaTrash, FaSave, FaExternalLinkAlt, FaSearch, FaGripVertical, FaImage,
 } from 'react-icons/fa';
 import aboutUsService from '../../../services/aboutUsService';
 import { getImageUrl } from '../../../services/api';
 import { emptyAboutPageForm, mergeAboutPage } from '../../../constants/aboutPageDefaults';
+import { isValidAboutImageFile, isValidAboutImageDataUrl } from '../../../utils/aboutImageValidation';
 import { useToast } from '../../../context/ToastContext';
 import './AdminAboutUs.css';
 
@@ -24,8 +25,54 @@ const ICON_OPTIONS = [
 
 const PAGE_SIZE = 8;
 
+const InvalidFileTypeModal = ({ onClose }) => (
+  <div className="about-admin-file-error-overlay" onClick={onClose} role="presentation">
+    <div
+      className="about-admin-file-error-modal"
+      onClick={(e) => e.stopPropagation()}
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="about-invalid-file-title"
+      aria-describedby="about-invalid-file-message"
+    >
+      <div className="about-admin-file-error-icon" aria-hidden="true">
+        <FaImage />
+      </div>
+      <h3 id="about-invalid-file-title">Invalid File Type</h3>
+      <p id="about-invalid-file-message">
+        Please select a valid image file (JPG, JPEG, PNG, or WEBP only).
+      </p>
+      <button type="button" className="about-admin-file-error-ok" onClick={onClose} autoFocus>
+        OK
+      </button>
+    </div>
+  </div>
+);
+
 const ImageField = ({ label, value, onChange, inputId }) => {
-  const preview = value?.startsWith('data:') ? value : getImageUrl(value);
+  const [showInvalidModal, setShowInvalidModal] = useState(false);
+  const hasPreview = Boolean(
+    value && (!value.startsWith('data:') || isValidAboutImageDataUrl(value))
+  );
+  const preview = hasPreview
+    ? (value.startsWith('data:') ? value : getImageUrl(value))
+    : null;
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    if (!isValidAboutImageFile(file)) {
+      setShowInvalidModal(true);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => onChange(reader.result);
+    reader.readAsDataURL(file);
+  };
+
   return (
     <div className="about-admin-field">
       <label htmlFor={inputId}>{label}</label>
@@ -37,15 +84,12 @@ const ImageField = ({ label, value, onChange, inputId }) => {
       <input
         id={inputId}
         type="file"
-        accept="image/jpeg,image/png,image/webp"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (!file) return;
-          const reader = new FileReader();
-          reader.onload = () => onChange(reader.result);
-          reader.readAsDataURL(file);
-        }}
+        accept="image/*"
+        onChange={handleFileChange}
       />
+      {showInvalidModal && (
+        <InvalidFileTypeModal onClose={() => setShowInvalidModal(false)} />
+      )}
     </div>
   );
 };

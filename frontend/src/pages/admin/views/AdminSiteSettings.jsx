@@ -8,6 +8,8 @@ import { emptyFooterPageForm, mergeFooterPage } from '../../../constants/footerP
 import contactSettingsService from '../../../services/contactSettingsService';
 import siteSettingsService from '../../../services/siteSettingsService';
 import footerService from '../../../services/footerService';
+import categoryService from '../../../services/categoryService';
+import { mapProductCategoriesToFooterLinks } from '../../../utils/footerCategories';
 import { FaUpload, FaPlus, FaTrash } from 'react-icons/fa';
 import { FiMapPin, FiPhone, FiMail, FiClock } from 'react-icons/fi';
 
@@ -63,8 +65,26 @@ const FooterLinkRow = ({ link, onChange, onRemove, showEnabled = true }) => (
 const FooterPreview = ({ formData }) => {
   const footer = formData.footerPage;
   const quickLinks = footer.quickLinks.filter((l) => l.enabled && l.label);
-  const categoryLinks = footer.categoryLinks.filter((l) => l.enabled && l.label);
+  const [categoryLinks, setCategoryLinks] = useState([]);
   const legalLinks = footer.legalLinks.filter((l) => l.enabled && l.label);
+
+  useEffect(() => {
+    let mounted = true;
+
+    categoryService
+      .getCategories({ admin: true })
+      .then((list) => {
+        if (!mounted) return;
+        setCategoryLinks(mapProductCategoriesToFooterLinks(list));
+      })
+      .catch(() => {
+        if (mounted) setCategoryLinks([]);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   return (
     <div className="footer-admin-preview">
@@ -764,12 +784,7 @@ export const AdminSiteSettings = () => {
               </div>
 
               <div className="settings-subsection">
-                <div className="footer-section-header">
-                  <h4>3. Categories</h4>
-                  <button type="button" className="action-btn-secondary" onClick={() => addFooterLink('categoryLinks')}>
-                    <FaPlus /> Add Category Link
-                  </button>
-                </div>
+                <h4>3. Categories</h4>
                 <div className="admin-form-group">
                   <label>Section Title</label>
                   <input
@@ -777,16 +792,12 @@ export const AdminSiteSettings = () => {
                     value={formData.footerPage.categoriesTitle}
                     onChange={(e) => updateFooterPage('categoriesTitle', e.target.value)}
                   />
-                  <p className="admin-field-hint">Only the first 7 visible categories (by order) appear in the website footer.</p>
+                  <p className="admin-field-hint">
+                    Category links are loaded automatically from Product Categories. Up to 7 active
+                    categories appear in the footer, ordered by creation date. Manage categories in
+                    the Product Categories section.
+                  </p>
                 </div>
-                {formData.footerPage.categoryLinks.map((link, index) => (
-                  <FooterLinkRow
-                    key={link.id}
-                    link={link}
-                    onChange={(field, value) => updateFooterLinks('categoryLinks', index, field, value)}
-                    onRemove={() => removeFooterLink('categoryLinks', index)}
-                  />
-                ))}
               </div>
 
               <div className="settings-subsection">

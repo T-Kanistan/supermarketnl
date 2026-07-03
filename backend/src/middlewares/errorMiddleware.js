@@ -47,6 +47,11 @@ export const errorHandler = (err, req, res, next) => {
     }
   }
 
+  if (err.message?.includes('Only image files are allowed.')) {
+    statusCode = 400;
+    message = 'Only image files are allowed.';
+  }
+
   if (err.message?.includes('Only jpg, jpeg, png, and webp')) {
     statusCode = 400;
   }

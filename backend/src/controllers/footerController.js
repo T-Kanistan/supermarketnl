@@ -79,43 +79,6 @@ export const deleteQuickLink = async (req, res, next) => {
   }
 };
 
-export const getCategoryLinks = async (req, res, next) => {
-  try {
-    const visibleOnly = req.query.all !== 'true';
-    const data = await footerService.listCategoryLinks(visibleOnly);
-    return successResponse(res, 200, 'Category links retrieved successfully', data);
-  } catch (error) {
-    next(error);
-  }
-};
-
-export const createCategoryLink = async (req, res, next) => {
-  try {
-    const data = await footerService.createCategoryLink(req.body);
-    return successResponse(res, 201, 'Category link created successfully', data);
-  } catch (error) {
-    next(error);
-  }
-};
-
-export const updateCategoryLink = async (req, res, next) => {
-  try {
-    const data = await footerService.updateCategoryLink(req.params.id, req.body);
-    return successResponse(res, 200, 'Category link updated successfully', data);
-  } catch (error) {
-    next(error);
-  }
-};
-
-export const deleteCategoryLink = async (req, res, next) => {
-  try {
-    await footerService.deleteCategoryLink(req.params.id);
-    return successResponse(res, 200, 'Category link deleted successfully');
-  } catch (error) {
-    next(error);
-  }
-};
-
 export const getLegalLinks = async (req, res, next) => {
   try {
     const visibleOnly = req.query.all !== 'true';
@@ -162,10 +125,6 @@ export default {
   createQuickLink,
   updateQuickLink,
   deleteQuickLink,
-  getCategoryLinks,
-  createCategoryLink,
-  updateCategoryLink,
-  deleteCategoryLink,
   getLegalLinks,
   createLegalLink,
   updateLegalLink,

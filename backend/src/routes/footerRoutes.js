@@ -8,10 +8,6 @@ import {
   createQuickLink,
   updateQuickLink,
   deleteQuickLink,
-  getCategoryLinks,
-  createCategoryLink,
-  updateCategoryLink,
-  deleteCategoryLink,
   getLegalLinks,
   createLegalLink,
   updateLegalLink,
@@ -25,9 +21,6 @@ import {
   createQuickLinkRules,
   updateQuickLinkRules,
   quickLinkIdRules,
-  createCategoryLinkRules,
-  updateCategoryLinkRules,
-  categoryLinkIdRules,
   createLegalLinkRules,
   updateLegalLinkRules,
   legalLinkIdRules,
@@ -83,33 +76,6 @@ router.delete(
   quickLinkIdRules,
   validateRequest,
   deleteQuickLink
-);
-
-// Category links
-router.get('/category-links', getCategoryLinks);
-router.post(
-  '/category-links',
-  protect,
-  adminOnly,
-  createCategoryLinkRules,
-  validateRequest,
-  createCategoryLink
-);
-router.put(
-  '/category-links/:id',
-  protect,
-  adminOnly,
-  updateCategoryLinkRules,
-  validateRequest,
-  updateCategoryLink
-);
-router.delete(
-  '/category-links/:id',
-  protect,
-  adminOnly,
-  categoryLinkIdRules,
-  validateRequest,
-  deleteCategoryLink
 );
 
 // Legal links

@@ -27,7 +27,7 @@ const findCategoryByParam = async (param) => {
  */
 export const getCategories = async (req, res, next) => {
   try {
-    const categories = await Category.find({ status: 'active' }).sort({ name: 1 });
+    const categories = await Category.find({ status: 'active' }).sort({ createdAt: 1 });
     res.status(200).json({
       success: true,
       count: categories.length,

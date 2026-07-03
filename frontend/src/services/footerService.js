@@ -35,7 +35,6 @@ export const mapFooterApiToFrontend = (data) => {
       sundayHours: s.specialHoursNote || '',
       copyrightText: s.copyrightName || '',
       quickLinks: (data.quickLinks || []).map(mapLinkToPage),
-      categoryLinks: (data.categoryLinks || []).map(mapLinkToPage),
       legalLinks: (data.legalLinks || []).map(mapLinkToPage),
     },
   };
@@ -77,7 +76,6 @@ export const footerService = {
         emailAddress: formData.contactEmail,
         copyrightName: footer.copyrightText,
         quickLinks: (footer.quickLinks || []).map(mapPageLinkToApi),
-        categoryLinks: (footer.categoryLinks || []).map(mapPageLinkToApi),
         legalLinks: (footer.legalLinks || []).map(mapPageLinkToApi),
       })
     );

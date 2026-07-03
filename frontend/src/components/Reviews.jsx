@@ -31,7 +31,7 @@ const Reviews = () => {
     return (
       <section className="reviews section-padding bg-light">
         <div className="container">
-          <h2 className="section-title">Customer Reviews</h2>
+          <h2 className="section-title reviews-section-title">Customer Reviews</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px' }}>
             {[...Array(3)].map((_, i) => (
               <div key={i} className="review-card" style={{ height: '180px', background: 'white', borderRadius: '12px', padding: '24px', animation: 'pulse 1.5s infinite ease-in-out' }}></div>
@@ -45,7 +45,7 @@ const Reviews = () => {
   return (
     <section className="reviews section-padding bg-light">
       <div className="container">
-        <h2 className="section-title">Customer Reviews</h2>
+        <h2 className="section-title reviews-section-title">Customer Reviews</h2>
         {reviews.length > 0 ? (
           <div className="reviews-grid">
             {reviews.map((review) => (

@@ -16,13 +16,6 @@ export const defaultFooterPage = {
     { id: 'ql-6', label: 'FAQ', path: '/faq', enabled: true },
     { id: 'ql-7', label: 'Contact Us', path: '/contact-us', enabled: true },
   ],
-  categoryLinks: [
-    { id: 'cl-1', label: 'Beverages & Tea', path: '/products?category=beverages-tea', enabled: true },
-    { id: 'cl-2', label: 'Frozen Ready to Eat', path: '/products?category=frozen-ready-to-eat', enabled: true },
-    { id: 'cl-3', label: 'Meat & Seafoods', path: '/products?category=meat-seafoods', enabled: true },
-    { id: 'cl-4', label: 'Spices & Masalas', path: '/products?category=spices-masalas', enabled: true },
-    { id: 'cl-5', label: 'Vegetables & Fruits', path: '/products?category=vegetables-fruits', enabled: true },
-  ],
   legalLinks: [
     { id: 'll-1', label: 'Terms & Conditions', path: '/terms', enabled: true },
     { id: 'll-2', label: 'Privacy Policy', path: '/privacy', enabled: true },
@@ -47,15 +40,6 @@ export const mergeFooterPage = (footerPage) => {
           enabled: link.enabled !== false,
         }))
       : base.quickLinks,
-    categoryLinks: Array.isArray(footerPage.categoryLinks) && footerPage.categoryLinks.length
-      ? footerPage.categoryLinks.map((link, i) => ({
-          id: link.id || `cl-${i + 1}`,
-          label: link.label || '',
-          path: link.path || '/',
-          enabled: link.enabled !== false,
-          order: link.order ?? i + 1,
-        }))
-      : base.categoryLinks,
     legalLinks: Array.isArray(footerPage.legalLinks) && footerPage.legalLinks.length
       ? footerPage.legalLinks.map((link, i) => ({
           id: link.id || `ll-${i + 1}`,

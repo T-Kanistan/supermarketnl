@@ -9,7 +9,7 @@ import { ABOUT_STORY_IMAGE, mergeAboutPage } from '../constants/aboutPageDefault
 import './AboutPage.css';
 
 const {
-  FiArrowRight, FiEye, FiHeart, FiMapPin, FiPhone, FiMail, FiShoppingBag, FiTarget, FiUsers,
+  FiEye, FiHeart, FiMapPin, FiPhone, FiMail, FiShoppingBag, FiTarget, FiUsers,
   FiStar, FiGrid, FiGlobe, FiCoffee, FiHeadphones, FiCalendar, FiAward,
 } = FiIcons;
 
@@ -187,7 +187,7 @@ const AboutPage = () => {
                 </div>
                 <div className="about-intro-actions">
                   <Link to={about.button1Url || '/products'} className="about-btn about-btn-primary">
-                    {about.button1Text || 'Explore Products'} <FiArrowRight />
+                    {about.button1Text || 'Explore Products'}
                   </Link>
                   <Link to={about.button2Url || '/contact-us'} className="about-btn about-btn-outline">
                     {about.button2Text || 'Contact Us'}

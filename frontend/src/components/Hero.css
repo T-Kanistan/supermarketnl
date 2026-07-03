@@ -118,15 +118,6 @@
   color: #00aeef;
 }
 
-.hero-title-accent {
-  display: block;
-  width: 58px;
-  height: 3px;
-  margin: 14px 0 22px;
-  background: #00aeef;
-  border-radius: 2px;
-}
-
 .hero-subtitle {
   font-size: 1.05rem;
   font-weight: 400;

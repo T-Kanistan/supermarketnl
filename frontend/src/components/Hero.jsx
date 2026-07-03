@@ -60,7 +60,6 @@ const Hero = () => {
               <span className="hero-title-fresh">{headingLine1}</span>
               <span className="hero-highlight">{headingLine2}</span>
               <span className="hero-title-line">{headingLine3}</span>
-              <span className="hero-title-accent" aria-hidden="true" />
             </h1>
             <p className="hero-subtitle">{bannerData.description}</p>
             <div className="hero-buttons">

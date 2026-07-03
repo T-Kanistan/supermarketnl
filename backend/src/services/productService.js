@@ -175,6 +175,8 @@ export const formatProductListItem = (doc) => {
     productType: plain.productType,
     name: plain.name || plain.productName,
     stock: plain.stock,
+    weightUnit: plain.weightUnit || plain.weight || '',
+    weight: plain.weightUnit || plain.weight || '',
     createdAt: plain.createdAt,
   };
 };

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { FiX, FiUser, FiPhone, FiMail, FiPackage, FiTag, FiMessageSquare, FiSend } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
 import enquiryService from '../services/enquiryService';
@@ -38,7 +38,9 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isWhatsAppSubmitting, setIsWhatsAppSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showEmailRequiredModal, setShowEmailRequiredModal] = useState(false);
   const [phoneHelperVisible, setPhoneHelperVisible] = useState(false);
+  const emailInputRef = useRef(null);
 
   const isFoodCorner = product?.enquirySource === 'food-corner';
   const isGeneral = product?.enquirySource === 'general' || (!product?.name && !isFoodCorner);
@@ -47,6 +49,7 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
     if (!isOpen) return;
 
     setShowSuccess(false);
+    setShowEmailRequiredModal(false);
     setErrors({});
     setPhoneHelperVisible(false);
 
@@ -69,7 +72,15 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
     if (!isOpen) return;
 
     const handleEscape = (e) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key !== 'Escape') return;
+      if (showEmailRequiredModal) {
+        setShowEmailRequiredModal(false);
+        requestAnimationFrame(() => {
+          emailInputRef.current?.focus();
+        });
+        return;
+      }
+      onClose();
     };
 
     document.body.style.overflow = 'hidden';
@@ -78,7 +89,7 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
       document.body.style.overflow = '';
       window.removeEventListener('keydown', handleEscape);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, showEmailRequiredModal]);
 
   if (!isOpen) return null;
 
@@ -90,7 +101,7 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
     }
   };
 
-  const validate = () => {
+  const validate = ({ requireEmail = true } = {}) => {
     const next = {};
 
     if (form.fullName.trim() && form.fullName.trim().length < 3) {
@@ -98,9 +109,14 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
     }
     if (!form.phone.trim()) next.phone = 'Phone number is required';
     else if (!/^[\d\s+()-]{8,}$/.test(form.phone.trim())) next.phone = 'Enter a valid phone number';
-    if (!form.email.trim()) next.email = 'Email is required';
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
-      next.email = 'Please enter a valid email address.';
+    if (requireEmail) {
+      if (!form.email.trim()) {
+        setShowEmailRequiredModal(true);
+        return false;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+        next.email = 'Please enter a valid email address.';
+      }
     }
     if (!isGeneral && !form.productName.trim()) next.productName = 'Product name is required';
     if (!form.message.trim()) next.message = 'Message is required';
@@ -108,6 +124,13 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
 
     setErrors(next);
     return Object.keys(next).length === 0;
+  };
+
+  const closeEmailRequiredModal = () => {
+    setShowEmailRequiredModal(false);
+    requestAnimationFrame(() => {
+      emailInputRef.current?.focus();
+    });
   };
 
   const getGeneralPayload = () => ({
@@ -129,7 +152,7 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validate()) return;
+    if (!validate({ requireEmail: true })) return;
 
     setIsSubmitting(true);
     try {
@@ -165,7 +188,7 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
   };
 
   const handleGeneralWhatsApp = async () => {
-    if (!validate()) return;
+    if (!validate({ requireEmail: false })) return;
 
     setIsWhatsAppSubmitting(true);
     const payload = getGeneralPayload();
@@ -186,7 +209,7 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
   };
 
   const handleWhatsApp = () => {
-    if (!validate() || isGeneral) return;
+    if (isGeneral || !validate({ requireEmail: false })) return;
     openWhatsAppEnquiry(form, { isFoodCorner });
   };
 
@@ -284,13 +307,13 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
                   <div className="enquiry-input-wrap">
                     <FiMail />
                     <input
+                      ref={emailInputRef}
                       id="enquiry-email"
                       name="email"
                       type="email"
                       value={form.email}
                       onChange={handleChange}
                       placeholder="your@email.com"
-                      required
                       autoComplete="email"
                     />
                   </div>
@@ -443,6 +466,40 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
               )}
             </div>
           </form>
+        )}
+
+        {showEmailRequiredModal && (
+          <div
+            className="enquiry-validation-overlay"
+            onClick={closeEmailRequiredModal}
+            role="presentation"
+          >
+            <div
+              className="enquiry-validation-modal"
+              onClick={(e) => e.stopPropagation()}
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="enquiry-email-required-title"
+              aria-describedby="enquiry-email-required-message"
+            >
+              <div className="enquiry-validation-icon" aria-hidden="true">
+                <FiMail />
+              </div>
+              <h3 id="enquiry-email-required-title">Email Address Required</h3>
+              <p id="enquiry-email-required-message">
+                Please enter your email address before submitting your enquiry. Our team uses your
+                email to send updates and respond to your enquiry.
+              </p>
+              <button
+                type="button"
+                className="enquiry-validation-ok"
+                onClick={closeEmailRequiredModal}
+                autoFocus
+              >
+                OK
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>

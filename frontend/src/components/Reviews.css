@@ -1,3 +1,11 @@
+.reviews-section-title {
+  padding-bottom: 0;
+}
+
+.reviews-section-title::after {
+  display: none;
+}
+
 .reviews-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

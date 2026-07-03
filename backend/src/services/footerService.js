@@ -4,7 +4,6 @@ import siteSettingsService from './siteSettingsService.js';
 
 const LINK_TYPES = {
   quick: 'quickLinks',
-  category: 'categoryLinks',
   legal: 'legalLinks',
 };
 
@@ -156,7 +155,6 @@ export const getFooterFull = async (visibleOnly = false) => {
   return {
     settings: mapSettingsToApi(doc),
     quickLinks: filterLinks(doc.quickLinks),
-    categoryLinks: filterLinks(doc.categoryLinks),
     legalLinks: filterLinks(doc.legalLinks),
   };
 };
@@ -166,7 +164,7 @@ export const updateFooterSettings = async (body) => {
   const payload = normalizeSettingsBody(body);
   const mongoUpdate = apiPayloadToMongoUpdate(payload);
 
-  const linkArrays = ['quickLinks', 'categoryLinks', 'legalLinks'];
+  const linkArrays = ['quickLinks', 'legalLinks'];
   let linksChanged = false;
 
   linkArrays.forEach((key) => {
@@ -187,7 +185,6 @@ export const updateFooterSettings = async (body) => {
 
   if (linksChanged) {
     existing.markModified('quickLinks');
-    existing.markModified('categoryLinks');
     existing.markModified('legalLinks');
     await existing.save();
   }
@@ -322,11 +319,6 @@ export const createQuickLink = async (body) => createLink('quick', body);
 export const updateQuickLink = async (id, body) => updateLink('quick', id, body);
 export const deleteQuickLink = async (id) => deleteLink('quick', id);
 
-export const listCategoryLinks = async (visibleOnly = false) => listLinks('category', visibleOnly);
-export const createCategoryLink = async (body) => createLink('category', body);
-export const updateCategoryLink = async (id, body) => updateLink('category', id, body);
-export const deleteCategoryLink = async (id) => deleteLink('category', id);
-
 export const listLegalLinks = async (visibleOnly = false) => listLinks('legal', visibleOnly);
 export const createLegalLink = async (body) => createLink('legal', body);
 export const updateLegalLink = async (id, body) => updateLink('legal', id, body);
@@ -342,10 +334,6 @@ export default {
   createQuickLink,
   updateQuickLink,
   deleteQuickLink,
-  listCategoryLinks,
-  createCategoryLink,
-  updateCategoryLink,
-  deleteCategoryLink,
   listLegalLinks,
   createLegalLink,
   updateLegalLink,

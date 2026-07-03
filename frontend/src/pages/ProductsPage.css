@@ -29,6 +29,42 @@
   background-position: center;
   transform: scale(1.02);
   filter: brightness(1.06) contrast(1.04) saturate(1.04);
+  animation: products-hero-fade-in 0.35s ease;
+}
+
+@keyframes products-hero-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Loading skeleton — reserves the hero height so there is no layout shift and
+   never shows a previous/stale banner image while the latest one loads. */
+.products-hero--loading {
+  background: #0f172a;
+}
+
+.products-hero-skeleton {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: linear-gradient(120deg, #111c33 0%, #1c2942 50%, #111c33 100%);
+}
+
+.products-hero-skeleton-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    rgba(255, 255, 255, 0) 30%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0) 70%
+  );
+  transform: translateX(-100%);
+  animation: products-hero-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes products-hero-shimmer {
+  100% { transform: translateX(100%); }
 }
 
 .products-hero-overlay {

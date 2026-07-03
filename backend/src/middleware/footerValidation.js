@@ -81,10 +81,6 @@ export const createQuickLinkRules = createLinkRules;
 export const updateQuickLinkRules = updateLinkRules;
 export const quickLinkIdRules = linkIdRules;
 
-export const createCategoryLinkRules = createLinkRules;
-export const updateCategoryLinkRules = updateLinkRules;
-export const categoryLinkIdRules = linkIdRules;
-
 export const createLegalLinkRules = createLinkRules;
 export const updateLegalLinkRules = updateLinkRules;
 export const legalLinkIdRules = linkIdRules;
@@ -95,9 +91,6 @@ export default {
   createQuickLinkRules,
   updateQuickLinkRules,
   quickLinkIdRules,
-  createCategoryLinkRules,
-  updateCategoryLinkRules,
-  categoryLinkIdRules,
   createLegalLinkRules,
   updateLegalLinkRules,
   legalLinkIdRules,

@@ -56,7 +56,6 @@ const footerCmsSchema = new mongoose.Schema(
     brand: { type: brandSchema, default: () => ({}) },
     socialLinks: { type: socialLinksSchema, default: () => ({}) },
     quickLinks: { type: [footerLinkSchema], default: [] },
-    categoryLinks: { type: [footerLinkSchema], default: [] },
     legalLinks: { type: [footerLinkSchema], default: [] },
     businessHours: { type: businessHoursSchema, default: () => ({}) },
     contact: { type: contactSchema, default: () => ({}) },
@@ -101,13 +100,6 @@ export const getDefaultFooterCMS = () => ({
     { label: 'Offers', url: '/offers', order: 5, show: true },
     { label: 'FAQ', url: '/faq', order: 6, show: true },
     { label: 'Contact Us', url: '/contact', order: 7, show: true },
-  ],
-  categoryLinks: [
-    { label: 'Beverages & Tea', url: '/products?category=beverages-tea', order: 1, show: true },
-    { label: 'Frozen Ready to Eat', url: '/products?category=frozen-ready-to-eat', order: 2, show: true },
-    { label: 'Meat & Seafoods', url: '/products?category=meat-seafoods', order: 3, show: true },
-    { label: 'Spices & Masalas', url: '/products?category=spices-masalas', order: 4, show: true },
-    { label: 'Vegetables & Fruits', url: '/products?category=vegetables-fruits', order: 5, show: true },
   ],
   legalLinks: [
     { label: 'Terms & Conditions', url: '/terms', order: 1, show: true },

@@ -313,11 +313,7 @@ export const AdminDashboardLayout = () => {
             </div>
             <div className="user-info">
               <span className="user-name">{displayName || 'User Account'}</span>
-              <span className="user-role">{user?.displayRole || user?.role || 'Staff'}</span>
             </div>
-            <button type="button" className="logout-btn-sidebar" onClick={handleLogout} title="Sign Out">
-              <FaSignOutAlt />
-            </button>
           </div>
         </div>
       </aside>
