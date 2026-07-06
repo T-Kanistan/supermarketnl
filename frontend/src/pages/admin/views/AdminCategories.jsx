@@ -4,6 +4,8 @@ import categoryService from '../../../services/categoryService';
 import { getImageUrl } from '../../../services/api';
 import { useToast } from '../../../context/ToastContext';
 import { formatCategoryName } from '../../../utils/formatCategoryName';
+import { invalidateDashboardStats } from '../../../utils/dashboardStatsRefresh';
+import { CMS_IMAGE_ACCEPT, rejectInvalidCmsImageFile } from '../../../utils/imageUploadValidation';
 
 export const AdminCategories = () => {
   const [categories, setCategories] = useState([]);
@@ -72,13 +74,14 @@ export const AdminCategories = () => {
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
+    if (!file) return;
+    if (rejectInvalidCmsImageFile(file, (msg) => addToast(msg, 'error'), e.target)) return;
+
+    const reader = new FileReader();
       reader.onloadend = () => {
         setFormData((prev) => ({ ...prev, image: reader.result }));
       };
       reader.readAsDataURL(file);
-    }
   };
 
   const handleDelete = async (id) => {
@@ -86,6 +89,7 @@ export const AdminCategories = () => {
     try {
       await categoryService.deleteCategory(id);
       addToast('Category deleted successfully', 'success');
+      invalidateDashboardStats();
       fetchCategories();
     } catch (err) {
       console.error('Failed to delete category', err);
@@ -109,6 +113,7 @@ export const AdminCategories = () => {
         await categoryService.createCategory(formData);
         addToast('New category created successfully', 'success');
       }
+      invalidateDashboardStats();
       setIsModalOpen(false);
       fetchCategories();
     } catch (err) {
@@ -229,7 +234,7 @@ export const AdminCategories = () => {
                     <div className="image-upload-zone" style={{ padding: '8px' }}>
                       <input 
                         type="file" 
-                        accept="image/*" 
+                        accept={CMS_IMAGE_ACCEPT} 
                         id="cat-file" 
                         onChange={handleImageUpload} 
                         style={{ display: 'none' }} 

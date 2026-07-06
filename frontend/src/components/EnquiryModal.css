@@ -199,6 +199,16 @@
 .enquiry-field.has-error select,
 .enquiry-field.has-error textarea {
   border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+  background: #fffafb;
+}
+
+.enquiry-field-hint {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: #64748b;
+  font-weight: 500;
 }
 
 .enquiry-error {
@@ -358,10 +368,10 @@
 }
 
 .enquiry-validation-modal {
-  width: min(100%, 400px);
-  padding: 28px 24px 22px;
+  width: min(100%, 420px);
+  padding: 28px 24px 24px;
   background: #ffffff;
-  border-radius: 16px;
+  border-radius: 20px;
   box-shadow: 0 20px 50px rgba(15, 23, 42, 0.22);
   text-align: center;
   animation: enquirySlideUp 0.25s cubic-bezier(0.165, 0.84, 0.44, 1);
@@ -389,15 +399,87 @@
 }
 
 .enquiry-validation-modal p {
-  margin: 0 0 22px;
+  margin: 0 0 20px;
   font-size: 0.92rem;
   line-height: 1.55;
   color: #64748b;
 }
 
-.enquiry-validation-ok {
-  min-width: 120px;
-  padding: 12px 28px;
+.enquiry-validation-field {
+  width: 100%;
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.enquiry-validation-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.enquiry-validation-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.enquiry-validation-input-wrap svg {
+  position: absolute;
+  left: 14px;
+  color: #22c55e;
+  font-size: 1.1rem;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.enquiry-validation-input-wrap input {
+  width: 100%;
+  height: 48px;
+  padding: 0 14px 0 42px;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  color: #0f172a;
+  background: #f8fafc;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  outline: none;
+}
+
+.enquiry-validation-input-wrap input:focus {
+  border-color: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
+  background: #ffffff;
+}
+
+.enquiry-validation-field.has-error .enquiry-validation-input-wrap input {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+  background: #fffafb;
+}
+
+.enquiry-validation-error {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.78rem;
+  color: #ef4444;
+  font-weight: 500;
+  text-align: left;
+}
+
+.enquiry-validation-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.enquiry-validation-continue {
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 20px;
   border: none;
   border-radius: 12px;
   background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
@@ -406,12 +488,38 @@
   font-weight: 700;
   cursor: pointer;
   box-shadow: 0 6px 18px rgba(34, 197, 94, 0.35);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
 }
 
-.enquiry-validation-ok:hover {
+.enquiry-validation-continue:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow: 0 10px 24px rgba(34, 197, 94, 0.4);
+}
+
+.enquiry-validation-continue:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.enquiry-validation-cancel {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 20px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.enquiry-validation-cancel:hover {
+  background: #e2e8f0;
+  color: #334155;
 }
 
 @media (max-width: 640px) {
@@ -445,6 +553,7 @@
 
   .enquiry-validation-modal {
     padding: 24px 20px 20px;
+    border-radius: 20px;
   }
 
   .enquiry-validation-modal h3 {

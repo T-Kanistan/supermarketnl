@@ -6,6 +6,9 @@ import { useAuth } from '../../../context/AuthContext';
 import { getImageUrl } from '../../../services/api';
 import { BANNER_PAGE_OPTIONS, getPageBannerLabel } from '../../../constants/pageBannerDefaults';
 import { getBannerOverlayStyle } from '../../../utils/bannerOverlay';
+import { invalidateDashboardStats } from '../../../utils/dashboardStatsRefresh';
+import { invalidatePageBannerCache } from '../../../utils/pageBannerCache';
+import { CMS_IMAGE_ACCEPT, rejectInvalidCmsImageFile } from '../../../utils/imageUploadValidation';
 import './AdminBanners.css';
 
 const PAGE_FILTER_OPTIONS = [{ value: 'all', label: 'All Pages' }, ...BANNER_PAGE_OPTIONS];
@@ -141,15 +144,10 @@ export const AdminBanners = () => {
   const handleImageUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (rejectInvalidCmsImageFile(file, (msg) => addToast(msg, 'error'), e.target)) return;
 
     if (file.size > 5 * 1024 * 1024) {
       addToast('Banner image must be 5MB or smaller', 'error');
-      return;
-    }
-
-    const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-    if (!allowed.includes(file.type)) {
-      addToast('Only JPG, PNG, and WEBP images are allowed', 'error');
       return;
     }
 
@@ -211,6 +209,8 @@ export const AdminBanners = () => {
         addToast('Banner created successfully', 'success');
       }
 
+      invalidateDashboardStats();
+      invalidatePageBannerCache(payload.pageType);
       setIsModalOpen(false);
       setImageFile(null);
       fetchBanners();
@@ -234,6 +234,8 @@ export const AdminBanners = () => {
     try {
       await bannerService.deleteBanner(bannerId);
       addToast('Banner deleted successfully', 'success');
+      invalidateDashboardStats();
+      invalidatePageBannerCache(banner.pageType || banner.pageName);
       fetchBanners();
     } catch (err) {
       console.error('Failed to delete banner', err);
@@ -256,6 +258,8 @@ export const AdminBanners = () => {
     try {
       await bannerService.updateBannerStatus(bannerId, !banner.isActive);
       addToast(`Banner ${banner.isActive ? 'deactivated' : 'activated'} successfully`, 'success');
+      invalidateDashboardStats();
+      invalidatePageBannerCache(banner.pageType || banner.pageName);
       fetchBanners();
     } catch (err) {
       console.error('Failed to update banner status', err);
@@ -463,7 +467,7 @@ export const AdminBanners = () => {
                     <div className="image-upload-zone" style={{ padding: '8px' }}>
                       <input
                         type="file"
-                        accept="image/jpeg,image/jpg,image/png,image/webp"
+                        accept={CMS_IMAGE_ACCEPT}
                         id="banner-image-file"
                         onChange={handleImageUpload}
                         style={{ display: 'none' }}

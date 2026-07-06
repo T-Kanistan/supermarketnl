@@ -4,6 +4,8 @@ import testimonialService, { DEFAULT_AVATAR } from '../../../services/testimonia
 import { getImageUrl } from '../../../services/api';
 import { useToast } from '../../../context/ToastContext';
 import { useAuth } from '../../../context/AuthContext';
+import { invalidateDashboardStats } from '../../../utils/dashboardStatsRefresh';
+import { CMS_IMAGE_ACCEPT, rejectInvalidCmsImageFile } from '../../../utils/imageUploadValidation';
 
 const emptyForm = {
   customerName: '',
@@ -103,6 +105,7 @@ export const AdminTestimonials = () => {
   const handleImageUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (rejectInvalidCmsImageFile(file, (msg) => addToast(msg, 'error'), e.target)) return;
 
     if (file.size > 3 * 1024 * 1024) {
       addToast('Avatar image must be 3MB or smaller', 'error');
@@ -132,6 +135,7 @@ export const AdminTestimonials = () => {
     try {
       await testimonialService.deleteTestimonial(id);
       addToast('Testimonial deleted successfully', 'success');
+      invalidateDashboardStats();
       fetchTestimonials(searchQuery);
     } catch (err) {
       console.error('Failed to delete testimonial', err);
@@ -164,6 +168,7 @@ export const AdminTestimonials = () => {
         await testimonialService.createTestimonial(payload);
         addToast('New testimonial added successfully', 'success');
       }
+      invalidateDashboardStats();
       setIsModalOpen(false);
       fetchTestimonials(searchQuery);
     } catch (err) {
@@ -349,7 +354,7 @@ export const AdminTestimonials = () => {
                       <input
                         ref={fileInputRef}
                         type="file"
-                        accept="image/jpeg,image/jpg,image/png,image/webp"
+                        accept={CMS_IMAGE_ACCEPT}
                         onChange={handleImageUpload}
                         style={{ display: 'none' }}
                       />

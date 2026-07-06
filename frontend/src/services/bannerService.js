@@ -31,7 +31,11 @@ const toFormPayload = (data) => {
 export const bannerService = {
   getBannerByPage: async (pageType) => {
     try {
-      return await apiRequest(() => api.get(`/banners/page/${pageType}`));
+      return await apiRequest(() =>
+        api.get(`/banners/page/${pageType}`, {
+          params: { _t: Date.now() },
+        })
+      );
     } catch {
       return null;
     }

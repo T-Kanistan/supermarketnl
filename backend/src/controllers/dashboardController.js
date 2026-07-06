@@ -1,11 +1,26 @@
 import Manager from '../models/Manager.js';
-import HomepageBanner from '../models/HomepageBanner.js';
-import FAQ from '../models/FAQ.js';
-import Testimonial from '../models/Testimonial.js';
 import Announcement from '../models/Announcement.js';
-import Product from '../models/Product.js';
-import Category from '../models/Category.js';
 import CustomerEnquiry from '../models/CustomerEnquiry.js';
+import Product from '../models/Product.js';
+import { fetchActiveCounts } from '../services/dashboardStatsService.js';
+
+/**
+ * @desc    Active-record counts only (always fresh from DB)
+ * @route   GET /api/dashboard/active-counts
+ * @access  Private (Admin / Manager)
+ */
+export const getActiveCounts = async (req, res, next) => {
+  try {
+    const counts = await fetchActiveCounts();
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.status(200).json({
+      success: true,
+      data: counts,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 /**
  * @desc    Get dashboard metrics / counts
@@ -14,61 +29,35 @@ import CustomerEnquiry from '../models/CustomerEnquiry.js';
  */
 export const getStats = async (req, res, next) => {
   try {
-    if (req.user.role === 'manager') {
-      const [
-        totalProducts,
-        foodCornerProducts,
-        activeOffers,
-        totalEnquiries,
-        unreadEnquiries,
-        activeAnnouncements,
-      ] = await Promise.all([
-        // Grocery only (supermarket products)
-        Product.countDocuments({
-          status: 'active',
-          $or: [{ productType: 'grocery' }, { type: 'grocery' }],
-        }),
-        // Food Corner only
-        Product.countDocuments({
-          status: 'active',
-          $or: [
-            { productType: 'food-corner' },
-            { type: 'food' },
-            { type: 'food-corner' },
-          ],
-        }),
-        Announcement.countDocuments({ status: 'active' }),
-        CustomerEnquiry.countDocuments({ status: { $ne: 'deleted' } }),
-        CustomerEnquiry.countDocuments({ status: { $in: ['New', 'new'] }, isRead: false }),
-        Announcement.countDocuments({ status: 'active' }),
-      ]);
+    const counts = await fetchActiveCounts();
 
+    if (req.user.role === 'manager') {
       return res.status(200).json({
         success: true,
         data: {
-          totalProducts,
-          foodCornerProducts,
-          activeOffers,
-          totalEnquiries,
-          unreadEnquiries,
-          activeAnnouncements,
+          totalProducts: counts.activeGroceryProducts,
+          foodCornerProducts: counts.activeFoodCornerProducts,
+          activeOffers: counts.activeOffers,
+          totalEnquiries: counts.activeMessages,
+          unreadEnquiries: counts.unreadMessages,
+          activeAnnouncements: counts.activeOffers,
           recentActivities: [
             {
               id: 'mgr-act1',
               type: 'product',
-              text: `Catalog has ${totalProducts} grocery products`,
+              text: `Catalog has ${counts.activeGroceryProducts} active grocery products`,
               time: 'Updated',
             },
             {
               id: 'mgr-act2',
               type: 'announcement',
-              text: `${activeOffers} active offers running`,
+              text: `${counts.activeOffers} active offers running`,
               time: 'Updated',
             },
             {
               id: 'mgr-act3',
               type: 'message',
-              text: `${unreadEnquiries} unread customer enquiries`,
+              text: `${counts.unreadMessages} unread customer enquiries`,
               time: 'Updated',
             },
           ],
@@ -76,64 +65,12 @@ export const getStats = async (req, res, next) => {
       });
     }
 
-    const [
-      totalManagers,
-      activeManagers,
-      totalBanners,
-      activeBanners,
-      totalFaqs,
-      activeFaqs,
-      totalTestimonials,
-      activeTestimonials,
-      totalAnnouncements,
-      activeAnnouncements,
-      totalProducts,
-      activeProducts,
-      totalFoodCornerProducts,
-      activeFoodCornerProducts,
-      totalCategories,
-      activeCategories,
-      totalMessages,
-      unreadMessages,
-    ] = await Promise.all([
+    const [totalManagers, activeManagers] = await Promise.all([
       Manager.countDocuments(),
       Manager.countDocuments({ status: true }),
-      HomepageBanner.countDocuments({ status: { $ne: 'deleted' } }),
-      HomepageBanner.countDocuments({ status: 'active' }),
-      FAQ.countDocuments({ status: { $ne: 'deleted' } }),
-      FAQ.countDocuments({ status: 'active' }),
-      Testimonial.countDocuments({ status: { $ne: 'deleted' } }),
-      Testimonial.countDocuments({ status: 'active' }),
-      Announcement.countDocuments({ status: { $ne: 'deleted' } }),
-      Announcement.countDocuments({ status: 'active', isExpired: { $ne: true } }),
-      Product.countDocuments({
-        $or: [{ productType: 'grocery' }, { type: 'grocery' }],
-      }),
-      Product.countDocuments({
-        status: 'active',
-        $or: [{ productType: 'grocery' }, { type: 'grocery' }],
-      }),
-      Product.countDocuments({
-        $or: [
-          { productType: 'food-corner' },
-          { type: 'food' },
-          { type: 'food-corner' },
-        ],
-      }),
-      Product.countDocuments({
-        status: 'active',
-        $or: [
-          { productType: 'food-corner' },
-          { type: 'food' },
-          { type: 'food-corner' },
-        ],
-      }),
-      Category.countDocuments(),
-      Category.countDocuments({ status: 'active' }),
-      CustomerEnquiry.countDocuments({ status: { $ne: 'deleted' } }),
-      CustomerEnquiry.countDocuments({ status: 'new', isRead: false }),
     ]);
 
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
     res.status(200).json({
       success: true,
       data: {
@@ -142,45 +79,46 @@ export const getStats = async (req, res, next) => {
           active: activeManagers,
           inactive: totalManagers - activeManagers,
         },
-        banners: {
-          total: totalBanners,
-          active: activeBanners,
-          inactive: totalBanners - activeBanners,
-        },
-        faqs: {
-          total: totalFaqs,
-          active: activeFaqs,
-          inactive: totalFaqs - activeFaqs,
-        },
-        testimonials: {
-          total: totalTestimonials,
-          active: activeTestimonials,
-          inactive: totalTestimonials - activeTestimonials,
-        },
-        announcements: {
-          total: totalAnnouncements,
-          active: activeAnnouncements,
-          inactive: totalAnnouncements - activeAnnouncements,
-        },
         products: {
-          total: totalProducts,
-          active: activeProducts,
-          inactive: totalProducts - activeProducts,
+          total: counts.activeGroceryProducts,
+          active: counts.activeGroceryProducts,
+          inactive: 0,
         },
         foodCornerProducts: {
-          total: totalFoodCornerProducts,
-          active: activeFoodCornerProducts,
-          inactive: totalFoodCornerProducts - activeFoodCornerProducts,
+          total: counts.activeFoodCornerProducts,
+          active: counts.activeFoodCornerProducts,
+          inactive: 0,
         },
         categories: {
-          total: totalCategories,
-          active: activeCategories,
-          inactive: totalCategories - activeCategories,
+          total: counts.activeCategories,
+          active: counts.activeCategories,
+          inactive: 0,
+        },
+        testimonials: {
+          total: counts.activeReviews,
+          active: counts.activeReviews,
+          inactive: 0,
+        },
+        faqs: {
+          total: counts.activeFaqs,
+          active: counts.activeFaqs,
+          inactive: 0,
         },
         messages: {
-          total: totalMessages,
-          unread: unreadMessages,
+          total: counts.activeMessages,
+          unread: counts.unreadMessages,
         },
+        banners: {
+          total: counts.activeBanners,
+          active: counts.activeBanners,
+          inactive: 0,
+        },
+        announcements: {
+          total: counts.activeOffers,
+          active: counts.activeOffers,
+          inactive: 0,
+        },
+        activeCounts: counts,
       },
     });
   } catch (error) {

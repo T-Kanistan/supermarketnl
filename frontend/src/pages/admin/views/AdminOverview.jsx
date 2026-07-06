@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   FaBoxOpen, FaTags, FaCommentDots, FaQuestionCircle,
   FaEnvelopeOpenText, FaImages, FaPlus, FaGlobe, FaBullhorn, FaUserCog, FaUtensils,
 } from 'react-icons/fa';
 import dashboardService from '../../../services/dashboardService';
+import { subscribeDashboardStatsInvalidation } from '../../../utils/dashboardStatsRefresh';
 import { useToast } from '../../../context/ToastContext';
 import { useAuth } from '../../../context/AuthContext';
 import { getDashboardBase } from '../../../constants/managerPermissions';
@@ -19,26 +20,30 @@ export const AdminOverview = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const [data, activities, enquiries] = await Promise.all([
-          dashboardService.getStats(),
-          dashboardService.getRecentActivities(),
-          dashboardService.getRecentEnquiries(),
-        ]);
-        setStats(data);
-        setRecentActivities(activities);
-        setRecentEnquiries(enquiries);
-      } catch (err) {
-        console.error('Failed to load dashboard metrics', err);
-        addToast('Failed to load dashboard metrics', 'error');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchStats();
+  const fetchStats = useCallback(async (showLoading = false) => {
+    if (showLoading) setLoading(true);
+    try {
+      const [data, activities, enquiries] = await Promise.all([
+        dashboardService.getStats(),
+        dashboardService.getRecentActivities(),
+        dashboardService.getRecentEnquiries(),
+      ]);
+      setStats(data);
+      setRecentActivities(activities);
+      setRecentEnquiries(enquiries);
+    } catch (err) {
+      console.error('Failed to load dashboard metrics', err);
+      if (showLoading) addToast('Failed to load dashboard metrics', 'error');
+    } finally {
+      if (showLoading) setLoading(false);
+    }
   }, [addToast]);
+
+  useEffect(() => {
+    fetchStats(true);
+  }, [fetchStats]);
+
+  useEffect(() => subscribeDashboardStatsInvalidation(() => fetchStats(false)), [fetchStats]);
 
   if (loading) {
     return (

@@ -3,6 +3,7 @@ import path from 'path';
 import multer from 'multer';
 
 import { UPLOAD_ROOT } from '../config/paths.js';
+import { cmsImageMulterFilter } from '../constants/cmsImageUpload.js';
 
 const uploadDir = path.join(UPLOAD_ROOT, 'homepage-about');
 if (!fs.existsSync(uploadDir)) {
@@ -17,13 +18,7 @@ const storage = multer.diskStorage({
   },
 });
 
-const fileFilter = (_req, file, cb) => {
-  const allowed = /jpeg|jpg|png|webp/;
-  const extOk = allowed.test(path.extname(file.originalname).toLowerCase());
-  const mimeOk = allowed.test(file.mimetype);
-  if (extOk && mimeOk) return cb(null, true);
-  cb(new Error('Only jpg, jpeg, png, and webp images are allowed'));
-};
+const fileFilter = cmsImageMulterFilter;
 
 export const homepageAboutUpload = multer({
   storage,

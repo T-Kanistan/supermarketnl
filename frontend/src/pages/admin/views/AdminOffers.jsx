@@ -7,6 +7,7 @@ import { getImageUrl } from '../../../services/api';
 import { validateOfferDates } from '../../../utils/offerDateValidation';
 import { useToast } from '../../../context/ToastContext';
 import { useAuth } from '../../../context/AuthContext';
+import { CMS_IMAGE_ACCEPT, rejectInvalidCmsImageFile } from '../../../utils/imageUploadValidation';
 import '../../OffersPage.css';
 
 const PREDEFINED_CATEGORIES = [
@@ -201,6 +202,8 @@ export const AdminOffers = () => {
   const handleImageUpload = async (field) => async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    if (rejectInvalidCmsImageFile(file, (msg) => addToast(msg, 'error'), e.target)) return;
+
     const previewUrl = URL.createObjectURL(file);
     setFormData((prev) => ({ ...prev, [field]: previewUrl }));
     try {
@@ -349,6 +352,8 @@ export const AdminOffers = () => {
   const handleBannerImageUpload = (field) => async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    if (rejectInvalidCmsImageFile(file, (msg) => addToast(msg, 'error'), e.target)) return;
+
     const previewUrl = URL.createObjectURL(file);
     setBannerData((prev) => ({ ...prev, [field]: previewUrl }));
     try {
@@ -734,7 +739,7 @@ export const AdminOffers = () => {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '12px', alignItems: 'center' }}>
                     <input type="text" name="image" value={formData.image} onChange={handleChange} placeholder="/uploads/offers/..." required />
                     <div className="image-upload-zone" style={{ padding: '8px' }}>
-                      <input type="file" accept="image/*" id="offer-img" onChange={handleImageUpload('image')} style={{ display: 'none' }} />
+                      <input type="file" accept={CMS_IMAGE_ACCEPT} id="offer-img" onChange={handleImageUpload('image')} style={{ display: 'none' }} />
                       <label htmlFor="offer-img" style={{ cursor: 'pointer', margin: 0 }}>
                         <p style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--admin-sidebar-active)' }}>Browse</p>
                       </label>
@@ -795,7 +800,7 @@ export const AdminOffers = () => {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '12px', alignItems: 'center' }}>
                     <input type="text" name="heroImage" value={bannerData.heroImage} onChange={handleBannerChange} placeholder="/uploads/offers/..." />
                     <div className="image-upload-zone" style={{ padding: '8px' }}>
-                      <input type="file" accept="image/*" id="hero-img" onChange={handleBannerImageUpload('heroImage')} style={{ display: 'none' }} />
+                      <input type="file" accept={CMS_IMAGE_ACCEPT} id="hero-img" onChange={handleBannerImageUpload('heroImage')} style={{ display: 'none' }} />
                       <label htmlFor="hero-img" style={{ cursor: 'pointer', margin: 0 }}>
                         <p style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--admin-sidebar-active)' }}>Browse</p>
                       </label>

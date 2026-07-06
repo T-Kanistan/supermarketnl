@@ -6,6 +6,7 @@ import aboutUsService from '../../../services/aboutUsService';
 import { getImageUrl } from '../../../services/api';
 import { emptyAboutPageForm, mergeAboutPage } from '../../../constants/aboutPageDefaults';
 import { isValidAboutImageFile, isValidAboutImageDataUrl } from '../../../utils/aboutImageValidation';
+import { CMS_IMAGE_ACCEPT, CMS_IMAGE_UPLOAD_ERROR } from '../../../utils/imageUploadValidation';
 import { useToast } from '../../../context/ToastContext';
 import './AdminAboutUs.css';
 
@@ -39,9 +40,7 @@ const InvalidFileTypeModal = ({ onClose }) => (
         <FaImage />
       </div>
       <h3 id="about-invalid-file-title">Invalid File Type</h3>
-      <p id="about-invalid-file-message">
-        Please select a valid image file (JPG, JPEG, PNG, or WEBP only).
-      </p>
+      <p id="about-invalid-file-message">{CMS_IMAGE_UPLOAD_ERROR}</p>
       <button type="button" className="about-admin-file-error-ok" onClick={onClose} autoFocus>
         OK
       </button>
@@ -84,7 +83,7 @@ const ImageField = ({ label, value, onChange, inputId }) => {
       <input
         id={inputId}
         type="file"
-        accept="image/*"
+        accept={CMS_IMAGE_ACCEPT}
         onChange={handleFileChange}
       />
       {showInvalidModal && (

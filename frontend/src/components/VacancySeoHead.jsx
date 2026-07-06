@@ -1,6 +1,9 @@
 import { useEffect } from 'react';
 import { SITE_NAME } from '../seo/siteConfig';
-import { buildVacancyShareMeta } from '../utils/vacancyShareMeta';
+import {
+  buildVacancyShareMeta,
+  resolveVacancyImagePath,
+} from '../utils/vacancyShareMeta';
 
 const upsertMeta = (attr, key, content) => {
   if (!content) return;
@@ -28,7 +31,11 @@ const VacancySeoHead = ({ vacancy, heroImageUrl = '' }) => {
   useEffect(() => {
     if (!vacancy) return undefined;
 
-    const meta = buildVacancyShareMeta({ vacancy, heroImageUrl });
+    const meta = buildVacancyShareMeta({
+      vacancy,
+      heroImageUrl,
+      vacancyImageUrl: resolveVacancyImagePath(vacancy),
+    });
     const pageTitle = meta.title ? `${meta.title} | Careers | ${SITE_NAME}` : `Careers | ${SITE_NAME}`;
 
     document.title = pageTitle;

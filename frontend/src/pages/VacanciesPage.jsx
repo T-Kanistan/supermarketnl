@@ -37,7 +37,11 @@ import {
 import usePageBanner from '../hooks/usePageBanner';
 import { getBannerOverlayStyle } from '../utils/bannerOverlay';
 import VacancySeoHead from '../components/VacancySeoHead';
-import { buildVacancyShareUrl } from '../utils/vacancyShareMeta';
+import {
+  buildVacancyShareUrl,
+  buildVacancyShareCaption,
+  resolveVacancyImagePath,
+} from '../utils/vacancyShareMeta';
 import './VacanciesPage.css';
 
 const JOB_ICONS = {
@@ -106,6 +110,9 @@ const VacanciesPage = () => {
   );
 
   const vacancyHeroImage = getImageUrl(pageBanner.backgroundImage || pageBanner.image);
+  const selectedVacancyImage = selectedVacancy
+    ? getImageUrl(resolveVacancyImagePath(selectedVacancy))
+    : '';
 
   const selectVacancy = (id, { updateUrl = true } = {}) => {
     setSelectedId(id);
@@ -196,15 +203,24 @@ const VacanciesPage = () => {
     }
   }, [jobQueryId, routeVacancyId, selectedVacancy, navigate]);
 
-  const shareUrl = selectedVacancy ? buildVacancyShareUrl(selectedVacancy.id) : buildVacancyShareUrl();
-
-  const handleShareFacebook = () => {
+  const handleShareFacebook = async () => {
     if (!selectedVacancy) {
       addToast('Please select a vacancy to share.', 'error');
       return;
     }
+
+    const shareUrl = buildVacancyShareUrl(selectedVacancy.id);
+    const caption = buildVacancyShareCaption(selectedVacancy, shareUrl);
+
+    try {
+      await navigator.clipboard.writeText(caption);
+      addToast('Share text copied. Paste it into your Facebook post after the link preview loads.', 'info');
+    } catch {
+      addToast('Opening Facebook share. Add the job details to your post if needed.', 'info');
+    }
+
     window.open(
-      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`,
+      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&hashtag=${encodeURIComponent('%23Hiring')}`,
       '_blank',
       'noopener,noreferrer'
     );
@@ -228,7 +244,10 @@ const VacanciesPage = () => {
 
   return (
     <div className="vacancies-page">
-      <VacancySeoHead vacancy={selectedVacancy} heroImageUrl={vacancyHeroImage} />
+      <VacancySeoHead
+        vacancy={selectedVacancy}
+        heroImageUrl={selectedVacancyImage || vacancyHeroImage}
+      />
       <section className={`careers-hero${bannerLoading ? ' careers-hero--loading' : ''}`}>
         <div
           className="careers-hero-bg"

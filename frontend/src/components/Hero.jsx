@@ -36,9 +36,28 @@ const Hero = () => {
 
   const bannerData = banner || mergePageBanner('home', null);
   const bgImage = getImageUrl(bannerData.backgroundImage || bannerData.image);
-  const headingLine1 = bannerData.title || bannerData.mainHeading;
-  const headingLine2 = bannerData.highlightedTitle || bannerData.highlightText;
-  const headingLine3 = bannerData.badgeText;
+  const rawTitle = (bannerData.title || bannerData.mainHeading || '').trim();
+  const highlighted = (bannerData.highlightedTitle || bannerData.highlightText || '').trim();
+  const badge = (bannerData.badgeText || '').trim();
+  const titleParts = rawTitle.split(/\s+/).filter(Boolean);
+
+  let headingLine1;
+  let headingLine2;
+  let headingLine3;
+
+  if (badge) {
+    headingLine1 = rawTitle;
+    headingLine2 = highlighted;
+    headingLine3 = badge;
+  } else if (titleParts.length >= 2 && highlighted) {
+    headingLine1 = titleParts[0];
+    headingLine2 = titleParts.slice(1).join(' ');
+    headingLine3 = highlighted;
+  } else {
+    headingLine1 = rawTitle;
+    headingLine2 = highlighted;
+    headingLine3 = badge;
+  }
   const primaryLabel = bannerData.buttonText || bannerData.button1Text;
   const primaryLink = bannerData.buttonUrl || bannerData.button1Url;
   const secondaryLabel = bannerData.button2Text;
@@ -57,9 +76,9 @@ const Hero = () => {
       <div className="hero-content">
         <div className="hero-text left-hero-card">
             <h1 className="hero-title">
-              <span className="hero-title-fresh">{headingLine1}</span>
-              <span className="hero-highlight">{headingLine2}</span>
-              <span className="hero-title-line">{headingLine3}</span>
+              {headingLine1 ? <span className="hero-title-fresh">{headingLine1}</span> : null}
+              {headingLine2 ? <span className="hero-highlight">{headingLine2}</span> : null}
+              {headingLine3 ? <span className="hero-title-line">{headingLine3}</span> : null}
             </h1>
             <p className="hero-subtitle">{bannerData.description}</p>
             <div className="hero-buttons">

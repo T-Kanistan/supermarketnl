@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 
 import { UPLOAD_ROOT } from '../config/paths.js';
+import { cmsImageMulterFilter } from '../constants/cmsImageUpload.js';
 
 const bannerUploadDir = path.join(UPLOAD_ROOT, 'banners');
 
@@ -18,16 +19,7 @@ const storage = multer.diskStorage({
   },
 });
 
-const fileFilter = (_req, file, cb) => {
-  const allowed = /jpeg|jpg|png|webp/;
-  const ext = allowed.test(path.extname(file.originalname).toLowerCase());
-  const mime = allowed.test(file.mimetype);
-  if (ext && mime) {
-    cb(null, true);
-    return;
-  }
-  cb(new Error('Only JPG, PNG, and WEBP images are allowed'));
-};
+const fileFilter = cmsImageMulterFilter;
 
 export const bannerUpload = multer({
   storage,

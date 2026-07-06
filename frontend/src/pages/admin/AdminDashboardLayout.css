@@ -1926,6 +1926,15 @@ body.modal-open {
   background: #f8fafc;
 }
 
+.footer-social-link-row select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: #fff;
+}
+
 .footer-link-toggle {
   display: flex;
   align-items: center;

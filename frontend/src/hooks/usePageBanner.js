@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import bannerService from '../services/bannerService';
 import { mergePageBanner, normalizePageType } from '../constants/pageBannerDefaults';
 import { getImageUrl } from '../services/api';
+import { getCachedPageBanner, setCachedPageBanner } from '../utils/pageBannerCache';
 
 // Append a version query param so browsers never serve a stale cached banner
 // after the admin uploads a new image (the updatedAt timestamp changes on save).
@@ -30,13 +31,15 @@ const usePageBanner = (pageName) => {
       try {
         const data = await bannerService.getBannerByPage(normalizePageType(pageName));
         if (!cancelled) {
-          setApiBanner(data || null);
+          setCachedPageBanner(pageName, data ?? null);
+          setApiBanner(data ?? null);
         }
       } catch (err) {
         if (!cancelled) {
           console.error(`Failed to fetch banner for ${pageName}`, err);
           setError(err);
-          setApiBanner(null);
+          const cached = getCachedPageBanner(pageName);
+          setApiBanner(cached !== undefined ? cached : null);
         }
       } finally {
         if (!cancelled) {

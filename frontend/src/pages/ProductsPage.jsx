@@ -14,6 +14,7 @@ import usePageBanner from '../hooks/usePageBanner';
 import { getBannerOverlayStyle } from '../utils/bannerOverlay';
 import { buildCategoryAlt } from '../utils/seoImageAlt';
 import { formatCategoryName } from '../utils/formatCategoryName';
+import { filterByFuzzySearch } from '../utils/fuzzySearch';
 import '../components/ProductCard.css';
 import './ProductsPage.css';
 
@@ -149,21 +150,18 @@ const ProductsPage = () => {
   };
 
   const filteredItems = useMemo(() => {
-    if (!debouncedSearchTerm || debouncedSearchTerm.length < 2) {
-      return products;
-    }
-
-    const query = debouncedSearchTerm.toLowerCase();
-    return products.filter((product) => {
-      const name = (product.name || product.productName || '').toLowerCase();
-      const category = getProductCategoryName(product).toLowerCase();
-      const description = (product.description || product.shortDescription || '').toLowerCase();
-      return (
-        name.includes(query) ||
-        category.includes(query) ||
-        description.includes(query)
-      );
-    });
+    return filterByFuzzySearch(products, debouncedSearchTerm, (product) => [
+      product.name,
+      product.productName,
+      getProductCategoryName(product),
+      product.categoryName,
+      product.description,
+      product.shortDescription,
+      product.specialBadge,
+      product.badge,
+      product.tags,
+      product.keywords,
+    ]);
   }, [products, debouncedSearchTerm, categories]);
 
   const sortedItems = useMemo(() => {

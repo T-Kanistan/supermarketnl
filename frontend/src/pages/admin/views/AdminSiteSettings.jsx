@@ -4,14 +4,15 @@ import { useCMS } from '../../../context/CMSContext';
 import { useToast } from '../../../context/ToastContext';
 import { getImageUrl } from '../../../services/api';
 import { emptyContactPageForm, mergeContactPage } from '../../../constants/contactPageDefaults';
-import { emptyFooterPageForm, mergeFooterPage } from '../../../constants/footerPageDefaults';
+import { emptyFooterPageForm, mergeFooterPage, SOCIAL_PLATFORM_OPTIONS } from '../../../constants/footerPageDefaults';
 import contactSettingsService from '../../../services/contactSettingsService';
 import siteSettingsService from '../../../services/siteSettingsService';
 import footerService from '../../../services/footerService';
 import categoryService from '../../../services/categoryService';
 import { mapProductCategoriesToFooterLinks } from '../../../utils/footerCategories';
-import { FaUpload, FaPlus, FaTrash } from 'react-icons/fa';
+import { FaUpload, FaPlus, FaTrash, FaFacebook, FaInstagram, FaWhatsapp, FaTiktok, FaYoutube } from 'react-icons/fa';
 import { FiMapPin, FiPhone, FiMail, FiClock } from 'react-icons/fi';
+import { CMS_IMAGE_ACCEPT, rejectInvalidCmsImageFile } from '../../../utils/imageUploadValidation';
 
 const buildFormState = (cmsData) => ({
   storeName: cmsData?.storeName || '',
@@ -25,6 +26,22 @@ const buildFormState = (cmsData) => ({
   contactPage: mergeContactPage(cmsData?.contactPage),
   footerPage: mergeFooterPage(cmsData?.footerPage),
 });
+
+const SOCIAL_PREVIEW_ICONS = {
+  facebook: FaFacebook,
+  instagram: FaInstagram,
+  whatsapp: FaWhatsapp,
+  tiktok: FaTiktok,
+  youtube: FaYoutube,
+};
+
+const SOCIAL_PREVIEW_CLASSES = {
+  facebook: 'fb',
+  instagram: 'ig',
+  whatsapp: 'wa',
+  tiktok: 'tt',
+  youtube: 'yt',
+};
 
 const FooterLinkRow = ({ link, onChange, onRemove, showEnabled = true }) => (
   <div className="footer-link-row">
@@ -62,11 +79,50 @@ const FooterLinkRow = ({ link, onChange, onRemove, showEnabled = true }) => (
   </div>
 );
 
+const SocialLinkRow = ({ link, onChange, onRemove }) => (
+  <div className="footer-link-row footer-social-link-row">
+    <div className="admin-form-group" style={{ marginBottom: 0 }}>
+      <label>Platform</label>
+      <select
+        value={link.platform}
+        onChange={(e) => onChange('platform', e.target.value)}
+      >
+        {SOCIAL_PLATFORM_OPTIONS.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </div>
+    <div className="admin-form-group" style={{ marginBottom: 0 }}>
+      <label>Profile URL</label>
+      <input
+        type="url"
+        value={link.url}
+        onChange={(e) => onChange('url', e.target.value)}
+        placeholder="https://facebook.com/yourpage"
+      />
+    </div>
+    <label className="footer-link-toggle">
+      <input
+        type="checkbox"
+        checked={link.enabled !== false}
+        onChange={(e) => onChange('enabled', e.target.checked)}
+      />
+      Show
+    </label>
+    <button type="button" className="footer-link-remove" onClick={onRemove} aria-label="Remove social link">
+      <FaTrash />
+    </button>
+  </div>
+);
+
 const FooterPreview = ({ formData }) => {
   const footer = formData.footerPage;
   const quickLinks = footer.quickLinks.filter((l) => l.enabled && l.label);
   const [categoryLinks, setCategoryLinks] = useState([]);
   const legalLinks = footer.legalLinks.filter((l) => l.enabled && l.label);
+  const socialLinks = (footer.socialLinks || []).filter((l) => l.enabled && l.url);
 
   useEffect(() => {
     let mounted = true;
@@ -94,6 +150,19 @@ const FooterPreview = ({ formData }) => {
           <div className="footer-admin-preview-col brand">
             <img src={getImageUrl(formData.logo) || '/logo.png'} alt="Logo" className="footer-admin-preview-logo" />
             <p>{formData.footerDescription || 'Footer description...'}</p>
+            {socialLinks.length > 0 && (
+              <div className="footer-admin-preview-socials">
+                {socialLinks.map((link) => {
+                  const Icon = SOCIAL_PREVIEW_ICONS[link.platform];
+                  if (!Icon) return null;
+                  return (
+                    <span key={link.id} className={SOCIAL_PREVIEW_CLASSES[link.platform] || link.platform} title={link.platform}>
+                      <Icon />
+                    </span>
+                  );
+                })}
+              </div>
+            )}
           </div>
           <div className="footer-admin-preview-col">
             <h5>{footer.quickLinksTitle}</h5>
@@ -197,6 +266,10 @@ export const AdminSiteSettings = () => {
           next = {
             ...next,
             footerDescription: footerData.footerDescription || next.footerDescription,
+            footerPage: mergeFooterPage({
+              ...next.footerPage,
+              ...footerData.footerPage,
+            }),
           };
         }
       } catch (err) {
@@ -218,8 +291,10 @@ export const AdminSiteSettings = () => {
 
   const handleLogoUpload = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
+    if (!file) return;
+    if (rejectInvalidCmsImageFile(file, (msg) => addToast(msg, 'error'), e.target)) return;
+
+    if (file.size > 2 * 1024 * 1024) {
         addToast('File too large. Max size is 2MB.', 'error');
         return;
       }
@@ -229,7 +304,6 @@ export const AdminSiteSettings = () => {
         addToast('Logo loaded. Save settings to apply.', 'info');
       };
       reader.readAsDataURL(file);
-    }
   };
 
   const updateContactPage = (field, value) => {
@@ -273,6 +347,37 @@ export const AdminSiteSettings = () => {
       footerPage: {
         ...prev.footerPage,
         [listKey]: prev.footerPage[listKey].filter((_, i) => i !== index),
+      },
+    }));
+  };
+
+  const updateSocialLinks = (index, field, value) => {
+    setFormData((prev) => {
+      const links = [...(prev.footerPage.socialLinks || [])];
+      links[index] = { ...links[index], [field]: value };
+      return { ...prev, footerPage: { ...prev.footerPage, socialLinks: links } };
+    });
+  };
+
+  const addSocialLink = () => {
+    setFormData((prev) => ({
+      ...prev,
+      footerPage: {
+        ...prev.footerPage,
+        socialLinks: [
+          ...(prev.footerPage.socialLinks || []),
+          { id: `sm-${Date.now()}`, platform: 'facebook', url: '', enabled: true },
+        ],
+      },
+    }));
+  };
+
+  const removeSocialLink = (index) => {
+    setFormData((prev) => ({
+      ...prev,
+      footerPage: {
+        ...prev.footerPage,
+        socialLinks: (prev.footerPage.socialLinks || []).filter((_, i) => i !== index),
       },
     }));
   };
@@ -384,7 +489,7 @@ export const AdminSiteSettings = () => {
                   <div className="image-upload-zone" style={{ flex: 1, padding: '16px' }}>
                     <input 
                       type="file" 
-                      accept="image/*" 
+                      accept={CMS_IMAGE_ACCEPT} 
                       id="logo-file" 
                       onChange={handleLogoUpload} 
                       style={{ display: 'none' }} 
@@ -737,7 +842,7 @@ export const AdminSiteSettings = () => {
                       />
                     )}
                     <div className="image-upload-zone" style={{ flex: 1, minWidth: '200px', padding: '16px' }}>
-                      <input type="file" accept="image/*" id="footer-logo-file" onChange={handleLogoUpload} style={{ display: 'none' }} />
+                      <input type="file" accept={CMS_IMAGE_ACCEPT} id="footer-logo-file" onChange={handleLogoUpload} style={{ display: 'none' }} />
                       <label htmlFor="footer-logo-file" style={{ cursor: 'pointer', margin: 0 }}>
                         <FaUpload className="upload-icon" style={{ fontSize: '1.5rem', marginBottom: '4px' }} />
                         <p style={{ fontSize: '0.8rem', color: '#64748b' }}>Upload footer logo (Max 2MB)</p>
@@ -760,7 +865,27 @@ export const AdminSiteSettings = () => {
 
               <div className="settings-subsection">
                 <div className="footer-section-header">
-                  <h4>2. Quick Links</h4>
+                  <h4>2. Social Media Links</h4>
+                  <button type="button" className="action-btn-secondary" onClick={addSocialLink}>
+                    <FaPlus /> Add Social Link
+                  </button>
+                </div>
+                <p className="admin-field-hint" style={{ marginBottom: '16px' }}>
+                  Add, edit, or remove social profiles shown below the footer description.
+                </p>
+                {(formData.footerPage.socialLinks || []).map((link, index) => (
+                  <SocialLinkRow
+                    key={link.id}
+                    link={link}
+                    onChange={(field, value) => updateSocialLinks(index, field, value)}
+                    onRemove={() => removeSocialLink(index)}
+                  />
+                ))}
+              </div>
+
+              <div className="settings-subsection">
+                <div className="footer-section-header">
+                  <h4>3. Quick Links</h4>
                   <button type="button" className="action-btn-secondary" onClick={() => addFooterLink('quickLinks')}>
                     <FaPlus /> Add Link
                   </button>
@@ -784,7 +909,7 @@ export const AdminSiteSettings = () => {
               </div>
 
               <div className="settings-subsection">
-                <h4>3. Categories</h4>
+                <h4>4. Categories</h4>
                 <div className="admin-form-group">
                   <label>Section Title</label>
                   <input
@@ -801,7 +926,7 @@ export const AdminSiteSettings = () => {
               </div>
 
               <div className="settings-subsection">
-                <h4>4. Business Hours</h4>
+                <h4>5. Business Hours</h4>
                 <div className="admin-form-group">
                   <label>Section Title</label>
                   <input
@@ -862,7 +987,7 @@ export const AdminSiteSettings = () => {
               </div>
 
               <div className="settings-subsection">
-                <h4>5. Contact</h4>
+                <h4>6. Contact</h4>
                 <div className="admin-form-group">
                   <label>Section Title</label>
                   <input
@@ -896,7 +1021,7 @@ export const AdminSiteSettings = () => {
 
               <div className="settings-subsection">
                 <div className="footer-section-header">
-                  <h4>6. Bottom Bar &amp; Legal Links</h4>
+                  <h4>7. Bottom Bar &amp; Legal Links</h4>
                   <button type="button" className="action-btn-secondary" onClick={() => addFooterLink('legalLinks')}>
                     <FaPlus /> Add Legal Link
                   </button>

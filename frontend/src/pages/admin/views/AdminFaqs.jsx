@@ -9,6 +9,7 @@ import {
   FAQ_LIMIT_REACHED_TOOLTIP,
   FAQ_LIMIT_REACHED_WARNING,
 } from '../../../constants/faqLimits';
+import { invalidateDashboardStats } from '../../../utils/dashboardStatsRefresh';
 
 export const AdminFaqs = () => {
   const [faqs, setFaqs] = useState([]);
@@ -174,6 +175,7 @@ export const AdminFaqs = () => {
     try {
       await faqService.deleteFaq(id);
       addToast('FAQ deleted successfully', 'success');
+      invalidateDashboardStats();
       fetchFaqs();
     } catch (err) {
       console.error('Failed to delete FAQ', err);
@@ -218,6 +220,7 @@ export const AdminFaqs = () => {
         await faqService.createFaq(payload);
         addToast('New FAQ added successfully', 'success');
       }
+      invalidateDashboardStats();
       setIsModalOpen(false);
       fetchFaqs();
     } catch (err) {

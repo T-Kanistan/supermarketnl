@@ -3,6 +3,7 @@ import path from 'path';
 import multer from 'multer';
 import { deleteStoredFile, getLocalPublicUrl, persistUploadedFile } from '../services/uploadService.js';
 import { UPLOAD_ROOT } from '../config/paths.js';
+import { cmsImageMulterFilter } from '../constants/cmsImageUpload.js';
 
 const ensureDir = (dir) => {
   if (!fs.existsSync(dir)) {
@@ -17,38 +18,9 @@ ensureDir(path.join(UPLOAD_ROOT, 'owner'));
 ensureDir(path.join(UPLOAD_ROOT, 'footer'));
 ensureDir(path.join(UPLOAD_ROOT, 'homepage-about'));
 
-const imageFilter = (req, file, cb) => {
-  const allowed = /jpeg|jpg|png|webp/;
-  const ext = allowed.test(path.extname(file.originalname).toLowerCase());
-  const mime = allowed.test(file.mimetype);
-  if (ext && mime) return cb(null, true);
-  cb(new Error('Only jpg, jpeg, png, and webp images are allowed'));
-};
-
-const aboutImageMimeFilter = (req, file, cb) => {
-  const mime = (file.mimetype || '').toLowerCase();
-  const allowedMimes = new Set([
-    'image/jpeg',
-    'image/jpg',
-    'image/png',
-    'image/webp',
-    'image/gif',
-  ]);
-
-  if (allowedMimes.has(mime)) {
-    return cb(null, true);
-  }
-
-  cb(new Error('Only image files are allowed.'));
-};
-
-const footerLogoFilter = (req, file, cb) => {
-  const allowed = /jpeg|jpg|png|webp|svg/;
-  const ext = allowed.test(path.extname(file.originalname).toLowerCase());
-  const mime = /image\/(jpeg|jpg|png|webp|svg\+xml)/.test(file.mimetype);
-  if (ext && mime) return cb(null, true);
-  cb(new Error('Only jpg, jpeg, png, webp, and svg images are allowed'));
-};
+const imageFilter = cmsImageMulterFilter;
+const aboutImageMimeFilter = cmsImageMulterFilter;
+const footerLogoFilter = cmsImageMulterFilter;
 
 const createStorage = (subdir) =>
   multer.diskStorage({

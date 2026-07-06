@@ -52,6 +52,48 @@ const mapLinkToApi = (link) => ({
   updatedAt: link.updatedAt,
 });
 
+const mapSocialMediaLinkToApi = (link, index = 0) => ({
+  id: link._id || `legacy-${link.platform || index}`,
+  platform: link.platform,
+  url: link.url || '',
+  displayOrder: link.order ?? index + 1,
+  isVisible: link.show !== false,
+  createdAt: link.createdAt,
+  updatedAt: link.updatedAt,
+});
+
+const LEGACY_SOCIAL_PLATFORMS = ['facebook', 'instagram', 'whatsapp', 'tiktok', 'youtube'];
+
+const buildLegacySocialLinks = (links = []) => {
+  const socialLinks = Object.fromEntries(LEGACY_SOCIAL_PLATFORMS.map((platform) => [platform, '']));
+  links.forEach((link) => {
+    if (link.platform && link.show !== false && link.url) {
+      socialLinks[link.platform] = link.url;
+    }
+  });
+  return socialLinks;
+};
+
+const getSocialMediaLinksFromDoc = (doc) => {
+  if (Array.isArray(doc.socialMediaLinks) && doc.socialMediaLinks.length) {
+    return sortLinks(doc.socialMediaLinks).map(mapSocialMediaLinkToApi);
+  }
+
+  const legacy = doc.socialLinks || {};
+  return LEGACY_SOCIAL_PLATFORMS.filter((platform) => legacy[platform])
+    .map((platform, index) =>
+      mapSocialMediaLinkToApi(
+        {
+          platform,
+          url: legacy[platform],
+          order: index + 1,
+          show: true,
+        },
+        index
+      )
+    );
+};
+
 const normalizeSettingsBody = (body = {}) => {
   const snakeAliases = {
     footer_logo: 'footerLogo',
@@ -156,6 +198,7 @@ export const getFooterFull = async (visibleOnly = false) => {
     settings: mapSettingsToApi(doc),
     quickLinks: filterLinks(doc.quickLinks),
     legalLinks: filterLinks(doc.legalLinks),
+    socialMediaLinks: getSocialMediaLinksFromDoc(doc),
   };
 };
 
@@ -179,6 +222,20 @@ export const updateFooterSettings = async (body) => {
     }
   });
 
+  if (Array.isArray(body.socialMediaLinks)) {
+    existing.socialMediaLinks = body.socialMediaLinks.map((link, index) => ({
+      platform: link.platform,
+      url: link.url || '',
+      show: link.isVisible !== false,
+      order: link.displayOrder ?? index + 1,
+    }));
+    const legacySocialLinks = buildLegacySocialLinks(existing.socialMediaLinks);
+    LEGACY_SOCIAL_PLATFORMS.forEach((platform) => {
+      mongoUpdate[`socialLinks.${platform}`] = legacySocialLinks[platform];
+    });
+    linksChanged = true;
+  }
+
   if (Object.keys(mongoUpdate).length) {
     await FooterCMS.findByIdAndUpdate(existing._id, { $set: mongoUpdate });
   }
@@ -186,6 +243,7 @@ export const updateFooterSettings = async (body) => {
   if (linksChanged) {
     existing.markModified('quickLinks');
     existing.markModified('legalLinks');
+    existing.markModified('socialMediaLinks');
     await existing.save();
   }
 

@@ -7,6 +7,8 @@ import { getImageUrl } from '../../../services/api';
 import { useToast } from '../../../context/ToastContext';
 import { useAuth } from '../../../context/AuthContext';
 import { formatCategoryName } from '../../../utils/formatCategoryName';
+import { invalidateDashboardStats } from '../../../utils/dashboardStatsRefresh';
+import { CMS_IMAGE_ACCEPT, rejectInvalidCmsImageFile } from '../../../utils/imageUploadValidation';
 
 export const AdminProducts = () => {
   const { isAdmin, isManager } = useAuth();
@@ -161,6 +163,7 @@ export const AdminProducts = () => {
         `Product "${product.productName || product.name}" is now ${nextStatus}`,
         'success'
       );
+      invalidateDashboardStats();
     } catch (e) {
       console.error('Failed to update status', e);
       addToast(e.message || e.response?.data?.message || 'Failed to update status', 'error');
@@ -344,6 +347,7 @@ export const AdminProducts = () => {
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    if (rejectInvalidCmsImageFile(file, (msg) => addToast(msg, 'error'), e.target)) return;
 
     const previewUrl = URL.createObjectURL(file);
     setFormData((prev) => ({ ...prev, imageUrl: previewUrl }));
@@ -367,6 +371,7 @@ export const AdminProducts = () => {
     try {
       await productService.deleteProduct(id);
       addToast('Product deleted successfully', 'success');
+      invalidateDashboardStats();
       fetchData();
     } catch (err) {
       console.error('Failed to delete product', err);
@@ -398,6 +403,7 @@ export const AdminProducts = () => {
         await productService.createProduct(formData);
         addToast('New product added successfully', 'success');
       }
+      invalidateDashboardStats();
       closeModal();
       fetchData();
     } catch (err) {
@@ -827,7 +833,7 @@ export const AdminProducts = () => {
                     <div className="image-upload-zone" style={{ padding: '8px' }}>
                       <input 
                         type="file" 
-                        accept="image/*" 
+                        accept={CMS_IMAGE_ACCEPT} 
                         id="prod-file" 
                         onChange={handleImageUpload} 
                         style={{ display: 'none' }} 

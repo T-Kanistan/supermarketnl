@@ -5,6 +5,7 @@ import { useToast } from '../../../context/ToastContext';
 import { useAuth } from '../../../context/AuthContext';
 import { getImageUrl } from '../../../services/api';
 import homepageAboutService from '../../../services/homepageAboutService';
+import { CMS_IMAGE_ACCEPT, rejectInvalidCmsImageFile } from '../../../utils/imageUploadValidation';
 
 const defaultForm = {
   id: null,
@@ -61,7 +62,7 @@ const ImageUploadField = ({ label, value, inputId, onUpload, disabled, isUploadi
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/jpeg,image/jpg,image/png,image/webp"
+            accept={CMS_IMAGE_ACCEPT}
             id={inputId}
             onChange={onUpload}
             style={{ display: 'none' }}
@@ -72,7 +73,7 @@ const ImageUploadField = ({ label, value, inputId, onUpload, disabled, isUploadi
               ? 'Fields are synced from About Us CMS'
               : isUploading
                 ? 'Uploading...'
-                : 'Click to upload — jpg, jpeg, png, webp (max 3MB)'}
+                : 'Click to upload — JPG, JPEG, PNG, WEBP, GIF, SVG (max 3MB)'}
           </p>
         </div>
       </div>
@@ -115,6 +116,7 @@ const AdminHomepageAbout = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = '';
+    if (rejectInvalidCmsImageFile(file, (msg) => addToast(msg, 'error'))) return;
 
     if (file.size > 3 * 1024 * 1024) {
       addToast('Image must be 3MB or smaller', 'error');

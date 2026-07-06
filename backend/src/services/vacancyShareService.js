@@ -1,6 +1,6 @@
 import * as vacancyService from './vacancyService.js';
 import { getActiveBannerByPage } from './pageBannerService.js';
-import { buildVacancyShareMeta } from '../utils/vacancyShareMeta.js';
+import { buildVacancyShareMeta, resolveVacancyImagePath } from '../utils/vacancyShareMeta.js';
 
 const getSiteUrl = () =>
   (process.env.SITE_URL || process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
@@ -20,11 +20,13 @@ const resolveVacancyHeroImage = async () => {
 export const getVacancyShareMeta = async (id) => {
   const vacancy = await vacancyService.getVacancyById(id);
   const heroImageUrl = await resolveVacancyHeroImage();
+  const vacancyImageUrl = resolveVacancyImagePath(vacancy);
 
   return buildVacancyShareMeta({
     vacancy,
     siteUrl: getSiteUrl(),
     siteName: getSiteName(),
+    vacancyImageUrl,
     heroImageUrl,
   });
 };

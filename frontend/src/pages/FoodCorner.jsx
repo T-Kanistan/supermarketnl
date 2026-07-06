@@ -14,6 +14,7 @@ import foodCornerService from '../services/foodCornerService';
 import { getImageUrl } from '../services/api';
 import { buildFoodAlt } from '../utils/seoImageAlt';
 import { formatCategoryName } from '../utils/formatCategoryName';
+import { filterByFuzzySearch } from '../utils/fuzzySearch';
 import { useEnquiry } from '../context/EnquiryContext';
 import { useCMS } from '../context/CMSContext';
 import usePageBanner from '../hooks/usePageBanner';
@@ -99,7 +100,11 @@ const FoodCorner = () => {
   const [sortOption, setSortOption] = useState('default');
   const { openEnquiry } = useEnquiry();
   const { cmsData } = useCMS();
-  const { banner: pageBanner, loading: bannerLoading } = usePageBanner('food-corner');
+  const {
+    banner: pageBanner,
+    heroImageUrl,
+    ready: bannerReady,
+  } = usePageBanner('food-corner');
   const foodCornerHours = cmsData?.foodCornerTimings || '';
 
   useEffect(() => {
@@ -172,21 +177,17 @@ const FoodCorner = () => {
   };
 
   const filteredItems = useMemo(() => {
-    if (!debouncedSearchTerm || debouncedSearchTerm.length < 2) {
-      return items;
-    }
-
-    const query = debouncedSearchTerm.toLowerCase();
-    return items.filter((item) => {
-      const name = (item.name || '').toLowerCase();
-      const category = (item.categoryName || '').toLowerCase();
-      const description = (item.description || '').toLowerCase();
-      return (
-        name.includes(query) ||
-        category.includes(query) ||
-        description.includes(query)
-      );
-    });
+    return filterByFuzzySearch(items, debouncedSearchTerm, (item) => [
+      item.name,
+      item.categoryName,
+      item.categoryId,
+      item.description,
+      item.shortDescription,
+      item.badge,
+      item.specialBadge,
+      item.tags,
+      item.keywords,
+    ]);
   }, [items, debouncedSearchTerm]);
 
   const sortedItems = useMemo(() => {
@@ -214,79 +215,87 @@ const FoodCorner = () => {
 
   return (
     <div className="food-corner-page">
-      <section className={`fc-hero${bannerLoading ? ' fc-hero--loading' : ''}`}>
-        <div
-          className="fc-hero-bg"
-          style={{ backgroundImage: `url('${getImageUrl(pageBanner.backgroundImage || pageBanner.image)}')` }}
-          aria-hidden="true"
-        />
-        <div className="fc-hero-overlay" style={getBannerOverlayStyle(pageBanner)} />
-        <div className="container fc-hero-grid">
-          <div className="fc-hero-copy">
-            <span className="fc-hero-badge">
-              <FaUtensils aria-hidden="true" />
-              {pageBanner.badgeText}
-            </span>
-            <h1 className="fc-hero-title">
-              {pageBanner.title || pageBanner.mainHeading}
-              {pageBanner.highlightedTitle || pageBanner.highlightText ? (
-                <>
-                  <br />
-                  <span className="fc-hero-highlight">
-                    {pageBanner.highlightedTitle || pageBanner.highlightText}
-                  </span>
-                </>
-              ) : null}
-            </h1>
-            <p className="fc-hero-subtitle">{pageBanner.description}</p>
-            <ul className="fc-hero-features">
-              <li>
-                <span className="fc-feature-icon fc-feature-icon--green" aria-hidden="true">
-                  <FaLeaf />
+      <section className={`fc-hero${bannerReady ? '' : ' fc-hero--loading'}`}>
+        {bannerReady ? (
+          <>
+            <div
+              className="fc-hero-bg"
+              style={{ backgroundImage: `url('${heroImageUrl}')` }}
+              aria-hidden="true"
+            />
+            <div className="fc-hero-overlay" style={getBannerOverlayStyle(pageBanner)} />
+            <div className="container fc-hero-grid">
+              <div className="fc-hero-copy">
+                <span className="fc-hero-badge">
+                  <FaUtensils aria-hidden="true" />
+                  {pageBanner.badgeText}
                 </span>
-                Fresh Ingredients
-              </li>
-              <li>
-                <span className="fc-feature-icon fc-feature-icon--orange" aria-hidden="true">
-                  <GiCook />
-                </span>
-                Hygienic Preparation
-              </li>
-              <li>
-                <span className="fc-feature-icon fc-feature-icon--green" aria-hidden="true">
-                  <FaHeart />
-                </span>
-                Great Taste
-              </li>
-            </ul>
+                <h1 className="fc-hero-title">
+                  {pageBanner.title || pageBanner.mainHeading}
+                  {pageBanner.highlightedTitle || pageBanner.highlightText ? (
+                    <>
+                      <br />
+                      <span className="fc-hero-highlight">
+                        {pageBanner.highlightedTitle || pageBanner.highlightText}
+                      </span>
+                    </>
+                  ) : null}
+                </h1>
+                <p className="fc-hero-subtitle">{pageBanner.description}</p>
+                <ul className="fc-hero-features">
+                  <li>
+                    <span className="fc-feature-icon fc-feature-icon--green" aria-hidden="true">
+                      <FaLeaf />
+                    </span>
+                    Fresh Ingredients
+                  </li>
+                  <li>
+                    <span className="fc-feature-icon fc-feature-icon--orange" aria-hidden="true">
+                      <GiCook />
+                    </span>
+                    Hygienic Preparation
+                  </li>
+                  <li>
+                    <span className="fc-feature-icon fc-feature-icon--green" aria-hidden="true">
+                      <FaHeart />
+                    </span>
+                    Great Taste
+                  </li>
+                </ul>
+              </div>
+
+              <aside className="fc-hours-card" aria-label="Food Corner operating hours">
+                <div className="fc-hours-panel fc-hours-panel--weekend">
+                  <div className="fc-hours-icon fc-hours-icon--green" aria-hidden="true">
+                    <FaCalendarAlt />
+                  </div>
+                  <div className="fc-hours-content">
+                    <span className="fc-hours-label fc-hours-label--green">Weekend Dining Hours</span>
+                    <strong className="fc-hours-time">{foodCornerHours}</strong>
+                    <span className="fc-hours-note">Saturday &amp; Sunday</span>
+                  </div>
+                </div>
+
+                <div className="fc-hours-divider" aria-hidden="true" />
+
+                <div className="fc-hours-panel fc-hours-panel--weekday">
+                  <div className="fc-hours-icon fc-hours-icon--orange" aria-hidden="true">
+                    <FaBell />
+                  </div>
+                  <div className="fc-hours-content">
+                    <span className="fc-hours-label fc-hours-label--orange">Weekday Service</span>
+                    <strong className="fc-hours-time">Coming Soon</strong>
+                    <span className="fc-hours-note">We&apos;re preparing something special for you</span>
+                  </div>
+                </div>
+              </aside>
+            </div>
+          </>
+        ) : (
+          <div className="fc-hero-skeleton" aria-hidden="true">
+            <div className="fc-hero-skeleton-shimmer" />
           </div>
-
-          <aside className="fc-hours-card" aria-label="Food Corner operating hours">
-            <div className="fc-hours-panel fc-hours-panel--weekend">
-              <div className="fc-hours-icon fc-hours-icon--green" aria-hidden="true">
-                <FaCalendarAlt />
-              </div>
-              <div className="fc-hours-content">
-                <span className="fc-hours-label fc-hours-label--green">Weekend Dining Hours</span>
-                <strong className="fc-hours-time">{foodCornerHours}</strong>
-                <span className="fc-hours-note">Saturday &amp; Sunday</span>
-              </div>
-            </div>
-
-            <div className="fc-hours-divider" aria-hidden="true" />
-
-            <div className="fc-hours-panel fc-hours-panel--weekday">
-              <div className="fc-hours-icon fc-hours-icon--orange" aria-hidden="true">
-                <FaBell />
-              </div>
-              <div className="fc-hours-content">
-                <span className="fc-hours-label fc-hours-label--orange">Weekday Service</span>
-                <strong className="fc-hours-time">Coming Soon</strong>
-                <span className="fc-hours-note">We&apos;re preparing something special for you</span>
-              </div>
-            </div>
-          </aside>
-        </div>
+        )}
       </section>
 
       <section className="fc-menu-section">

@@ -11,10 +11,34 @@ const isManagerUser = () => {
   }
 };
 
+const noCacheConfig = () => ({
+  params: { _t: Date.now() },
+  headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
+});
+
+const mapActiveCounts = (counts = {}) => ({
+  totalProducts: counts.activeGroceryProducts ?? 0,
+  foodCornerProducts: counts.activeFoodCornerProducts ?? 0,
+  totalCategories: counts.activeCategories ?? 0,
+  totalTestimonials: counts.activeReviews ?? 0,
+  totalFaqs: counts.activeFaqs ?? 0,
+  totalMessages: counts.activeMessages ?? 0,
+  activeBanners: counts.activeBanners ?? 0,
+  activeOffers: counts.activeOffers ?? 0,
+  unreadEnquiries: counts.unreadMessages ?? 0,
+  totalEnquiries: counts.activeMessages ?? 0,
+  activeAnnouncements: counts.activeOffers ?? 0,
+});
+
 export const dashboardService = {
+  getActiveCounts: async () => {
+    const response = await api.get('/dashboard/active-counts', noCacheConfig());
+    return response.data?.data || {};
+  },
+
   getStats: async () => {
     if (isManagerUser()) {
-      const response = await api.get('/manager/dashboard');
+      const response = await api.get('/manager/dashboard', noCacheConfig());
       const stats = response.data?.data || {};
       return {
         totalProducts: stats.totalProducts || 0,
@@ -27,34 +51,43 @@ export const dashboardService = {
       };
     }
 
-    const response = await api.get('/dashboard/stats');
-    const stats = response.data?.data || response.data;
+    const counts = await dashboardService.getActiveCounts();
+    const mapped = mapActiveCounts(counts);
 
     return {
-      totalProducts: stats.products?.total || 0,
-      foodCornerProducts: stats.foodCornerProducts?.total || 0,
-      totalCategories: stats.categories?.total || 0,
-      totalTestimonials: stats.testimonials?.total || 0,
-      totalFaqs: stats.faqs?.total || 0,
-      totalMessages: stats.messages?.total || 0,
-      activeBanners: stats.banners?.active || 0,
+      ...mapped,
       recentActivities: [
-        { id: 'act1', type: 'product', text: `Catalog has ${stats.products?.total || 0} products`, time: 'Updated' },
-        { id: 'act2', type: 'category', text: `${stats.categories?.total || 0} categories configured`, time: 'Updated' },
-        { id: 'act3', type: 'message', text: `${stats.messages?.unread || 0} unread contact messages`, time: 'Updated' },
+        {
+          id: 'act1',
+          type: 'product',
+          text: `Catalog has ${mapped.totalProducts} active grocery products`,
+          time: 'Updated',
+        },
+        {
+          id: 'act2',
+          type: 'category',
+          text: `${mapped.totalCategories} active categories configured`,
+          time: 'Updated',
+        },
+        {
+          id: 'act3',
+          type: 'message',
+          text: `${counts.unreadMessages || 0} unread contact messages`,
+          time: 'Updated',
+        },
       ],
     };
   },
 
   getRecentActivities: async () => {
     if (!isManagerUser()) return [];
-    const response = await api.get('/manager/recent-activities');
+    const response = await api.get('/manager/recent-activities', noCacheConfig());
     return response.data?.data || [];
   },
 
   getRecentEnquiries: async () => {
     if (!isManagerUser()) return [];
-    const response = await api.get('/manager/recent-enquiries');
+    const response = await api.get('/manager/recent-enquiries', noCacheConfig());
     return response.data?.data || [];
   },
 };

@@ -1,0 +1,154 @@
+/* Homepage-only mobile layout (320px–768px) */
+@media (max-width: 768px) {
+  .home-page {
+    overflow-x: hidden;
+  }
+
+  .home-page .container {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .home-page .about .container,
+  .home-page .promotions .container {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .home-page .features {
+    margin-top: -28px;
+    margin-bottom: 28px;
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .home-page .features .container {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .home-page .features-grid {
+    padding: 20px 16px;
+  }
+
+  .home-page .feature-title {
+    font-size: 1rem;
+  }
+
+  .home-page .feature-desc {
+    font-size: 0.8125rem;
+    line-height: 1.5;
+  }
+
+  .home-page .featured-products {
+    padding-top: 28px;
+    padding-bottom: 28px;
+  }
+
+  .home-page .featured-products .container {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .home-page .featured-section-title,
+  .home-page .section-title {
+    font-size: clamp(1.35rem, 5vw, 1.65rem);
+    line-height: 1.25;
+    margin-bottom: 16px;
+  }
+
+  .home-page .view-all-btn {
+    font-size: 0.9rem;
+  }
+
+  .home-page .promotions {
+    padding-top: 28px;
+    padding-bottom: 28px;
+  }
+
+  .home-page .promotions-grid {
+    gap: 24px;
+  }
+
+  .home-page .modern-promo-content {
+    padding: 24px 18px;
+  }
+
+  .home-page .modern-promo-title {
+    font-size: clamp(1.35rem, 5.5vw, 1.75rem);
+    line-height: 1.2;
+    margin-bottom: 12px;
+  }
+
+  .home-page .modern-promo-desc {
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    max-width: 100%;
+    margin-bottom: 20px;
+  }
+
+  .home-page .modern-pill-badge {
+    font-size: 0.7rem;
+    padding: 5px 12px;
+    margin-bottom: 14px;
+  }
+
+  .home-page .modern-promo-btn {
+    min-height: 44px;
+    font-size: 0.875rem;
+    padding: 10px 22px;
+  }
+
+  .home-page .about.section-padding {
+    padding-top: 28px;
+    padding-bottom: 28px;
+  }
+
+  .home-page .about-title {
+    font-size: clamp(1.5rem, 5.5vw, 1.85rem);
+    line-height: 1.2;
+    margin-bottom: 14px;
+  }
+
+  .home-page .about-desc {
+    font-size: 0.9375rem;
+    line-height: 1.65;
+    margin-bottom: 20px;
+  }
+
+  .home-page .about-features-modern li {
+    font-size: 0.9375rem;
+  }
+
+  .home-page .about-learn-btn {
+    width: 100%;
+    min-height: 48px;
+    text-align: center;
+  }
+
+  .home-page .about-image-container-modern {
+    height: 260px;
+  }
+
+  .home-page .reviews.section-padding {
+    padding-top: 28px;
+    padding-bottom: 28px;
+  }
+
+  .home-page .reviews-grid {
+    gap: 16px;
+  }
+
+  .home-page .review-card {
+    padding: 22px 18px;
+  }
+
+  .home-page .reviewer-name {
+    font-size: 1rem;
+  }
+
+  .home-page .review-text {
+    font-size: 0.9375rem;
+    line-height: 1.6;
+  }
+}

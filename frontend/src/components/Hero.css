@@ -390,61 +390,163 @@
   }
 }
 
-@media (max-width: 767px) {
-  .hero-title { font-size: clamp(1.65rem, 7vw, 2.35rem); }
-  .hero-subtitle { font-size: 0.95rem; }
-  .hero-buttons {
-    flex-direction: column;
-    flex-wrap: wrap;
-    align-items: stretch;
+@media (max-width: 768px) {
+  .hero,
+  .hero-loading {
+    height: auto;
+    min-height: 520px;
+    max-height: none;
+    margin-top: var(--header-height-mobile, 72px);
+    padding: 32px 0;
+    overflow: hidden;
   }
-  .hero-btn {
-    width: 100%;
-    white-space: normal;
-  }
-  .hero { height: auto; min-height: auto; margin-top: 72px; padding: 28px 0; }
+
   .hero-overlay {
-    background: linear-gradient(180deg, rgba(0, 0, 0, 0.25) 0%, rgba(0, 0, 0, 0.15) 100%);
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.28) 0%, rgba(0, 0, 0, 0.18) 100%);
   }
+
+  .hero-content {
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 0;
+    width: 100%;
+    max-width: 100%;
+    padding: 0 20px;
+  }
+
   .hero-text,
   .left-hero-card {
-    padding: 22px 18px;
+    width: 100%;
     max-width: 100%;
+    margin: 0;
+    padding: 18px 16px;
+    text-align: left;
+    align-items: flex-start;
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
   }
-  .hero-content {
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: flex-start;
-    padding: 0 16px;
+
+  .hero-title {
+    font-size: clamp(34px, 9vw, 38px);
+    font-weight: 800;
+    line-height: 1.1;
+    width: 100%;
+    overflow-wrap: break-word;
+    word-break: normal;
   }
+
+  .hero-title-fresh,
+  .hero-title-line,
+  .hero-title .hero-highlight {
+    display: block;
+    width: 100%;
+    overflow-wrap: break-word;
+  }
+
+  .hero-subtitle {
+    font-size: clamp(15px, 4.2vw, 16px);
+    line-height: 1.6;
+    max-width: 100%;
+    width: 100%;
+    margin: 16px 0 20px;
+    text-align: left;
+  }
+
+  .hero-buttons {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    width: 100%;
+    gap: 12px;
+    margin: 0;
+  }
+
+  .hero-btn,
+  .hero-buttons .btn-primary,
+  .hero-buttons .btn-secondary {
+    width: 100%;
+    min-height: 48px;
+    height: 48px;
+    padding: 0 16px;
+    white-space: normal;
+    text-align: center;
+  }
+
+  .btn-large {
+    padding: 0 16px;
+    font-size: 0.85rem;
+  }
+
   .right-time-card {
     width: 100%;
     max-width: 100%;
-    margin-left: 0;
+    margin: 24px 0 0;
   }
+
   .hero-timings-card {
     width: 100%;
-    min-width: unset;
-    margin-top: 10px;
-    padding: 20px 18px 10px;
+    min-width: 0;
+    max-width: 100%;
+    margin: 0;
+    padding: 16px 14px 10px;
+    border-radius: 16px;
+    box-sizing: border-box;
+    overflow: hidden;
   }
-  .timing-item {
-    gap: 14px;
-    padding: 18px 0;
-  }
-  .timing-icon-wrap {
-    width: 54px;
-    height: 54px;
-    font-size: 1.15rem;
-  }
-  .timing-days {
-    font-size: 0.88rem;
-  }
-  .timing-hours {
+
+  .hero-timings-title {
     font-size: 0.95rem;
+    padding-bottom: 12px;
+    margin-bottom: 6px;
   }
+
+  .hero-timings-desc {
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin-bottom: 8px;
+    overflow-wrap: break-word;
+  }
+
+  .timing-item {
+    align-items: center;
+    gap: 12px;
+    padding: 14px 0;
+  }
+
+  .timing-icon-wrap {
+    width: 48px;
+    height: 48px;
+    font-size: 1rem;
+  }
+
+  .timing-content {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .timing-label {
+    font-size: 0.75rem;
+    margin-bottom: 6px;
+  }
+
+  .timing-days,
+  .timing-hours,
+  .timing-value,
+  .timing-unavailable {
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+
+  .timing-days {
+    font-size: 0.85rem;
+  }
+
+  .timing-hours {
+    font-size: 0.9rem;
+  }
+
   .timing-schedules {
     gap: 8px;
   }

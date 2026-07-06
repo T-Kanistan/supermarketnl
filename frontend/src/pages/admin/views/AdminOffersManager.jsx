@@ -10,6 +10,7 @@ import offerService from '../../../services/offerService';
 import { getImageUrl } from '../../../services/api';
 import { validateOfferDates } from '../../../utils/offerDateValidation';
 import './AdminOffersManager.css';
+import { CMS_IMAGE_ACCEPT, rejectInvalidCmsImageFile } from '../../../utils/imageUploadValidation';
 
 /**
  * Offers Management studio — fully wired to the live backend:
@@ -320,6 +321,8 @@ export const AdminOffersManager = () => {
   const handleOfferImage = (field) => async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (rejectInvalidCmsImageFile(file, (msg) => addToast(msg, 'error'), e.target)) return;
+
     setOfferForm((prev) => ({ ...prev, [field]: URL.createObjectURL(file) }));
     try {
       const uploadedUrl = await offerService.uploadOfferImage(file);
@@ -525,6 +528,8 @@ export const AdminOffersManager = () => {
   const handleHeroImage = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (rejectInvalidCmsImageFile(file, (msg) => addToast(msg, 'error'), e.target)) return;
+
     const preview = URL.createObjectURL(file);
     setHeroForm((prev) => ({ ...prev, image: preview }));
     try {
@@ -809,7 +814,7 @@ export const AdminOffersManager = () => {
             <div className="admin-form-group">
               <label>Banner Image</label>
               <div className="image-upload-zone">
-                <input type="file" accept="image/*" id="hero-upload" onChange={handleHeroImage} style={{ display: 'none' }} />
+                <input type="file" accept={CMS_IMAGE_ACCEPT} id="hero-upload" onChange={handleHeroImage} style={{ display: 'none' }} />
                 <label htmlFor="hero-upload" style={{ cursor: 'pointer', margin: 0, color: 'var(--admin-sidebar-active)', fontWeight: 600 }}>
                   <FaImage /> Upload Hero Image
                 </label>
@@ -945,7 +950,7 @@ export const AdminOffersManager = () => {
                 <div className="admin-form-group">
                   <label>Offer Image *</label>
                   <div className="image-upload-zone offm-upload-mini">
-                    <input type="file" accept="image/*" id="up-image" onChange={handleOfferImage('image')} style={{ display: 'none' }} />
+                    <input type="file" accept={CMS_IMAGE_ACCEPT} id="up-image" onChange={handleOfferImage('image')} style={{ display: 'none' }} />
                     <label htmlFor="up-image" style={{ cursor: 'pointer', margin: 0, color: 'var(--admin-sidebar-active)', fontWeight: 600, fontSize: '0.82rem' }}>
                       <FaImage /> Upload
                     </label>

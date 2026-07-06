@@ -1,12 +1,7 @@
-import Product from '../models/Product.js';
 import Announcement from '../models/Announcement.js';
 import CustomerEnquiry from '../models/CustomerEnquiry.js';
-import { normalizeEnquiryStatus } from '../constants/enquiryStatuses.js';
-import ActivityLog from '../models/ActivityLog.js';
-import HomepageBanner from '../models/HomepageBanner.js';
-import HomepageAboutSection from '../models/HomepageAboutSection.js';
-import FAQ from '../models/FAQ.js';
-import Testimonial from '../models/Testimonial.js';
+import ActivityLog from '../models/ActivityLog.js';import { normalizeEnquiryStatus } from '../constants/enquiryStatuses.js';
+import { fetchActiveCounts } from '../services/dashboardStatsService.js';
 
 const ensureManager = (req, res) => {
   if (!req.user || req.user.role !== 'manager') {
@@ -23,36 +18,19 @@ export const getManagerDashboard = async (req, res, next) => {
   try {
     if (!ensureManager(req, res)) return;
 
-    const [totalProducts, activeOffers, customerEnquiries, unreadEnquiries, announcements] =
-      await Promise.all([
-        // Grocery only (supermarket products)
-        Product.countDocuments({
-          status: 'active',
-          $or: [{ productType: 'grocery' }, { type: 'grocery' }],
-        }),
-        Announcement.countDocuments({ status: 'active' }),
-        CustomerEnquiry.countDocuments({ status: { $ne: 'deleted' } }),
-        CustomerEnquiry.countDocuments({ status: { $in: ['New', 'new'] }, isRead: false }),
-        Announcement.countDocuments({ status: 'active' }),
-      ]);
+    const counts = await fetchActiveCounts();
 
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
     res.status(200).json({
       success: true,
       data: {
-        totalProducts,
-        foodCornerProducts: await Product.countDocuments({
-          status: 'active',
-          $or: [
-            { productType: 'food-corner' },
-            { type: 'food' },
-            { type: 'food-corner' },
-          ],
-        }),
-        activeOffers,
-        customerEnquiries,
-        unreadEnquiries,
-        announcements,
-        lastUpdated: new Date().toISOString(),
+        totalProducts: counts.activeGroceryProducts,
+        foodCornerProducts: counts.activeFoodCornerProducts,
+        activeOffers: counts.activeOffers,
+        customerEnquiries: counts.activeMessages,
+        unreadEnquiries: counts.unreadMessages,
+        announcements: counts.activeOffers,
+        lastUpdated: counts.fetchedAt,
       },
     });
   } catch (error) {
@@ -157,29 +135,18 @@ export const getContentOverview = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Unauthorized Access' });
     }
 
-    const [
-      activeBanners,
-      homepageAboutActive,
-      activeFaqs,
-      activeTestimonials,
-      activeAnnouncements,
-    ] = await Promise.all([
-      HomepageBanner.countDocuments({ status: 'active' }),
-      HomepageAboutSection.countDocuments({ status: 'active' }),
-      FAQ.countDocuments({ status: 'active' }),
-      Testimonial.countDocuments({ status: 'active' }),
-      Announcement.countDocuments({ status: 'active' }),
-    ]);
+    const counts = await fetchActiveCounts();
 
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
     res.status(200).json({
       success: true,
       data: {
-        homepageBanner: activeBanners,
-        homepageAboutSection: homepageAboutActive,
-        faqs: activeFaqs,
-        testimonials: activeTestimonials,
-        announcements: activeAnnouncements,
-        lastUpdated: new Date().toISOString(),
+        homepageBanner: counts.activeBanners,
+        homepageAboutSection: 0,
+        faqs: counts.activeFaqs,
+        testimonials: counts.activeReviews,
+        announcements: counts.activeOffers,
+        lastUpdated: counts.fetchedAt,
       },
     });
   } catch (error) {

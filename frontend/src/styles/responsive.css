@@ -118,8 +118,7 @@ iframe {
 }
 
 @media (max-width: 767px) {
-  .store-product-grid,
-  .products-page-grid.store-product-grid,
+  .store-product-grid:not(.products-page-grid),
   .fc-grid {
     grid-template-columns: 1fr;
     gap: 16px;
@@ -269,49 +268,7 @@ iframe {
   }
 }
 
-@media (max-width: 767px) {
-  .hero,
-  .hero-loading {
-    margin-top: 72px;
-    min-height: auto;
-    padding: 28px 0;
-  }
-
-  .hero-text {
-    padding: 22px 18px;
-    max-width: 100%;
-  }
-
-  .hero-title {
-    font-size: clamp(1.65rem, 7vw, 2.2rem);
-  }
-
-  .hero-subtitle {
-    font-size: 0.95rem;
-  }
-
-  .hero-buttons {
-    flex-direction: column;
-    width: 100%;
-  }
-
-  .hero-btn,
-  .hero-buttons .btn-primary,
-  .hero-buttons .btn-secondary {
-    width: 100%;
-    white-space: normal;
-  }
-
-  .hero-timings-card {
-    padding: 20px 18px 10px;
-    border-radius: 16px;
-  }
-
-  .timing-item {
-    padding: 18px 0;
-    gap: 14px;
-  }
-}
+/* Home hero mobile layout — see Hero.css @media (max-width: 768px) */
 
 /* â”€â”€â”€ Food Corner category tabs â”€â”€â”€ */
 @media (max-width: 767px) {
@@ -617,12 +574,6 @@ iframe {
   .products-hero-features {
     flex-direction: column;
     gap: 10px;
-  }
-
-  .products-sort-wrap {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
   }
 }
 

@@ -4,6 +4,7 @@ import enquiryService from '../../../services/enquiryService';
 import { useToast } from '../../../context/ToastContext';
 import { useAuth } from '../../../context/AuthContext';
 import { ENQUIRY_STATUSES, getStatusClassName } from '../../../constants/enquiryMessages';
+import { invalidateDashboardStats } from '../../../utils/dashboardStatsRefresh';
 
 const STATUS_FILTERS = [
   { value: 'all', label: 'All Enquiries' },
@@ -117,6 +118,7 @@ export const AdminMessages = () => {
       updateEnquiryInList(updated);
       fetchStats();
       addToast(`Status updated to ${nextStatus}`, 'success');
+      invalidateDashboardStats();
     } catch (err) {
       console.error('Failed to update enquiry status', err);
       addToast(err.response?.data?.message || 'Failed to update status', 'error');
@@ -152,6 +154,7 @@ export const AdminMessages = () => {
       if (selectedEnquiry?.id === id) setSelectedEnquiry(null);
       fetchEnquiries();
       fetchStats();
+      invalidateDashboardStats();
     } catch (err) {
       console.error('Failed to delete enquiry', err);
       addToast(err.response?.data?.message || 'Failed to delete enquiry', 'error');

@@ -1,4 +1,5 @@
 import api, { apiRequest } from './api';
+import { mapSocialLinksToSocials } from '../constants/footerPageDefaults';
 
 const mapLinkToPage = (link) => ({
   id: String(link.id),
@@ -8,8 +9,27 @@ const mapLinkToPage = (link) => ({
   order: link.displayOrder,
 });
 
+const mapSocialLinkToPage = (link, index) => ({
+  id: String(link.id || `sm-${index + 1}`),
+  platform: link.platform || 'facebook',
+  url: link.url || '',
+  enabled: link.isVisible !== false,
+  order: link.displayOrder,
+});
+
 export const mapFooterApiToFrontend = (data) => {
   const s = data.settings || {};
+  const socialLinks = (data.socialMediaLinks || []).map(mapSocialLinkToPage);
+  const socials = socialLinks.length
+    ? mapSocialLinksToSocials(socialLinks)
+    : {
+        facebook: s.facebookUrl || '',
+        instagram: s.instagramUrl || '',
+        whatsapp: s.whatsappUrl || '',
+        tiktok: s.tiktokUrl || '',
+        youtube: s.youtubeUrl || '',
+      };
+
   return {
     logo: s.footerLogo || '/logo.png',
     footerDescription: s.footerDescription || '',
@@ -18,13 +38,7 @@ export const mapFooterApiToFrontend = (data) => {
     address: s.address || '',
     supermarketTimings: s.supermarketHours || '',
     foodCornerTimings: s.foodCornerHours || '',
-    socials: {
-      facebook: s.facebookUrl || '',
-      instagram: s.instagramUrl || '',
-      whatsapp: s.whatsappUrl || '',
-      tiktok: s.tiktokUrl || '',
-      youtube: s.youtubeUrl || '',
-    },
+    socials,
     footerPage: {
       quickLinksTitle: 'QUICK LINKS',
       categoriesTitle: 'CATEGORIES',
@@ -36,6 +50,7 @@ export const mapFooterApiToFrontend = (data) => {
       copyrightText: s.copyrightName || '',
       quickLinks: (data.quickLinks || []).map(mapLinkToPage),
       legalLinks: (data.legalLinks || []).map(mapLinkToPage),
+      socialLinks,
     },
   };
 };
@@ -43,6 +58,13 @@ export const mapFooterApiToFrontend = (data) => {
 const mapPageLinkToApi = (link, index) => ({
   label: link.label,
   url: link.path || '/',
+  displayOrder: link.order ?? index + 1,
+  isVisible: link.enabled !== false,
+});
+
+const mapSocialLinkToApi = (link, index) => ({
+  platform: link.platform,
+  url: link.url || '',
   displayOrder: link.order ?? index + 1,
   isVisible: link.enabled !== false,
 });
@@ -77,6 +99,7 @@ export const footerService = {
         copyrightName: footer.copyrightText,
         quickLinks: (footer.quickLinks || []).map(mapPageLinkToApi),
         legalLinks: (footer.legalLinks || []).map(mapPageLinkToApi),
+        socialMediaLinks: (footer.socialLinks || []).map(mapSocialLinkToApi),
       })
     );
     return footerService.getFooterSettings();

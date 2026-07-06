@@ -4,6 +4,7 @@ import announcementService from '../../../services/announcementService';
 import { useToast } from '../../../context/ToastContext';
 import { useAuth } from '../../../context/AuthContext';
 import { getImageUrl } from '../../../services/api';
+import { CMS_IMAGE_ACCEPT, rejectInvalidCmsImageFile } from '../../../utils/imageUploadValidation';
 
 const STATUS_OPTIONS = [
   { value: 'draft', label: 'Draft' },
@@ -110,6 +111,7 @@ export const AdminAnnouncements = () => {
   const handleImageUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (rejectInvalidCmsImageFile(file, (msg) => addToast(msg, 'error'), e.target)) return;
 
     if (file.size > 5 * 1024 * 1024) {
       addToast('Banner image must be 5MB or smaller', 'error');
@@ -445,7 +447,7 @@ export const AdminAnnouncements = () => {
                   <div className="image-upload-zone" style={{ padding: '12px' }}>
                     <input
                       type="file"
-                      accept="image/jpeg,image/jpg,image/png,image/webp"
+                      accept={CMS_IMAGE_ACCEPT}
                       id="ann-file"
                       onChange={handleImageUpload}
                       style={{ display: 'none' }}

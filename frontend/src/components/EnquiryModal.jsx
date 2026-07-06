@@ -31,6 +31,10 @@ const generalEmptyForm = {
   message: '',
 };
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const isValidEmail = (value) => EMAIL_PATTERN.test(String(value || '').trim());
+
 const EnquiryModal = ({ isOpen, onClose, product }) => {
   const { addToast } = useToast();
   const [form, setForm] = useState(generalEmptyForm);
@@ -39,8 +43,11 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
   const [isWhatsAppSubmitting, setIsWhatsAppSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showEmailRequiredModal, setShowEmailRequiredModal] = useState(false);
+  const [modalEmail, setModalEmail] = useState('');
+  const [modalEmailError, setModalEmailError] = useState('');
   const [phoneHelperVisible, setPhoneHelperVisible] = useState(false);
   const emailInputRef = useRef(null);
+  const modalEmailInputRef = useRef(null);
 
   const isFoodCorner = product?.enquirySource === 'food-corner';
   const isGeneral = product?.enquirySource === 'general' || (!product?.name && !isFoodCorner);
@@ -50,6 +57,8 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
 
     setShowSuccess(false);
     setShowEmailRequiredModal(false);
+    setModalEmail('');
+    setModalEmailError('');
     setErrors({});
     setPhoneHelperVisible(false);
 
@@ -69,15 +78,22 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
   }, [isOpen, product, isGeneral, isFoodCorner]);
 
   useEffect(() => {
+    if (!showEmailRequiredModal) return undefined;
+    setModalEmail(form.email);
+    setModalEmailError('');
+    const timer = window.setTimeout(() => {
+      modalEmailInputRef.current?.focus();
+    }, 50);
+    return () => window.clearTimeout(timer);
+  }, [showEmailRequiredModal, form.email]);
+
+  useEffect(() => {
     if (!isOpen) return;
 
     const handleEscape = (e) => {
       if (e.key !== 'Escape') return;
       if (showEmailRequiredModal) {
-        setShowEmailRequiredModal(false);
-        requestAnimationFrame(() => {
-          emailInputRef.current?.focus();
-        });
+        dismissEmailRequiredModal();
         return;
       }
       onClose();
@@ -96,6 +112,14 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+
+    if (name === 'email') {
+      if (isValidEmail(value)) {
+        setErrors((prev) => ({ ...prev, email: '' }));
+      }
+      return;
+    }
+
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }));
     }
@@ -111,10 +135,17 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
     else if (!/^[\d\s+()-]{8,}$/.test(form.phone.trim())) next.phone = 'Enter a valid phone number';
     if (requireEmail) {
       if (!form.email.trim()) {
+        setErrors((prev) => ({
+          ...prev,
+          ...next,
+          email: 'Please enter your email address.',
+        }));
+        setModalEmail(form.email);
+        setModalEmailError('');
         setShowEmailRequiredModal(true);
         return false;
       }
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      if (!isValidEmail(form.email)) {
         next.email = 'Please enter a valid email address.';
       }
     }
@@ -126,12 +157,43 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
     return Object.keys(next).length === 0;
   };
 
-  const closeEmailRequiredModal = () => {
+  const dismissEmailRequiredModal = () => {
     setShowEmailRequiredModal(false);
+    setModalEmail('');
+    setModalEmailError('');
+  };
+
+  const handleModalEmailChange = (e) => {
+    const value = e.target.value;
+    setModalEmail(value);
+
+    const trimmed = value.trim();
+    if (!trimmed) {
+      setModalEmailError('');
+      return;
+    }
+
+    setModalEmailError(
+      isValidEmail(trimmed) ? '' : 'Please enter a valid email address.'
+    );
+  };
+
+  const handleModalEmailContinue = () => {
+    const trimmed = modalEmail.trim();
+    if (!isValidEmail(trimmed)) {
+      setModalEmailError('Please enter a valid email address.');
+      return;
+    }
+
+    setForm((prev) => ({ ...prev, email: trimmed }));
+    setErrors((prev) => ({ ...prev, email: '' }));
+    dismissEmailRequiredModal();
     requestAnimationFrame(() => {
       emailInputRef.current?.focus();
     });
   };
+
+  const modalEmailValid = isValidEmail(modalEmail);
 
   const getGeneralPayload = () => ({
     fullName: form.fullName.trim(),
@@ -303,7 +365,7 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
                 </div>
 
                 <div className={`enquiry-field full-width ${errors.email ? 'has-error' : ''}`}>
-                  <label htmlFor="enquiry-email">Email Address *</label>
+                  <label htmlFor="enquiry-email">Email Address</label>
                   <div className="enquiry-input-wrap">
                     <FiMail />
                     <input
@@ -315,9 +377,18 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
                       onChange={handleChange}
                       placeholder="your@email.com"
                       autoComplete="email"
+                      aria-invalid={errors.email ? 'true' : 'false'}
+                      aria-describedby="enquiry-email-helper enquiry-email-error"
                     />
                   </div>
-                  {errors.email && <span className="enquiry-error">{errors.email}</span>}
+                  <p id="enquiry-email-helper" className="enquiry-field-hint">
+                    Required only when submitting an enquiry. Not required for WhatsApp enquiries.
+                  </p>
+                  {errors.email && (
+                    <span id="enquiry-email-error" className="enquiry-error" role="alert">
+                      {errors.email}
+                    </span>
+                  )}
                 </div>
               </div>
             </section>
@@ -438,6 +509,25 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
             )}
 
             <div className="enquiry-actions">
+              {isGeneral ? (
+                <button
+                  type="button"
+                  className="enquiry-btn enquiry-btn-whatsapp"
+                  onClick={handleGeneralWhatsApp}
+                  disabled={isSubmitting || isWhatsAppSubmitting}
+                >
+                  <FaWhatsapp /> {isWhatsAppSubmitting ? 'Opening...' : 'WhatsApp Enquiry'}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="enquiry-btn enquiry-btn-whatsapp"
+                  onClick={handleWhatsApp}
+                  disabled={isSubmitting || isWhatsAppSubmitting}
+                >
+                  <FaWhatsapp /> WhatsApp Enquiry
+                </button>
+              )}
               <button
                 type="submit"
                 className="enquiry-btn enquiry-btn-submit"
@@ -445,25 +535,9 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
               >
                 <FiSend /> {isSubmitting ? 'Submitting...' : 'Submit Enquiry'}
               </button>
-              {isGeneral ? (
-                <>
-                  <button
-                    type="button"
-                    className="enquiry-btn enquiry-btn-whatsapp"
-                    onClick={handleGeneralWhatsApp}
-                    disabled={isSubmitting || isWhatsAppSubmitting}
-                  >
-                    <FaWhatsapp /> {isWhatsAppSubmitting ? 'Opening...' : 'WhatsApp Enquiry'}
-                  </button>
-                  <button type="button" className="enquiry-btn enquiry-btn-cancel" onClick={onClose}>
-                    Cancel
-                  </button>
-                </>
-              ) : (
-                <button type="button" className="enquiry-btn enquiry-btn-whatsapp" onClick={handleWhatsApp}>
-                  <FaWhatsapp /> WhatsApp Enquiry
-                </button>
-              )}
+              <button type="button" className="enquiry-btn enquiry-btn-cancel" onClick={onClose}>
+                Cancel
+              </button>
             </div>
           </form>
         )}
@@ -471,7 +545,7 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
         {showEmailRequiredModal && (
           <div
             className="enquiry-validation-overlay"
-            onClick={closeEmailRequiredModal}
+            onClick={dismissEmailRequiredModal}
             role="presentation"
           >
             <div
@@ -487,17 +561,60 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
               </div>
               <h3 id="enquiry-email-required-title">Email Address Required</h3>
               <p id="enquiry-email-required-message">
-                Please enter your email address before submitting your enquiry. Our team uses your
-                email to send updates and respond to your enquiry.
+                Please enter your email address to submit your enquiry.
+                <br />
+                Your email is required so our team can send updates and respond to your enquiry.
               </p>
-              <button
-                type="button"
-                className="enquiry-validation-ok"
-                onClick={closeEmailRequiredModal}
-                autoFocus
-              >
-                OK
-              </button>
+
+              <div className={`enquiry-validation-field ${modalEmailError ? 'has-error' : ''}`}>
+                <label htmlFor="enquiry-modal-email" className="enquiry-validation-label">
+                  Email Address
+                </label>
+                <div className="enquiry-validation-input-wrap">
+                  <FiMail aria-hidden="true" />
+                  <input
+                    ref={modalEmailInputRef}
+                    id="enquiry-modal-email"
+                    type="email"
+                    name="modalEmail"
+                    value={modalEmail}
+                    onChange={handleModalEmailChange}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && modalEmailValid) {
+                        e.preventDefault();
+                        handleModalEmailContinue();
+                      }
+                    }}
+                    placeholder="Enter your email address"
+                    autoComplete="email"
+                    aria-invalid={modalEmailError ? 'true' : 'false'}
+                    aria-describedby={modalEmailError ? 'enquiry-modal-email-error' : undefined}
+                  />
+                </div>
+                {modalEmailError && (
+                  <span id="enquiry-modal-email-error" className="enquiry-validation-error" role="alert">
+                    {modalEmailError}
+                  </span>
+                )}
+              </div>
+
+              <div className="enquiry-validation-actions">
+                <button
+                  type="button"
+                  className="enquiry-validation-continue"
+                  onClick={handleModalEmailContinue}
+                  disabled={!modalEmailValid}
+                >
+                  Continue
+                </button>
+                <button
+                  type="button"
+                  className="enquiry-validation-cancel"
+                  onClick={dismissEmailRequiredModal}
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
         )}

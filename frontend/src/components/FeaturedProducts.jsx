@@ -233,6 +233,7 @@ const FeaturedProducts = () => {
                         product={product}
                         onEnquiry={handleEnquiry}
                         variant="minimal"
+                        showQuantityBadge={false}
                       />
                     </SwiperSlide>
                   ))}

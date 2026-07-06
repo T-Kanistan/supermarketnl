@@ -1,6 +1,10 @@
 import fs from 'fs';
 import path from 'path';
 import { UPLOAD_ROOT } from '../config/paths.js';
+import {
+  CMS_IMAGE_UPLOAD_ERROR,
+  isAllowedCmsImageDataUrl,
+} from '../constants/cmsImageUpload.js';
 
 export const isCloudinaryConfigured = () => false;
 
@@ -17,18 +21,24 @@ export const persistUploadedFile = async (file) => {
 
 export const persistBase64Upload = async (base64Str) => {
   if (!base64Str) return null;
-  if (!base64Str.startsWith('data:image')) {
+  if (!base64Str.startsWith('data:')) {
     return base64Str;
+  }
+
+  if (!isAllowedCmsImageDataUrl(base64Str)) {
+    throw new Error(CMS_IMAGE_UPLOAD_ERROR);
   }
 
   try {
     const matches = base64Str.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
     if (!matches || matches.length !== 3) {
-      return base64Str;
+      throw new Error(CMS_IMAGE_UPLOAD_ERROR);
     }
 
     const mimeType = matches[1];
-    const ext = mimeType.split('/')[1] || 'png';
+    let ext = mimeType.split('/')[1] || 'png';
+    if (ext === 'svg+xml') ext = 'svg';
+    if (ext === 'jpeg') ext = 'jpg';
     const data = Buffer.from(matches[2], 'base64');
 
     const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;

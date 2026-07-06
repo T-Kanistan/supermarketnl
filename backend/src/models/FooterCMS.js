@@ -33,6 +33,16 @@ const socialLinksSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const socialMediaLinkSchema = new mongoose.Schema(
+  {
+    platform: { type: String, required: true, trim: true },
+    url: { type: String, default: '', trim: true },
+    show: { type: Boolean, default: true },
+    order: { type: Number, default: 0 },
+  },
+  { timestamps: true }
+);
+
 const businessHoursSchema = new mongoose.Schema(
   {
     supermarket: { type: String, default: '8:00 AM - 10:00 PM', trim: true },
@@ -55,6 +65,7 @@ const footerCmsSchema = new mongoose.Schema(
   {
     brand: { type: brandSchema, default: () => ({}) },
     socialLinks: { type: socialLinksSchema, default: () => ({}) },
+    socialMediaLinks: { type: [socialMediaLinkSchema], default: [] },
     quickLinks: { type: [footerLinkSchema], default: [] },
     legalLinks: { type: [footerLinkSchema], default: [] },
     businessHours: { type: businessHoursSchema, default: () => ({}) },

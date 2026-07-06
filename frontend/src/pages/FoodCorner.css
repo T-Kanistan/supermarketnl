@@ -26,6 +26,36 @@
   align-items: center;
 }
 
+/* Loading skeleton — reserves hero height and never shows a default banner
+   while the active CMS banner is being fetched and preloaded. */
+.fc-hero--loading {
+  background: #0f172a;
+}
+
+.fc-hero-skeleton {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: linear-gradient(120deg, #111c33 0%, #1c2942 50%, #111c33 100%);
+}
+
+.fc-hero-skeleton-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    rgba(255, 255, 255, 0) 30%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0) 70%
+  );
+  transform: translateX(-100%);
+  animation: fc-hero-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes fc-hero-shimmer {
+  100% { transform: translateX(100%); }
+}
+
 .fc-hero-bg {
   position: absolute;
   inset: -12px;
@@ -675,5 +705,62 @@
 
   .fc-grid {
     /* column tiers in styles/responsive.css */
+  }
+}
+
+@media (max-width: 768px) {
+  .food-corner-page .fc-card {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .food-corner-page .fc-card-body {
+    padding: 14px 14px 16px;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .food-corner-page .fc-card-title {
+    font-size: 0.95rem;
+    overflow-wrap: anywhere;
+  }
+
+  .food-corner-page .fc-card-time {
+    font-size: 0.78rem;
+    margin-bottom: 12px;
+    overflow-wrap: anywhere;
+  }
+
+  .food-corner-page .fc-card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px 8px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .food-corner-page .fc-card-price {
+    flex: 0 1 auto;
+    min-width: 0;
+    font-size: 1.05rem;
+    line-height: 1.2;
+  }
+
+  .food-corner-page .fc-card-status {
+    flex: 0 0 auto;
+    max-width: 100%;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 999px;
+    line-height: 1.2;
+    white-space: nowrap;
+    box-sizing: border-box;
+  }
+
+  .food-corner-page .fc-enquiry-btn {
+    box-sizing: border-box;
   }
 }

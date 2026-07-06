@@ -5,6 +5,7 @@ import {
   persistUploadedFile,
   persistBase64Upload,
 } from '../services/uploadService.js';
+import { cmsImageMulterFilter } from '../constants/cmsImageUpload.js';
 
 import { UPLOAD_ROOT } from '../config/paths.js';
 
@@ -23,16 +24,7 @@ const storage = multer.diskStorage({
   },
 });
 
-const fileFilter = (req, file, cb) => {
-  const allowedTypes = /jpeg|jpg|png|gif|webp/;
-  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-  const mimetype = allowedTypes.test(file.mimetype);
-
-  if (extname && mimetype) {
-    return cb(null, true);
-  }
-  cb(new Error('Only images (jpeg, jpg, png, gif, webp) are allowed'));
-};
+const fileFilter = cmsImageMulterFilter;
 
 export const upload = multer({
   storage,
