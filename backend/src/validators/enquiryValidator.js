@@ -1,4 +1,14 @@
 import { body, param, query } from 'express-validator';
+import {
+  CONTACT_FORM_MESSAGE_REQUIRED,
+  CONTACT_FORM_CONTACT_METHOD_REQUIRED,
+  CONTACT_FORM_EMAIL_INVALID,
+  CONTACT_FORM_PHONE_INVALID,
+  resolveContactFormEmail,
+  resolveContactFormPhone,
+  validateContactFormEmail,
+  validateContactFormPhone,
+} from '../utils/contactFormValidation.js';
 
 const sharedCustomerRules = [
   body('senderName')
@@ -21,7 +31,7 @@ const sharedCustomerRules = [
     .notEmpty()
     .withMessage('Email is required')
     .isEmail()
-    .withMessage('Please enter a valid email address.')
+    .withMessage(CONTACT_FORM_EMAIL_INVALID)
     .normalizeEmail(),
   body('phone')
     .optional({ values: 'falsy' })
@@ -33,13 +43,6 @@ const sharedCustomerRules = [
     .trim()
     .isLength({ max: 30 })
     .withMessage('Phone number is too long'),
-  body().custom((_, { req }) => {
-    const phone = (req.body.phone || req.body.phoneNumber || '').trim();
-    if (!phone) {
-      throw new Error('Phone is required');
-    }
-    return true;
-  }),
   body('message')
     .trim()
     .notEmpty()
@@ -49,7 +52,6 @@ const sharedCustomerRules = [
 ];
 
 const ensureNameProvided = body().custom((_, { req }) => {
-  // Full name is optional. Only validate the length when a value is provided.
   const name = (req.body.senderName || req.body.fullName || req.body.name || '').trim();
   if (name && name.length < 3) {
     throw new Error('Name must be at least 3 characters');
@@ -57,9 +59,75 @@ const ensureNameProvided = body().custom((_, { req }) => {
   return true;
 });
 
+const optionalContactNameRules = [
+  body('senderName')
+    .optional({ values: 'falsy' })
+    .trim()
+    .isLength({ min: 3, max: 150 })
+    .withMessage('Name must be at least 3 characters'),
+  body('name')
+    .optional({ values: 'falsy' })
+    .trim()
+    .isLength({ min: 3, max: 150 })
+    .withMessage('Name must be at least 3 characters'),
+  body('fullName')
+    .optional({ values: 'falsy' })
+    .trim()
+    .isLength({ min: 3, max: 150 })
+    .withMessage('Name must be at least 3 characters'),
+];
+
+const ensureContactMethodProvided = body().custom((_, { req }) => {
+  const email = resolveContactFormEmail(req.body);
+  const phone = resolveContactFormPhone(req.body);
+  if (!email && !phone) {
+    throw new Error(CONTACT_FORM_CONTACT_METHOD_REQUIRED);
+  }
+  return true;
+});
+
+const validateOptionalContactEmail = body('email')
+  .optional({ values: 'falsy' })
+  .trim()
+  .custom((value) => {
+    const error = validateContactFormEmail(value);
+    if (error) throw new Error(error);
+    return true;
+  });
+
+const validateOptionalContactPhone = [
+  body('phone')
+    .optional({ values: 'falsy' })
+    .trim()
+    .isLength({ max: 30 })
+    .withMessage('Phone number is too long')
+    .custom((value) => {
+      const error = validateContactFormPhone(value);
+      if (error) throw new Error(error);
+      return true;
+    }),
+  body('phoneNumber')
+    .optional({ values: 'falsy' })
+    .trim()
+    .isLength({ max: 30 })
+    .withMessage('Phone number is too long')
+    .custom((value) => {
+      const error = validateContactFormPhone(value);
+      if (error) throw new Error(error);
+      return true;
+    }),
+];
+
 export const contactEnquiryRules = [
-  ...sharedCustomerRules,
-  ensureNameProvided,
+  ...optionalContactNameRules,
+  validateOptionalContactEmail,
+  ...validateOptionalContactPhone,
+  body('message')
+    .trim()
+    .notEmpty()
+    .withMessage(CONTACT_FORM_MESSAGE_REQUIRED)
+    .isLength({ max: 5000 })
+    .withMessage('Message is too long'),
   body('subject')
     .optional({ values: 'falsy' })
     .trim()
@@ -74,13 +142,7 @@ export const contactEnquiryRules = [
     .optional()
     .isIn(['website', 'whatsapp'])
     .withMessage('Invalid enquiry source'),
-  body().custom((_, { req }) => {
-    const subject = (req.body.subject || req.body.enquiryType || '').trim();
-    if (!subject) {
-      throw new Error('Subject is required');
-    }
-    return true;
-  }),
+  ensureContactMethodProvided,
 ];
 
 export const productEnquiryRules = [

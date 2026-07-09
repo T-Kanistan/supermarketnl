@@ -5,6 +5,9 @@ import { useToast } from '../../../context/ToastContext';
 import { useAuth } from '../../../context/AuthContext';
 import { getImageUrl } from '../../../services/api';
 import { CMS_IMAGE_ACCEPT, rejectInvalidCmsImageFile } from '../../../utils/imageUploadValidation';
+import useAdminSearch from '../../../hooks/useAdminSearch';
+import { ADMIN_NO_MATCH_MESSAGE } from '../../../utils/adminSearch';
+import AdminFieldLabel from '../../../components/admin/AdminFieldLabel';
 
 const STATUS_OPTIONS = [
   { value: 'draft', label: 'Draft' },
@@ -47,7 +50,7 @@ export const AdminAnnouncements = () => {
   const [editingAnn, setEditingAnn] = useState(null);
   const [viewingAnn, setViewingAnn] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
+  const { searchInput, searchQuery, onSearchChange, applySearchNow, hasActiveSearch } = useAdminSearch();
 
   const { addToast } = useToast();
   const { isAdmin } = useAuth();
@@ -56,14 +59,10 @@ export const AdminAnnouncements = () => {
   const fetchAnnouncements = useCallback(async () => {
     setLoading(true);
     try {
-      let result;
-      if (searchQuery.trim()) {
-        result = await announcementService.searchAnnouncements(searchQuery.trim());
-      } else if (statusFilter && statusFilter !== 'all') {
-        result = await announcementService.getAnnouncements({ status: statusFilter });
-      } else {
-        result = await announcementService.getAnnouncements();
-      }
+      const params = {};
+      if (statusFilter && statusFilter !== 'all') params.status = statusFilter;
+      if (searchQuery) params.q = searchQuery;
+      const result = await announcementService.getAnnouncements(params);
       setAnnouncements(result.data);
     } catch (err) {
       console.error('Failed to load announcements', err);
@@ -213,11 +212,6 @@ export const AdminAnnouncements = () => {
     }
   };
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    fetchAnnouncements();
-  };
-
   const getStatusClass = (announcement) =>
     announcement.effectiveStatus || announcement.status || 'inactive';
 
@@ -234,11 +228,11 @@ export const AdminAnnouncements = () => {
       </div>
 
       <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '16px', alignItems: 'center' }}>
-        <form onSubmit={handleSearch} style={{ display: 'flex', gap: '8px', flex: 1, minWidth: '260px', maxWidth: '420px' }}>
+        <form onSubmit={applySearchNow} style={{ display: 'flex', gap: '8px', flex: 1, minWidth: '260px', maxWidth: '420px' }}>
           <input
             type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            value={searchInput}
+            onChange={onSearchChange}
             placeholder="Search by title or description..."
             style={{ flex: 1 }}
           />
@@ -252,10 +246,7 @@ export const AdminAnnouncements = () => {
               key={option.value}
               type="button"
               className={statusFilter === option.value ? 'action-btn-primary' : 'action-btn-secondary'}
-              onClick={() => {
-                setStatusFilter(option.value);
-                setSearchQuery('');
-              }}
+              onClick={() => setStatusFilter(option.value)}
             >
               {option.label}
             </button>
@@ -352,8 +343,10 @@ export const AdminAnnouncements = () => {
       ) : (
         <div className="dashboard-panel admin-empty-state">
           <FaBullhorn className="admin-empty-icon" />
-          <h3>No announcements found</h3>
-          <p>Click &quot;Add Announcement&quot; above to publish seasonal campaigns.</p>
+          <h3>{hasActiveSearch ? ADMIN_NO_MATCH_MESSAGE : 'No announcements found'}</h3>
+          {!hasActiveSearch ? (
+            <p>Click &quot;Add Announcement&quot; above to publish seasonal campaigns.</p>
+          ) : null}
         </div>
       )}
 
@@ -368,8 +361,9 @@ export const AdminAnnouncements = () => {
             <form onSubmit={handleSubmit}>
               <div className="modal-body">
                 <div className="admin-form-group">
-                  <label>Title</label>
+                  <AdminFieldLabel htmlFor="ann-title" required>Title</AdminFieldLabel>
                   <input
+                    id="ann-title"
                     type="text"
                     name="title"
                     value={formData.title}
@@ -382,8 +376,9 @@ export const AdminAnnouncements = () => {
                 </div>
 
                 <div className="admin-form-group">
-                  <label>Description</label>
+                  <AdminFieldLabel htmlFor="ann-description" required>Description</AdminFieldLabel>
                   <textarea
+                    id="ann-description"
                     name="description"
                     value={formData.description}
                     onChange={handleChange}
@@ -398,8 +393,9 @@ export const AdminAnnouncements = () => {
 
                 <div className="admin-form-group row-split">
                   <div>
-                    <label>Discount Percentage (%)</label>
+                    <AdminFieldLabel htmlFor="ann-discount" required>Discount Percentage (%)</AdminFieldLabel>
                     <input
+                      id="ann-discount"
                       type="number"
                       name="discountPercentage"
                       value={formData.discountPercentage}
@@ -410,8 +406,8 @@ export const AdminAnnouncements = () => {
                     />
                   </div>
                   <div>
-                    <label>Status</label>
-                    <select name="status" value={formData.status} onChange={handleChange} required>
+                    <AdminFieldLabel htmlFor="ann-status" required>Status</AdminFieldLabel>
+                    <select id="ann-status" name="status" value={formData.status} onChange={handleChange} required>
                       {STATUS_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value}>{option.label}</option>
                       ))}
@@ -421,8 +417,9 @@ export const AdminAnnouncements = () => {
 
                 <div className="admin-form-group row-split">
                   <div>
-                    <label>Start Date</label>
+                    <AdminFieldLabel htmlFor="ann-start-date" required>Start Date</AdminFieldLabel>
                     <input
+                      id="ann-start-date"
                       type="date"
                       name="startDate"
                       value={formData.startDate}
@@ -431,8 +428,9 @@ export const AdminAnnouncements = () => {
                     />
                   </div>
                   <div>
-                    <label>End Date</label>
+                    <AdminFieldLabel htmlFor="ann-end-date" required>End Date</AdminFieldLabel>
                     <input
+                      id="ann-end-date"
                       type="date"
                       name="endDate"
                       value={formData.endDate}
@@ -443,7 +441,7 @@ export const AdminAnnouncements = () => {
                 </div>
 
                 <div className="admin-form-group">
-                  <label>Banner Image (Optional)</label>
+                  <AdminFieldLabel htmlFor="ann-file" optional>Banner Image</AdminFieldLabel>
                   <div className="image-upload-zone" style={{ padding: '12px' }}>
                     <input
                       type="file"

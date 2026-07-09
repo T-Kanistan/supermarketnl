@@ -24,11 +24,24 @@ import { getBannerOverlayStyle } from '../utils/bannerOverlay';
 import { extractMapEmbedUrl, toEmbeddableMapUrl } from '../utils/mapEmbed';
 import { getImageUrl } from '../services/api';
 import { parseContactPhones, buildPhoneHref } from '../utils/parseContactPhones';
+import BusinessHoursDisplay from '../components/BusinessHoursDisplay';
+import {
+  validateContactForm,
+  focusFirstContactFormError,
+} from '../utils/contactFormValidation';
 import './ContactPage.css';
+
+const emptyFieldErrors = () => ({
+  name: '',
+  email: '',
+  phone: '',
+  subject: '',
+  message: '',
+});
 
 const ContactPage = () => {
   const { addToast } = useToast();
-  const { cmsData } = useCMS();
+  const { cmsData, loading: cmsLoading } = useCMS();
   const [contactData, setContactData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
@@ -42,6 +55,7 @@ const ContactPage = () => {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState(emptyFieldErrors);
   const { banner: pageBanner, loading: bannerLoading } = usePageBanner('contact');
 
   useEffect(() => {
@@ -114,23 +128,47 @@ const ContactPage = () => {
   const whatsappHref = socials.whatsapp || '';
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+    if (name === 'email' || name === 'phone') {
+      setFieldErrors((prev) => ({ ...prev, email: '', phone: '' }));
+    } else {
+      setFieldErrors((prev) => ({ ...prev, [name]: '' }));
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.phone?.trim()) {
-      addToast('Phone number is required', 'error');
+    const validation = validateContactForm(formData);
+    if (!validation.isValid) {
+      setFieldErrors({ ...emptyFieldErrors(), ...validation.fieldErrors });
+      focusFirstContactFormError(validation.fieldErrors);
       return;
     }
+
     setIsSubmitting(true);
     try {
       await cmsService.submitContactMessage(formData);
       addToast(ENQUIRY_SUBMIT_SUCCESS_MESSAGE, 'success');
       setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
+      setFieldErrors(emptyFieldErrors());
     } catch (err) {
       console.error('Submit contact message failed', err);
-      addToast('Failed to send message. Please try again.', 'error');
+      const apiErrors = err?.response?.data?.errors;
+      if (Array.isArray(apiErrors) && apiErrors.length > 0) {
+        const nextErrors = emptyFieldErrors();
+        apiErrors.forEach((entry) => {
+          const field = entry.param || entry.field;
+          if (field && Object.prototype.hasOwnProperty.call(nextErrors, field)) {
+            nextErrors[field] = entry.msg || entry.message;
+          }
+        });
+        if (Object.values(nextErrors).some(Boolean)) {
+          setFieldErrors(nextErrors);
+          focusFirstContactFormError(nextErrors);
+        }
+      }
+      addToast(err?.response?.data?.message || 'Failed to send message. Please try again.', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -185,10 +223,10 @@ const ContactPage = () => {
                 </div>
               </div>
 
-              <form className="contact-form" onSubmit={handleSubmit}>
+              <form className="contact-form" onSubmit={handleSubmit} noValidate>
                 <div className="form-group">
                   <label>
-                    {contact.nameLabel} <span className="required">*</span>
+                    {contact.nameLabel} <span className="field-optional">(Optional)</span>
                   </label>
                   <div className="input-wrapper">
                     <FiUser className="input-icon" />
@@ -198,15 +236,16 @@ const ContactPage = () => {
                       value={formData.name}
                       onChange={handleChange}
                       placeholder={contact.namePlaceholder}
-                      required
+                      aria-invalid={fieldErrors.name ? 'true' : undefined}
                     />
                   </div>
+                  {fieldErrors.name ? (
+                    <p className="contact-field-error" role="alert">{fieldErrors.name}</p>
+                  ) : null}
                 </div>
 
                 <div className="form-group">
-                  <label>
-                    {contact.emailLabel} <span className="required">*</span>
-                  </label>
+                  <label>{contact.emailLabel}</label>
                   <div className="input-wrapper">
                     <FiMail className="input-icon" />
                     <input
@@ -215,15 +254,17 @@ const ContactPage = () => {
                       value={formData.email}
                       onChange={handleChange}
                       placeholder={contact.emailPlaceholder}
-                      required
+                      className={fieldErrors.email ? 'contact-input-invalid' : ''}
+                      aria-invalid={fieldErrors.email ? 'true' : undefined}
                     />
                   </div>
+                  {fieldErrors.email ? (
+                    <p className="contact-field-error" role="alert">{fieldErrors.email}</p>
+                  ) : null}
                 </div>
 
                 <div className="form-group">
-                  <label>
-                    {contact.phoneLabel} <span className="required">*</span>
-                  </label>
+                  <label>{contact.phoneLabel}</label>
                   <div className="input-wrapper">
                     <FiPhone className="input-icon" />
                     <input
@@ -232,14 +273,18 @@ const ContactPage = () => {
                       value={formData.phone}
                       onChange={handleChange}
                       placeholder={contact.phonePlaceholder}
-                      required
+                      className={fieldErrors.phone ? 'contact-input-invalid' : ''}
+                      aria-invalid={fieldErrors.phone ? 'true' : undefined}
                     />
                   </div>
+                  {fieldErrors.phone ? (
+                    <p className="contact-field-error" role="alert">{fieldErrors.phone}</p>
+                  ) : null}
                 </div>
 
                 <div className="form-group">
                   <label>
-                    {contact.subjectLabel} <span className="required">*</span>
+                    {contact.subjectLabel} <span className="field-optional">(Optional)</span>
                   </label>
                   <div className="input-wrapper">
                     <FiTag className="input-icon" />
@@ -249,9 +294,12 @@ const ContactPage = () => {
                       value={formData.subject}
                       onChange={handleChange}
                       placeholder={contact.subjectPlaceholder}
-                      required
+                      aria-invalid={fieldErrors.subject ? 'true' : undefined}
                     />
                   </div>
+                  {fieldErrors.subject ? (
+                    <p className="contact-field-error" role="alert">{fieldErrors.subject}</p>
+                  ) : null}
                 </div>
 
                 <div className="form-group">
@@ -264,8 +312,12 @@ const ContactPage = () => {
                     onChange={handleChange}
                     placeholder={contact.messagePlaceholder}
                     rows="5"
-                    required
+                    className={fieldErrors.message ? 'contact-input-invalid' : ''}
+                    aria-invalid={fieldErrors.message ? 'true' : undefined}
                   />
+                  {fieldErrors.message ? (
+                    <p className="contact-field-error" role="alert">{fieldErrors.message}</p>
+                  ) : null}
                 </div>
 
                 <button type="submit" className="send-btn" disabled={isSubmitting}>
@@ -427,11 +479,19 @@ const ContactPage = () => {
                   <ul className="timings-list">
                     <li>
                       <span>Supermarket</span>
-                      <span>{supermarketHours}</span>
+                      <BusinessHoursDisplay
+                        value={supermarketHours}
+                        loading={cmsLoading}
+                        className="contact-hours-display"
+                      />
                     </li>
                     <li>
                       <span>Food Corner</span>
-                      <span>{foodCornerHours}</span>
+                      <BusinessHoursDisplay
+                        value={foodCornerHours}
+                        loading={cmsLoading}
+                        className="contact-hours-display"
+                      />
                     </li>
                     <li>
                       <span>Holiday</span>

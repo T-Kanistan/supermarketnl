@@ -7,6 +7,7 @@ import {
   isClosingDatePassed,
   assertClosingDateNotInPast,
 } from '../utils/vacancyDate.js';
+import { buildMultiFieldSearchFilter } from '../utils/adminSearchQuery.js';
 const PUBLIC_STATUSES = ['Active', 'Extended', 'Open', 'active', 'open', 'extended'];
 
 const normalizeDepartmentSlug = (department = '') => {
@@ -189,14 +190,15 @@ const buildAdminVacancyQuery = ({ department, status, employmentType, search } =
   if (employmentType && employmentType !== 'all') {
     query.employmentType = employmentType;
   }
-  if (search?.trim()) {
-    const regex = new RegExp(search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-    query.$or = [
-      { title: regex },
-      { department: regex },
-      { employmentType: regex },
-      { location: regex },
-    ];
+  const searchFilter = buildMultiFieldSearchFilter(search, [
+    'title',
+    'department',
+    'employmentType',
+    'location',
+    'status',
+  ]);
+  if (searchFilter) {
+    Object.assign(query, searchFilter);
   }
   return query;
 };

@@ -6,9 +6,12 @@ import { migrateShowOnHomepage } from './migrations/migrateShowOnHomepage.js';
 import { seedPageBanners } from './migrations/migratePageBanners.js';
 import { migrateFestivalToSeasonalOffers } from './migrations/migrateFestivalToSeasonalOffers.js';
 import { seedBuy1Get1DealsCategory } from './migrations/seedBuy1Get1DealsCategory.js';
+import { migrateAboutSingletonVisibility } from './migrations/migrateAboutSingletonVisibility.js';
+import { migrateHomepageAboutVisibility } from './migrations/migrateHomepageAboutVisibility.js';
 import { verifySmtpConnection } from './services/emailService.js';
 import app from './app.js';
 import { startAnnouncementExpiryJob } from './jobs/announcementExpiryJob.js';
+import { startOfferExpiryJob } from './jobs/offerExpiryJob.js';
 
 logStartupEnvironment();
 
@@ -50,7 +53,10 @@ const startServer = async () => {
     await seedPageBanners();
     await migrateFestivalToSeasonalOffers();
     await seedBuy1Get1DealsCategory();
+    await migrateAboutSingletonVisibility();
+    await migrateHomepageAboutVisibility();
     startAnnouncementExpiryJob();
+    startOfferExpiryJob();
     await verifySmtpConnection();
     console.log('[Server] Local server storage configured — uploads stored locally in backend/src/uploads.');
     console.log('[Server] Startup complete — MongoDB connected and routes ready.');

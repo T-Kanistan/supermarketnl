@@ -91,6 +91,9 @@ export const AdminDashboardLayout = () => {
     if (location.pathname.includes('/food-corner-items')) {
       navigate(`${dashboardBase}/food-corner`, { replace: true });
     }
+    if (location.pathname.includes('/offers-manager')) {
+      navigate(`${dashboardBase}/offers`, { replace: true });
+    }
   }, [location.pathname, location.search, navigate, dashboardBase]);
 
   const getHeaderTitle = () => {
@@ -155,12 +158,8 @@ export const AdminDashboardLayout = () => {
 
       <div className="menu-section-title">Offers</div>
       <NavLink to={dashboardPath('/offers')} className={() => sidebarClass('/offers')} onClick={closeMobileMenu}>
-        <FaTags className="sidebar-link-icon" />
-        <span>Offers Management</span>
-      </NavLink>
-      <NavLink to={dashboardPath('/offers-manager')} className={() => sidebarClass('/offers-manager')} onClick={closeMobileMenu}>
         <FaBullhorn className="sidebar-link-icon" />
-        <span>Offers Studio (UI)</span>
+        <span>Offers Management</span>
       </NavLink>
 
       <div className="menu-section-title">Food Corner</div>
@@ -225,12 +224,8 @@ export const AdminDashboardLayout = () => {
 
       <div className="menu-section-title">Offers</div>
       <NavLink to={dashboardPath('/offers')} className={() => sidebarClass('/offers')} onClick={closeMobileMenu}>
-        <FaTags className="sidebar-link-icon" />
-        <span>Offers Management</span>
-      </NavLink>
-      <NavLink to={dashboardPath('/offers-manager')} className={() => sidebarClass('/offers-manager')} onClick={closeMobileMenu}>
         <FaBullhorn className="sidebar-link-icon" />
-        <span>Offers Studio (UI)</span>
+        <span>Offers Management</span>
       </NavLink>
       <NavLink to={dashboardPath('/announcements')} className={() => sidebarClass('/announcements')} onClick={closeMobileMenu}>
         <FaBullhorn className="sidebar-link-icon" />

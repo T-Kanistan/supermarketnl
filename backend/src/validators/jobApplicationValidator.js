@@ -3,6 +3,40 @@ import { APPLICATION_STATUSES } from '../models/JobApplication.js';
 
 const PHONE_PATTERN = /^[\d\s+().-]{7,30}$/;
 
+export const checkDuplicateJobApplicationRules = [
+  body('jobId')
+    .optional()
+    .trim()
+    .notEmpty()
+    .withMessage('Job ID cannot be empty'),
+  body('vacancyId')
+    .optional()
+    .trim()
+    .notEmpty()
+    .withMessage('Vacancy ID cannot be empty'),
+  body().custom((_, { req }) => {
+    if (req.body.jobId || req.body.vacancyId) return true;
+    throw new Error('Vacancy ID is required');
+  }),
+  body('email')
+    .optional()
+    .trim()
+    .isEmail()
+    .withMessage('Please provide a valid email address')
+    .normalizeEmail(),
+  body('phoneNumber')
+    .optional()
+    .trim()
+    .matches(PHONE_PATTERN)
+    .withMessage('Please provide a valid phone number')
+    .isLength({ max: 30 })
+    .withMessage('Phone number is too long'),
+  body().custom((_, { req }) => {
+    if (req.body.email || req.body.phoneNumber) return true;
+    throw new Error('Email or phone number is required');
+  }),
+];
+
 export const submitJobApplicationRules = [
   body('jobId')
     .optional()

@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { parseBusinessHours } from '../utils/formatBusinessHours';
+import './BusinessHoursDisplay.css';
 
 const BusinessHoursDisplay = ({
   value,

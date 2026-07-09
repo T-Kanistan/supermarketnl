@@ -131,8 +131,9 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
     if (form.fullName.trim() && form.fullName.trim().length < 3) {
       next.fullName = 'Full name must be at least 3 characters';
     }
-    if (!form.phone.trim()) next.phone = 'Phone number is required';
-    else if (!/^[\d\s+()-]{8,}$/.test(form.phone.trim())) next.phone = 'Enter a valid phone number';
+    if (form.phone.trim() && !/^[\d\s+()-]{8,}$/.test(form.phone.trim())) {
+      next.phone = 'Enter a valid phone number';
+    }
     if (requireEmail) {
       if (!form.email.trim()) {
         setErrors((prev) => ({
@@ -337,7 +338,7 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
                 </div>
 
                 <div className={`enquiry-field ${errors.phone ? 'has-error' : ''}`}>
-                  <label htmlFor="enquiry-phone">Phone Number *</label>
+                  <label htmlFor="enquiry-phone">Phone Number (optional)</label>
                   <div className="enquiry-input-wrap">
                     <FiPhone />
                     <input
@@ -351,8 +352,7 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
                       }}
                       onFocus={() => setPhoneHelperVisible(true)}
                       onBlur={() => setPhoneHelperVisible(false)}
-                      placeholder="+31659046526"
-                      required
+                      placeholder="+31659046526 (optional)"
                     />
                   </div>
                   {phoneHelperVisible && (

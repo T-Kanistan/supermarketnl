@@ -1,5 +1,44 @@
-.about-admin {
-  padding: 0 4px 32px;
+.about-admin-visibility-notice {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #fff7ed;
+  border: 1px solid #fdba74;
+  color: #9a3412;
+  font-size: 0.88rem;
+}
+
+.about-admin-required {
+  color: #dc2626;
+}
+
+.about-admin-save-error {
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.about-admin-field-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 6px 0 0;
+  color: #dc2626;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.about-admin-field-error svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  font-size: 0.85rem;
 }
 
 .about-admin-loading {
@@ -128,6 +167,13 @@
   border-radius: 8px;
   padding: 9px 11px;
   font: inherit;
+}
+
+.about-admin-field input.about-admin-input-invalid,
+.about-admin-field textarea.about-admin-input-invalid,
+.about-admin-field select.about-admin-input-invalid {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 1px #dc2626;
 }
 
 .about-admin-image-preview {
@@ -283,6 +329,13 @@
 .about-admin-modal h3 {
   margin: 0;
   color: #004e89;
+}
+
+.about-admin-modal-error {
+  margin: 0 0 12px;
+  color: #dc2626;
+  font-size: 0.9rem;
+  font-weight: 600;
 }
 
 .about-admin-modal label {

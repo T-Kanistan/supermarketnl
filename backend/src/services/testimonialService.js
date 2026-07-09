@@ -1,6 +1,7 @@
 import Testimonial, { DEFAULT_AVATAR } from '../models/Testimonial.js';
 import { handleBase64Upload } from '../middlewares/uploadMiddleware.js';
 import { logManagerActivity } from './activityLogService.js';
+import { buildMultiFieldSearchFilter } from '../utils/adminSearchQuery.js';
 
 const notDeletedFilter = { status: { $ne: 'deleted' } };
 
@@ -125,12 +126,13 @@ const buildPayload = async (body, { isUpdate = false, existing = null } = {}) =>
 export const listTestimonials = async ({ search } = {}) => {
   const filter = { ...notDeletedFilter };
 
-  if (search) {
-    const regex = new RegExp(
-      String(search).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
-      'i'
-    );
-    filter.$or = [{ customerName: regex }, { review: regex }];
+  const searchFilter = buildMultiFieldSearchFilter(search, [
+    'customerName',
+    'review',
+    'status',
+  ]);
+  if (searchFilter) {
+    Object.assign(filter, searchFilter);
   }
 
   const items = await Testimonial.find(filter).sort({ createdAt: -1 });

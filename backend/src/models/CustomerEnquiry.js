@@ -29,14 +29,14 @@ const customerEnquirySchema = new mongoose.Schema(
     },
     email: {
       type: String,
-      required: [true, 'Email is required'],
       trim: true,
       lowercase: true,
+      default: '',
     },
     phone: {
       type: String,
-      required: [true, 'Phone is required'],
       trim: true,
+      default: '',
     },
     subject: {
       type: String,

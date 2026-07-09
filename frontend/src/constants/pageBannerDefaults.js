@@ -98,7 +98,7 @@ const PAGE_BANNER_DEFAULTS = {
 };
 
 const pickBannerFields = (apiData) => {
-  if (!apiData) return null;
+  if (!apiData || apiData.isActive === false) return null;
   return {
     ...apiData,
     pageType: normalizePageType(apiData.pageType || apiData.pageName),

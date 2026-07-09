@@ -109,9 +109,9 @@ export const getStats = async (req, res, next) => {
           unread: counts.unreadMessages,
         },
         banners: {
-          total: counts.activeBanners,
+          total: counts.totalBanners,
           active: counts.activeBanners,
-          inactive: 0,
+          inactive: counts.inactiveBanners,
         },
         announcements: {
           total: counts.activeOffers,

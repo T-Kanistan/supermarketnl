@@ -1,31 +1,71 @@
 import api, { apiRequest } from './api';
 
-const mapIntroduction = (intro = {}) => ({
-  heroEyebrow: intro.badge_text || '',
-  heroHeading: intro.main_heading || '',
-  heroHighlight: intro.highlight_heading || '',
-  heroParagraphs: [
+const normalizeParagraphSlots = (paragraphs = []) => {
+  const slots = Array.isArray(paragraphs) ? [...paragraphs] : [];
+  while (slots.length < 4) slots.push('');
+  return slots.slice(0, 4);
+};
+
+const mapIntroduction = (intro) => {
+  if (!intro) {
+    return {
+      heroEyebrow: '',
+      heroHeading: '',
+      heroHighlight: '',
+      heroParagraphs: normalizeParagraphSlots(),
+      heroDescription: '',
+      heroBadge: '',
+      heroImage: '',
+      button1Text: '',
+      button1Url: '',
+      button2Text: '',
+      button2Url: '',
+      heroDisplayOrder: 1,
+      heroIsActive: false,
+    };
+  }
+
+  const paragraphs = normalizeParagraphSlots([
     intro.description_1,
     intro.description_2,
     intro.description_3,
     intro.description_4,
-  ].filter(Boolean),
-  heroDescription: [intro.description_1, intro.description_2].filter(Boolean).join('\n\n'),
-  heroBadge: intro.serving_badge_text || '',
-  heroImage: intro.image || '',
-  button1Text: intro.button1_text || 'Explore Products',
-  button1Url: intro.button1_url || '/products',
-  button2Text: intro.button2_text || 'Contact Us',
-  button2Url: intro.button2_url || '/contact',
-  heroDisplayOrder: intro.display_order ?? 1,
-  heroIsActive: intro.is_active !== false,
-});
+  ]);
 
-const mapStory = (story = {}) => ({
-  storyTitle: story.title || '',
-  storyDescription: story.description || '',
-  storyImage: story.image || '',
-});
+  return {
+    heroEyebrow: intro.badge_text || intro.badgeText || intro.eyebrowTag || '',
+    heroHeading: intro.main_heading || intro.mainHeading || intro.pageHeading || '',
+    heroHighlight: intro.highlight_heading || intro.highlightHeading || intro.highlightedWord || '',
+    heroParagraphs: paragraphs,
+    heroDescription: paragraphs.filter(Boolean).join('\n\n') || intro.description || '',
+    heroBadge: intro.serving_badge_text || intro.servingBadgeText || intro.imageBadgeText || '',
+    heroImage: intro.image || intro.heroImage || '',
+    button1Text: intro.button1_text || intro.button1Text || '',
+    button1Url: intro.button1_url || intro.button1Url || '',
+    button2Text: intro.button2_text || intro.button2Text || '',
+    button2Url: intro.button2_url || intro.button2Url || '',
+    heroDisplayOrder: intro.display_order ?? intro.displayOrder ?? 1,
+    heroIsActive: intro.is_active !== false,
+  };
+};
+
+const mapStory = (story) => {
+  if (!story) {
+    return {
+      storyTitle: '',
+      storyDescription: '',
+      storyImage: '',
+      storyIsActive: false,
+    };
+  }
+
+  return {
+    storyTitle: story.title || '',
+    storyDescription: story.description || '',
+    storyImage: story.image || '',
+    storyIsActive: story.is_active !== false,
+  };
+};
 
 const mapTimeline = (items = []) =>
   items.map((item) => ({
@@ -69,18 +109,35 @@ const mapStatistics = (items = []) =>
     isActive: item.is_active !== false,
   }));
 
-const mapOwner = (owner = {}) => ({
-  name: owner.owner_name || '',
-  designation: owner.designation || '',
-  phone: owner.phone || '',
-  location: owner.address || '',
-  badge: owner.badge_text || '',
-  quote: owner.quote || '',
-  photo: owner.profile_photo || '',
-  sinceYear: owner.since_year || '2022',
-  yearsServing: owner.experience_text || '',
-  isActive: owner.is_active !== false,
-});
+const mapOwner = (owner) => {
+  if (!owner) {
+    return {
+      name: '',
+      designation: '',
+      phone: '',
+      location: '',
+      badge: '',
+      quote: '',
+      photo: '',
+      sinceYear: '',
+      yearsServing: '',
+      isActive: false,
+    };
+  }
+
+  return {
+    name: owner.owner_name || owner.ownerName || '',
+    designation: owner.designation || '',
+    phone: owner.phone || owner.phoneNumber || '',
+    location: owner.address || owner.location || '',
+    badge: owner.badge_text || owner.badgeText || '',
+    quote: owner.quote || owner.ownerQuote || '',
+    photo: owner.profile_photo || owner.ownerPhoto || '',
+    sinceYear: owner.since_year || owner.sinceYear || '',
+    yearsServing: owner.experience_text || owner.experienceText || '',
+    isActive: owner.is_active !== false,
+  };
+};
 
 export const mapModulePageToFrontend = (data) => {
   if (!data) return null;
@@ -98,6 +155,16 @@ export const mapModulePageToFrontend = (data) => {
     },
     raw: data,
   };
+};
+
+const isValidMongoId = (id) => typeof id === 'string' && /^[a-f\d]{24}$/i.test(id);
+
+const mapListItem = (item, index, mapper) => {
+  const payload = mapper(item, index);
+  if (isValidMongoId(item.id)) {
+    payload.id = item.id;
+  }
+  return payload;
 };
 
 const buildSyncPayload = (ap = {}) => ({
@@ -122,49 +189,61 @@ const buildSyncPayload = (ap = {}) => ({
     title: ap.storyTitle || '',
     description: ap.storyDescription || '',
     image: ap.storyImage || '',
-    is_active: true,
+    is_active: ap.storyIsActive !== false,
   },
-  storyTimeline: (ap.storyTimeline || []).map((item, index) => ({
-    id: item.id,
-    title: item.title || '',
-    subtitle: item.marker || '',
-    description: item.description || '',
-    icon: item.icon || 'FiCalendar',
-    display_order: item.displayOrder ?? index + 1,
-    is_active: item.isActive !== false,
-  })),
-  values: (ap.mvpCards || []).map((card, index) => ({
-    id: card.id,
-    title: card.title || '',
-    description: card.description || '',
-    icon: card.icon || 'FiTarget',
-    display_order: card.displayOrder ?? index + 1,
-    is_active: card.isActive !== false,
-  })),
-  offers: (ap.offerings || []).map((item, index) => ({
-    id: item.id,
-    title: item.title || '',
-    description: item.description || '',
-    image: item.image || '',
-    display_order: item.displayOrder ?? index + 1,
-    is_active: item.isActive !== false,
-  })),
-  statistics: (ap.stats || []).map((stat, index) => ({
-    id: stat.id,
-    title: stat.label || '',
-    value: Number(stat.value) || 0,
-    suffix: stat.suffix || '',
-    icon: stat.icon || 'FiUsers',
-    display_order: stat.displayOrder ?? index + 1,
-    is_active: stat.isActive !== false,
-  })),
+  storyTimeline: (ap.storyTimeline || [])
+    .filter((item) => !item.isDeleted)
+    .map((item, index) =>
+      mapListItem(item, index, (entry, orderIndex) => ({
+        title: entry.title || '',
+        subtitle: entry.marker || '',
+        description: entry.description || '',
+        icon: entry.icon || 'FiCalendar',
+        display_order: entry.displayOrder ?? orderIndex + 1,
+        is_active: entry.isActive !== false,
+      }))
+    ),
+  values: (ap.mvpCards || [])
+    .filter((item) => !item.isDeleted)
+    .map((card, index) =>
+      mapListItem(card, index, (entry, orderIndex) => ({
+        title: entry.title || '',
+        description: entry.description || '',
+        icon: entry.icon || 'FiTarget',
+        display_order: entry.displayOrder ?? orderIndex + 1,
+        is_active: entry.isActive !== false,
+      }))
+    ),
+  offers: (ap.offerings || [])
+    .filter((item) => !item.isDeleted)
+    .map((item, index) =>
+      mapListItem(item, index, (entry, orderIndex) => ({
+        title: entry.title || '',
+        description: entry.description || '',
+        image: entry.image || '',
+        display_order: entry.displayOrder ?? orderIndex + 1,
+        is_active: entry.isActive !== false,
+      }))
+    ),
+  statistics: (ap.stats || [])
+    .filter((item) => !item.isDeleted)
+    .map((stat, index) =>
+      mapListItem(stat, index, (entry, orderIndex) => ({
+        title: entry.label || '',
+        value: Number(entry.value) || 0,
+        suffix: entry.suffix || '',
+        icon: entry.icon || 'FiUsers',
+        display_order: entry.displayOrder ?? orderIndex + 1,
+        is_active: entry.isActive !== false,
+      }))
+    ),
   owner: {
     owner_name: ap.owner?.name || '',
     designation: ap.owner?.designation || '',
     quote: ap.owner?.quote || '',
     phone: ap.owner?.phone || '',
     address: ap.owner?.location || '',
-    since_year: ap.owner?.sinceYear || '2022',
+    since_year: ap.owner?.sinceYear || '',
     experience_text: ap.owner?.yearsServing || '',
     badge_text: ap.owner?.badge || '',
     profile_photo: ap.owner?.photo || '',
@@ -191,12 +270,14 @@ export const mapApiToFrontend = mapModulePageToFrontend;
 
 export const aboutUsService = {
   getAboutUs: async () => {
-    const data = await apiRequest(() => api.get('/about'));
+    const data = await apiRequest(() => api.get('/about', { params: { _t: Date.now() } }));
     return mapModulePageToFrontend(data);
   },
 
   getAboutUsAdmin: async () => {
-    const data = await apiRequest(() => api.get('/about/admin'));
+    const data = await apiRequest(() =>
+      api.get('/about/admin', { params: { _t: Date.now() } })
+    );
     return mapModulePageToFrontend(data);
   },
 

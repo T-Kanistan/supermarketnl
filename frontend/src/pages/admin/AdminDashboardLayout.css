@@ -855,6 +855,25 @@ body.admin-drawer-open {
   color: #b91c1c;
 }
 
+.admin-field-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.admin-field-meta .admin-field-error {
+  margin: 0;
+}
+
+.admin-char-counter {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
 /* Toggles and checkboxes */
 .toggle-switch-admin {
   position: relative;
@@ -1235,6 +1254,13 @@ body.admin-drawer-open {
   font-size: 2rem;
 }
 
+.fc-admin-icon-preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
 /* Forms & Modals */
 body.modal-open {
   overflow: hidden;
@@ -1349,6 +1375,29 @@ body.modal-open {
   font-size: 0.9rem;
 }
 
+.admin-field-required {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.admin-field-optional {
+  color: #94a3b8;
+  font-weight: 500;
+  font-size: 0.85em;
+}
+
+.admin-form-field-title {
+  display: block;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+}
+
+.vacancy-form-grid > label > .admin-form-field-title {
+  margin-bottom: 8px;
+}
+
 .admin-form-group input[type="text"],
 .admin-form-group input[type="email"],
 .admin-form-group input[type="password"],
@@ -1374,6 +1423,26 @@ body.modal-open {
   background: white;
   outline: none;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.admin-form-group input.admin-input-invalid,
+.admin-form-group select.admin-input-invalid,
+.admin-form-group textarea.admin-input-invalid {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+}
+
+.admin-form-group input.admin-input-invalid:focus,
+.admin-form-group select.admin-input-invalid:focus,
+.admin-form-group textarea.admin-input-invalid:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.16);
+}
+
+.admin-field-error {
+  color: #dc2626;
+  font-size: 0.8rem;
+  margin-top: 6px;
 }
 
 .image-upload-zone {
@@ -1806,11 +1875,13 @@ body.modal-open {
 }
 
 .footer-admin-preview-col h5 {
-  font-size: 0.7rem;
+  font-size: 0.85rem;
+  font-weight: 700;
   text-transform: uppercase;
   margin: 0 0 8px;
   position: relative;
   padding-bottom: 6px;
+  color: #ffffff;
 }
 
 .footer-admin-preview-col h5::after {
@@ -1830,18 +1901,21 @@ body.modal-open {
 }
 
 .footer-admin-preview-col li {
-  color: #cbd5e1;
-  margin-bottom: 4px;
+  color: #f1f5f9;
+  margin-bottom: 6px;
+  font-size: 0.82rem;
+  line-height: 1.45;
 }
 
 .footer-admin-preview-col p,
 .footer-admin-preview-col small {
-  color: #cbd5e1;
-  margin: 0 0 4px;
+  color: #f1f5f9;
+  margin: 0 0 6px;
   display: flex;
   align-items: flex-start;
   gap: 6px;
-  line-height: 1.4;
+  line-height: 1.45;
+  font-size: 0.82rem;
 }
 
 .footer-admin-preview-col small {
@@ -1854,6 +1928,8 @@ body.modal-open {
   display: block;
   line-height: 1.5;
   margin-bottom: 10px;
+  color: #e2e8f0;
+  font-size: 0.85rem;
 }
 
 .footer-admin-preview-logo {
@@ -1895,12 +1971,13 @@ body.modal-open {
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
-  font-size: 0.68rem;
-  color: #94a3b8;
+  font-size: 0.78rem;
+  color: #e2e8f0;
 }
 
 .footer-admin-preview-bottom span {
   margin-right: 12px;
+  color: #f1f5f9;
 }
 
 .footer-section-header {

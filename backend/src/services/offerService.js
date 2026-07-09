@@ -3,6 +3,14 @@ import OfferBanner from '../models/OfferBanner.js';
 import OfferCategory from '../models/OfferCategory.js';
 import { handleBase64Upload } from '../middlewares/uploadMiddleware.js';
 import { logManagerActivity } from './activityLogService.js';
+import {
+  buildPublicOfferScheduleFilter,
+  getOfferScheduleState,
+  isOfferPubliclyVisible,
+  mergeScheduleFilter,
+  normalizeOfferEndDate,
+  normalizeOfferStartDate,
+} from '../utils/offerSchedule.js';
 
 const slugify = (value) =>
   String(value || '')
@@ -30,6 +38,18 @@ const parseDate = (value) => {
   if (!value) return null;
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;
+};
+
+export const expirePastOffers = async () => {
+  const now = new Date();
+  const result = await Offer.updateMany(
+    {
+      status: 'active',
+      endDate: { $ne: null, $lt: now },
+    },
+    { $set: { status: 'inactive' } }
+  );
+  return result.modifiedCount || 0;
 };
 
 const resolveImage = async (value) => {
@@ -81,11 +101,7 @@ const buildDepartmentFilter = (department) => {
 export const formatOffer = (doc) => {
   if (!doc) return null;
   const plain = doc.toObject ? doc.toObject() : { ...doc };
-  const now = Date.now();
-  const endTime = plain.endDate ? new Date(plain.endDate).getTime() : null;
-  const startTime = plain.startDate ? new Date(plain.startDate).getTime() : null;
-  const isExpired = endTime !== null && endTime < now;
-  const isScheduled = startTime !== null && startTime > now;
+  const { isExpired, isScheduled } = getOfferScheduleState(plain);
 
   return {
     ...plain,
@@ -104,6 +120,7 @@ export const formatOffer = (doc) => {
     sortOrder: Number.isFinite(plain.sortOrder) ? plain.sortOrder : 0,
     isExpired,
     isScheduled,
+    isLive: isOfferPubliclyVisible(plain),
     // Aliases for consumers expecting imageUrl
     imageUrl: plain.image || '',
   };
@@ -114,6 +131,7 @@ export const buildOfferFilter = (query = {}, { publicOnly = false } = {}) => {
 
   if (publicOnly) {
     filter.status = 'active';
+    mergeScheduleFilter(filter);
   } else if (query.status && query.status !== 'all') {
     filter.status = query.status;
   } else {
@@ -177,8 +195,8 @@ export const normalizeOfferPayload = async (body) => {
     throw error;
   }
 
-  const startDate = parseDate(body.startDate);
-  const endDate = parseDate(body.endDate);
+  const startDate = normalizeOfferStartDate(body.startDate);
+  const endDate = normalizeOfferEndDate(body.endDate);
   if (startDate && endDate && endDate < startDate) {
     const error = new Error('End date must be after the start date');
     error.statusCode = 400;
@@ -264,8 +282,8 @@ export const buildPartialOfferUpdate = async (body, existing) => {
     update.status = body.status;
   }
 
-  if (hasField(body, 'startDate')) update.startDate = parseDate(body.startDate);
-  if (hasField(body, 'endDate')) update.endDate = parseDate(body.endDate);
+  if (hasField(body, 'startDate')) update.startDate = normalizeOfferStartDate(body.startDate);
+  if (hasField(body, 'endDate')) update.endDate = normalizeOfferEndDate(body.endDate);
 
   const effectiveStart = update.startDate !== undefined ? update.startDate : existingPlain.startDate;
   const effectiveEnd = update.endDate !== undefined ? update.endDate : existingPlain.endDate;
@@ -288,13 +306,23 @@ export const buildPartialOfferUpdate = async (body, existing) => {
 };
 
 export const listOffers = async (query = {}, options = {}) => {
+  if (options.publicOnly) {
+    await expirePastOffers();
+  }
   const filter = buildOfferFilter(query, options);
   const offers = await Offer.find(filter).sort({ sortOrder: 1, createdAt: -1 });
   return offers.map(formatOffer);
 };
 
 export const getFeaturedOffers = async () => {
-  const offers = await Offer.find({ status: 'active', featured: true }).sort({
+  await expirePastOffers();
+  const now = new Date();
+  const filter = {
+    status: 'active',
+    featured: true,
+    ...buildPublicOfferScheduleFilter(now),
+  };
+  const offers = await Offer.find(filter).sort({
     sortOrder: 1,
     createdAt: -1,
   });
@@ -302,9 +330,12 @@ export const getFeaturedOffers = async () => {
 };
 
 export const getOffersByCategory = async (category) => {
+  await expirePastOffers();
+  const now = new Date();
   const filter = {
     status: 'active',
     category: new RegExp(`^${escapeRegex(category)}$`, 'i'),
+    ...buildPublicOfferScheduleFilter(now),
   };
   const offers = await Offer.find(filter).sort({ sortOrder: 1, createdAt: -1 });
   return offers.map(formatOffer);
@@ -317,7 +348,9 @@ export const getOfferCategories = async ({ publicOnly = false } = {}) => {
 
   // Union with any categories already referenced by existing offers, so legacy
   // offers whose category was never added to the collection still appear.
-  const offerMatch = publicOnly ? { status: 'active' } : { status: { $ne: 'deleted' } };
+  const offerMatch = publicOnly
+    ? { status: 'active', ...buildPublicOfferScheduleFilter() }
+    : { status: { $ne: 'deleted' } };
   const offerCategories = await Offer.distinct('category', offerMatch);
 
   const byKey = new Map();
@@ -504,6 +537,10 @@ export const deleteOfferCategory = async (id, user) => {
 };
 
 export const getOfferById = async (id, options = {}) => {
+  if (options.publicOnly) {
+    await expirePastOffers();
+  }
+
   const filter = { _id: id, status: { $ne: 'deleted' } };
   if (options.publicOnly) filter.status = 'active';
 
@@ -513,6 +550,13 @@ export const getOfferById = async (id, options = {}) => {
     error.statusCode = 404;
     throw error;
   }
+
+  if (options.publicOnly && !isOfferPubliclyVisible(offer)) {
+    const error = new Error('Offer not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
   return formatOffer(offer);
 };
 

@@ -19,6 +19,7 @@ export const getOffers = async (req, res, next) => {
 
 export const getAllOffers = async (req, res, next) => {
   try {
+    await offerService.expirePastOffers();
     const data = await offerService.listOffers(req.query);
     return res.status(200).json({ success: true, count: data.length, data });
   } catch (error) {

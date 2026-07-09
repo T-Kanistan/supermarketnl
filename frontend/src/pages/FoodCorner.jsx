@@ -18,6 +18,8 @@ import { filterByFuzzySearch } from '../utils/fuzzySearch';
 import { useEnquiry } from '../context/EnquiryContext';
 import { useCMS } from '../context/CMSContext';
 import usePageBanner from '../hooks/usePageBanner';
+import FoodCornerCategoryIcon from '../components/FoodCornerCategoryIcon';
+import BusinessHoursDisplay from '../components/BusinessHoursDisplay';
 import { getBannerOverlayStyle } from '../utils/bannerOverlay';
 import './FoodCorner.css';
 
@@ -99,7 +101,7 @@ const FoodCorner = () => {
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [sortOption, setSortOption] = useState('default');
   const { openEnquiry } = useEnquiry();
-  const { cmsData } = useCMS();
+  const { cmsData, loading: cmsLoading } = useCMS();
   const {
     banner: pageBanner,
     heroImageUrl,
@@ -271,8 +273,11 @@ const FoodCorner = () => {
                   </div>
                   <div className="fc-hours-content">
                     <span className="fc-hours-label fc-hours-label--green">Weekend Dining Hours</span>
-                    <strong className="fc-hours-time">{foodCornerHours}</strong>
-                    <span className="fc-hours-note">Saturday &amp; Sunday</span>
+                    <BusinessHoursDisplay
+                      value={foodCornerHours}
+                      loading={cmsLoading}
+                      className="fc-hours-time"
+                    />
                   </div>
                 </div>
 
@@ -319,7 +324,14 @@ const FoodCorner = () => {
                 className={`fc-tab ${activeCategory === (cat.slug || cat.id) ? 'active' : ''}`}
                 onClick={() => handleCategoryClick(cat.slug || cat.id)}
               >
-                {cat.icon && <span className="fc-tab-icon">{cat.icon}</span>}
+                {cat.icon ? (
+                  <FoodCornerCategoryIcon
+                    icon={cat.icon}
+                    className="fc-tab-icon"
+                    imgClassName="fc-tab-icon-img"
+                    alt=""
+                  />
+                ) : null}
                 {formatCategoryName(cat.categoryName || cat.name)}
               </button>
             ))}

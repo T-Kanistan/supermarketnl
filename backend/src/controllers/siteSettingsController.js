@@ -9,6 +9,7 @@ import { successResponse } from '../utils/apiResponse.js';
 export const getSettings = async (req, res, next) => {
   try {
     const settings = await siteSettingsService.getSiteSettings();
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
     return successResponse(res, 200, 'Site settings retrieved successfully', settings);
   } catch (error) {
     next(error);

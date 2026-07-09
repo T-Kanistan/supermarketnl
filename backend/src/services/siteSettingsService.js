@@ -4,6 +4,7 @@ import ContactCMS, { getDefaultContactCMS } from '../models/ContactCMS.js';
 import FooterCMS, { getDefaultFooterCMS } from '../models/FooterCMS.js';
 import HomepageBanner from '../models/HomepageBanner.js';
 import { handleImageUpload, handleBase64Upload } from '../middlewares/uploadMiddleware.js';
+import { assertOpeningHoursValid } from '../utils/openingHoursValidation.js';
 
 const uploadIfBase64 = async (value) => {
   if (!value || typeof value !== 'string' || !value.startsWith('data:image')) return value;
@@ -103,6 +104,16 @@ export const getSiteSettings = async () => {
 export const updateSiteSettings = async (body = {}, file, user) => {
   const incoming = normalizeIncomingBody(body);
   let settings = await ensureSiteSettings();
+
+  if (
+    incoming.supermarketOpeningHours !== undefined ||
+    incoming.foodCornerOpeningHours !== undefined
+  ) {
+    assertOpeningHoursValid(
+      incoming.supermarketOpeningHours ?? settings.supermarketOpeningHours,
+      incoming.foodCornerOpeningHours ?? settings.foodCornerOpeningHours
+    );
+  }
 
   if (incoming.storeName !== undefined) settings.storeName = String(incoming.storeName).trim();
   if (incoming.physicalAddress !== undefined) {

@@ -19,19 +19,19 @@ const extractApiError = (error, fallback = 'Request failed') => {
 
 const toApiPayload = (data) => {
   const productType = mapProductType(data.productType || data.type || data.productCatalogType);
-  const featured = Boolean(data.showOnHomepage ?? data.featuredProduct ?? data.isFeatured ?? data.featured);
   const payload = {
     productType,
     productName: data.productName || data.name,
     categoryId: data.categoryId || data.category || data.categoryName,
     price: Number(data.price),
     imageUrl: data.imageUrl || data.image,
-    showOnHomepage: featured,
-    featuredProduct: featured,
     status: data.status || 'active',
   };
 
   if (productType === 'grocery') {
+    const featured = Boolean(data.showOnHomepage ?? data.featuredProduct ?? data.isFeatured ?? data.featured);
+    payload.showOnHomepage = featured;
+    payload.featuredProduct = featured;
     payload.stockStatus =
       data.stockStatus ||
       (data.stock > 0 || data.stock === 'in_stock' ? 'in_stock' : 'out_of_stock');
@@ -39,6 +39,8 @@ const toApiPayload = (data) => {
   } else {
     payload.menuDisplayTiming = data.menuDisplayTiming || data.displayTime || '';
     payload.description = data.description || data.shortDescription || '';
+    payload.showOnHomepage = false;
+    payload.featuredProduct = false;
   }
 
   return payload;
@@ -63,18 +65,6 @@ const toUpdatePayload = (data) => {
   if (data.imageUrl !== undefined || data.image !== undefined) {
     payload.imageUrl = data.imageUrl || data.image;
   }
-  if (
-    data.showOnHomepage !== undefined ||
-    data.featuredProduct !== undefined ||
-    data.isFeatured !== undefined ||
-    data.featured !== undefined
-  ) {
-    const featured = Boolean(
-      data.showOnHomepage ?? data.featuredProduct ?? data.isFeatured ?? data.featured
-    );
-    payload.showOnHomepage = featured;
-    payload.featuredProduct = featured;
-  }
   if (data.status !== undefined) {
     payload.status = data.status;
   }
@@ -87,12 +77,28 @@ const toUpdatePayload = (data) => {
     if (data.weightUnit !== undefined || data.weightUnitSize !== undefined || data.weight !== undefined) {
       payload.weightUnit = data.weightUnit || data.weightUnitSize || data.weight || '';
     }
-  } else {
+    if (
+      data.showOnHomepage !== undefined ||
+      data.featuredProduct !== undefined ||
+      data.isFeatured !== undefined ||
+      data.featured !== undefined
+    ) {
+      const featured = Boolean(
+        data.showOnHomepage ?? data.featuredProduct ?? data.isFeatured ?? data.featured
+      );
+      payload.showOnHomepage = featured;
+      payload.featuredProduct = featured;
+    }
+  } else if (resolvedType === 'food-corner') {
     if (data.menuDisplayTiming !== undefined || data.displayTime !== undefined) {
       payload.menuDisplayTiming = data.menuDisplayTiming || data.displayTime || '';
     }
     if (data.description !== undefined || data.shortDescription !== undefined) {
       payload.description = data.description || data.shortDescription || '';
+    }
+    if (data.productType !== undefined || data.type !== undefined || data.productCatalogType !== undefined) {
+      payload.showOnHomepage = false;
+      payload.featuredProduct = false;
     }
   }
 

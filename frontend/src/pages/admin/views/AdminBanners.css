@@ -2,9 +2,77 @@
   display: flex;
   flex-wrap: wrap;
   gap: 16px;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   margin-bottom: 20px;
+}
+
+.admin-banner-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.admin-banner-summary-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px 18px;
+}
+
+.admin-banner-summary-card.active {
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+
+.admin-banner-summary-card.inactive {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.admin-banner-summary-value {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.2;
+}
+
+.admin-banner-summary-label {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.admin-banners-filter-label {
+  align-self: center;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #64748b;
+  margin-right: 4px;
+}
+
+.admin-banner-status-cell,
+.admin-banner-status-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-banner-status-text {
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.admin-banner-status-text.active {
+  color: #15803d;
+}
+
+.admin-banner-status-text.inactive {
+  color: #b91c1c;
 }
 
 .admin-banners-search {
@@ -133,6 +201,10 @@
 }
 
 @media (max-width: 900px) {
+  .admin-banner-summary {
+    grid-template-columns: 1fr;
+  }
+
   .admin-banner-modal-grid {
     grid-template-columns: 1fr;
   }

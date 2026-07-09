@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../context/ToastContext';
 import accountService from '../../../services/accountService';
+import AdminFieldLabel from '../../../components/admin/AdminFieldLabel';
 
 export const AdminProfile = () => {
   const { user, changePassword } = useAuth();
@@ -242,8 +243,9 @@ export const AdminProfile = () => {
 
             <div style={{ borderTop: '1px solid var(--admin-border)', paddingTop: '20px' }}>
               <div className="admin-form-group">
-                <label>Full Name</label>
+                <AdminFieldLabel htmlFor="profile-name" required>Full Name</AdminFieldLabel>
                 <input
+                  id="profile-name"
                   type="text"
                   name="name"
                   value={profileForm.name}
@@ -254,8 +256,9 @@ export const AdminProfile = () => {
               </div>
 
               <div className="admin-form-group">
-                <label>Email Address</label>
+                <AdminFieldLabel htmlFor="profile-email" required>Email Address</AdminFieldLabel>
                 <input
+                  id="profile-email"
                   type="email"
                   name="email"
                   value={profileForm.email}
@@ -301,8 +304,9 @@ export const AdminProfile = () => {
         <h3 className="panel-title">Change Password</h3>
         <form onSubmit={handlePasswordSubmit}>
           <div className="admin-form-group">
-            <label>Current Password</label>
+            <AdminFieldLabel htmlFor="current-password" required>Current Password</AdminFieldLabel>
             <input
+              id="current-password"
               type="password"
               name="currentPassword"
               value={passwordForm.currentPassword}
@@ -313,8 +317,9 @@ export const AdminProfile = () => {
           </div>
 
           <div className="admin-form-group">
-            <label>New Password</label>
+            <AdminFieldLabel htmlFor="new-password" required>New Password</AdminFieldLabel>
             <input
+              id="new-password"
               type="password"
               name="newPassword"
               value={passwordForm.newPassword}
@@ -327,8 +332,9 @@ export const AdminProfile = () => {
           </div>
 
           <div className="admin-form-group">
-            <label>Confirm New Password</label>
+            <AdminFieldLabel htmlFor="confirm-new-password" required>Confirm New Password</AdminFieldLabel>
             <input
+              id="confirm-new-password"
               type="password"
               name="confirmPassword"
               value={passwordForm.confirmPassword}

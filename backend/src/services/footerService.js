@@ -1,6 +1,13 @@
 import FooterCMS, { getDefaultFooterCMS } from '../models/FooterCMS.js';
 import { deleteLocalImage, persistUploadedFile } from '../middleware/upload.js';
 import siteSettingsService from './siteSettingsService.js';
+import { assertOpeningHoursValid } from '../utils/openingHoursValidation.js';
+import { assertContactInfoValid } from '../utils/contactInfoValidation.js';
+import {
+  assertLegalLinksValid,
+  sanitizeLegalLinks,
+  getLegalLinkPath,
+} from '../utils/legalLinksValidation.js';
 
 const LINK_TYPES = {
   quick: 'quickLinks',
@@ -27,6 +34,8 @@ const mapSettingsToApi = (doc) => ({
   whatsappUrl: doc.socialLinks?.whatsapp || '',
   tiktokUrl: doc.socialLinks?.tiktok || '',
   youtubeUrl: doc.socialLinks?.youtube || '',
+  quickLinksTitle: doc.quickLinksTitle || 'QUICK LINKS',
+  categoriesTitle: doc.categoriesTitle || 'CATEGORIES',
   businessHoursTitle: doc.businessHoursTitle || 'BUSINESS HOURS',
   supermarketLabel: doc.supermarketLabel || 'Supermarket',
   supermarketHours: doc.businessHours?.supermarket || '',
@@ -103,6 +112,8 @@ const normalizeSettingsBody = (body = {}) => {
     whatsapp_url: 'whatsappUrl',
     tiktok_url: 'tiktokUrl',
     youtube_url: 'youtubeUrl',
+    quick_links_title: 'quickLinksTitle',
+    categories_title: 'categoriesTitle',
     business_hours_title: 'businessHoursTitle',
     supermarket_label: 'supermarketLabel',
     supermarket_hours: 'supermarketHours',
@@ -124,6 +135,8 @@ const normalizeSettingsBody = (body = {}) => {
     'tiktokUrl',
     'youtubeUrl',
     'businessHoursTitle',
+    'quickLinksTitle',
+    'categoriesTitle',
     'supermarketLabel',
     'supermarketHours',
     'foodCornerLabel',
@@ -158,6 +171,8 @@ const apiPayloadToMongoUpdate = (payload) => {
   if (payload.whatsappUrl !== undefined) update['socialLinks.whatsapp'] = payload.whatsappUrl;
   if (payload.tiktokUrl !== undefined) update['socialLinks.tiktok'] = payload.tiktokUrl;
   if (payload.youtubeUrl !== undefined) update['socialLinks.youtube'] = payload.youtubeUrl;
+  if (payload.quickLinksTitle !== undefined) update.quickLinksTitle = payload.quickLinksTitle;
+  if (payload.categoriesTitle !== undefined) update.categoriesTitle = payload.categoriesTitle;
   if (payload.businessHoursTitle !== undefined) update.businessHoursTitle = payload.businessHoursTitle;
   if (payload.supermarketLabel !== undefined) update.supermarketLabel = payload.supermarketLabel;
   if (payload.supermarketHours !== undefined) update['businessHours.supermarket'] = payload.supermarketHours;
@@ -179,6 +194,27 @@ const normalizeLinkBody = (body = {}) => ({
   displayOrder: body.displayOrder !== undefined ? Number(body.displayOrder) : undefined,
   isVisible: body.isVisible !== undefined ? Boolean(body.isVisible) : undefined,
 });
+
+const assertValidLegalLinkMutation = async (doc, linkData, excludeLinkId = null) => {
+  const existingLinks = (doc.legalLinks || []).map((link) => ({
+    label: link.label,
+    url: link.url,
+    _id: link._id?.toString(),
+  }));
+
+  const candidateLinks = excludeLinkId
+    ? existingLinks.map((link) =>
+        link._id === excludeLinkId
+          ? { label: linkData.label, url: linkData.url || getLegalLinkPath(linkData) }
+          : { label: link.label, url: link.url }
+      )
+    : [
+        ...existingLinks.map((link) => ({ label: link.label, url: link.url })),
+        { label: linkData.label, url: linkData.url || getLegalLinkPath(linkData) },
+      ];
+
+  assertLegalLinksValid(candidateLinks);
+};
 
 const getLinkArray = (doc, type) => doc[LINK_TYPES[type]];
 
@@ -205,6 +241,22 @@ export const getFooterFull = async (visibleOnly = false) => {
 export const updateFooterSettings = async (body) => {
   const existing = await ensureFooter();
   const payload = normalizeSettingsBody(body);
+
+  if (payload.supermarketHours !== undefined || payload.foodCornerHours !== undefined) {
+    const settings = await siteSettingsService.getSiteSettings();
+    assertOpeningHoursValid(
+      payload.supermarketHours ?? settings.supermarketOpeningHours,
+      payload.foodCornerHours ?? settings.foodCornerOpeningHours
+    );
+  }
+
+  if (payload.phoneNumber !== undefined || payload.emailAddress !== undefined) {
+    assertContactInfoValid(
+      payload.phoneNumber ?? existing.contact?.phone,
+      payload.emailAddress ?? existing.contact?.email
+    );
+  }
+
   const mongoUpdate = apiPayloadToMongoUpdate(payload);
 
   const linkArrays = ['quickLinks', 'legalLinks'];
@@ -212,12 +264,17 @@ export const updateFooterSettings = async (body) => {
 
   linkArrays.forEach((key) => {
     if (Array.isArray(body[key])) {
-      existing[key] = body[key].map((link, index) => ({
-        label: link.label,
-        url: link.url || '/',
-        show: link.isVisible !== false,
-        order: link.displayOrder ?? index + 1,
-      }));
+      if (key === 'legalLinks') {
+        assertLegalLinksValid(body[key]);
+        existing[key] = sanitizeLegalLinks(body[key]);
+      } else {
+        existing[key] = body[key].map((link, index) => ({
+          label: link.label,
+          url: link.url || '/',
+          show: link.isVisible !== false,
+          order: link.displayOrder ?? index + 1,
+        }));
+      }
       linksChanged = true;
     }
   });
@@ -325,6 +382,13 @@ const createLink = async (type, body) => {
     throw error;
   }
 
+  if (type === 'legal') {
+    await assertValidLegalLinkMutation(doc, data);
+    const sanitized = sanitizeLegalLinks([{ label: data.label, url: data.url }])[0];
+    data.label = sanitized.label;
+    data.url = sanitized.url;
+  }
+
   const links = getLinkArray(doc, type);
   const maxOrder = links.reduce((max, item) => Math.max(max, item.order || 0), 0);
 
@@ -349,8 +413,22 @@ const updateLink = async (type, id, body) => {
   }
 
   const data = normalizeLinkBody(body);
-  if (data.label !== undefined) link.label = data.label;
-  if (data.url !== undefined) link.url = data.url;
+  const nextLink = {
+    label: data.label ?? link.label,
+    url: data.url ?? link.url,
+    displayOrder: data.displayOrder,
+    isVisible: data.isVisible,
+  };
+
+  if (type === 'legal') {
+    await assertValidLegalLinkMutation(doc, nextLink, id);
+    const sanitized = sanitizeLegalLinks([{ label: nextLink.label, url: nextLink.url }])[0];
+    nextLink.label = sanitized.label;
+    nextLink.url = sanitized.url;
+  }
+
+  if (nextLink.label !== undefined) link.label = nextLink.label;
+  if (nextLink.url !== undefined) link.url = nextLink.url;
   if (data.displayOrder !== undefined) link.order = data.displayOrder;
   if (data.isVisible !== undefined) link.show = data.isVisible;
 

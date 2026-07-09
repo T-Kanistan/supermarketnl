@@ -10,18 +10,20 @@ const handleServiceError = (error, res, next) => {
 
 export const listBanners = async (req, res, next) => {
   try {
-    const { pageType, pageName, q, page, limit, includeInactive } = req.query;
+    const { pageType, pageName, q, page, limit, status, includeInactive } = req.query;
     const result = await pageBannerService.listBanners({
       pageType: pageType || pageName,
       q,
       page,
       limit,
+      status: status || 'all',
       includeInactive: includeInactive !== 'false',
     });
     return res.status(200).json({
       success: true,
       data: result.items,
       pagination: result.pagination,
+      summary: result.summary,
     });
   } catch (error) {
     return next(error);

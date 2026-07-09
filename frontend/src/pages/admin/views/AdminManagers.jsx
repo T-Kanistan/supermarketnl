@@ -1,9 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  FaPlus, FaEdit, FaTrash, FaUsers, FaEye, FaBan, FaCheckCircle, FaUserCircle,
+  FaPlus, FaEdit, FaTrash, FaUsers, FaEye, FaBan, FaCheckCircle, FaUserCircle, FaSearch,
 } from 'react-icons/fa';
 import managerService from '../../../services/managerService';
 import { useToast } from '../../../context/ToastContext';
+import useAdminSearch from '../../../hooks/useAdminSearch';
+import { filterByAdminSearch, statusSearchLabel, ADMIN_NO_MATCH_MESSAGE } from '../../../utils/adminSearch';
+import AdminFieldLabel from '../../../components/admin/AdminFieldLabel';
 
 const emptyForm = {
   fullName: '',
@@ -33,7 +36,20 @@ export const AdminManagers = () => {
   const [editingManager, setEditingManager] = useState(null);
   const [viewingManager, setViewingManager] = useState(null);
   const [formData, setFormData] = useState(emptyForm);
+  const { searchInput, searchQuery, onSearchChange, hasActiveSearch } = useAdminSearch();
   const { addToast } = useToast();
+
+  const filteredManagers = useMemo(
+    () =>
+      filterByAdminSearch(managers, searchQuery, (mgr) => [
+        mgr.fullName,
+        mgr.email,
+        mgr.username,
+        mgr.phoneNumber,
+        statusSearchLabel(mgr.status !== false),
+      ]),
+    [managers, searchQuery]
+  );
 
   const fetchManagers = useCallback(async () => {
     setLoading(true);
@@ -182,12 +198,24 @@ export const AdminManagers = () => {
         </button>
       </div>
 
+      <div className="table-controls">
+        <div className="search-box-admin">
+          <FaSearch className="search-icon-admin" />
+          <input
+            type="text"
+            placeholder="Search by name, email, phone, status..."
+            value={searchInput}
+            onChange={onSearchChange}
+          />
+        </div>
+      </div>
+
       {loading ? (
         <div style={{ background: 'white', padding: '40px', borderRadius: '16px', animation: 'pulse 1.5s infinite ease-in-out' }}>
           <div style={{ height: '30px', width: '200px', background: '#cbd5e1', marginBottom: '20px' }} />
           <div style={{ height: '150px', background: '#cbd5e1' }} />
         </div>
-      ) : managers.length > 0 ? (
+      ) : filteredManagers.length > 0 ? (
         <div className="table-responsive-wrapper">
           <table className="admin-table">
             <thead>
@@ -202,7 +230,7 @@ export const AdminManagers = () => {
               </tr>
             </thead>
             <tbody>
-              {managers.map((mgr) => (
+              {filteredManagers.map((mgr) => (
                 <tr key={mgr.id}>
                   <td data-label="Profile">
                     {mgr.profileImage ? (
@@ -278,7 +306,7 @@ export const AdminManagers = () => {
       ) : (
         <div className="dashboard-panel admin-empty-state">
           <FaUsers className="admin-empty-icon" />
-          <h3>No Managers Found</h3>
+          <h3>{hasActiveSearch ? ADMIN_NO_MATCH_MESSAGE : 'No Managers Found'}</h3>
           <p>Create a manager account to grant access to catalog, offers, enquiries, and content modules.</p>
         </div>
       )}
@@ -294,40 +322,40 @@ export const AdminManagers = () => {
             <form onSubmit={handleSubmit}>
               <div className="modal-body">
                 <div className="admin-form-group">
-                  <label htmlFor="fullName">Full Name</label>
+                  <AdminFieldLabel htmlFor="fullName" required>Full Name</AdminFieldLabel>
                   <input id="fullName" type="text" name="fullName" value={formData.fullName} onChange={handleChange} required />
                 </div>
 
                 <div className="admin-form-group">
-                  <label htmlFor="email">Email Address</label>
+                  <AdminFieldLabel htmlFor="email" required>Email Address</AdminFieldLabel>
                   <input id="email" type="email" name="email" value={formData.email} onChange={handleChange} required />
                 </div>
 
                 <div className="admin-form-group">
-                  <label htmlFor="username">Username</label>
+                  <AdminFieldLabel htmlFor="username" required>Username</AdminFieldLabel>
                   <input id="username" type="text" name="username" value={formData.username} onChange={handleChange} required />
                 </div>
 
                 <div className="admin-form-group">
-                  <label htmlFor="phoneNumber">Phone Number <span style={{ color: '#64748b', fontWeight: 400 }}>(optional)</span></label>
+                  <AdminFieldLabel htmlFor="phoneNumber" optional>Phone Number</AdminFieldLabel>
                   <input id="phoneNumber" type="tel" name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} />
                 </div>
 
                 {!editingManager && (
                   <>
                     <div className="admin-form-group">
-                      <label htmlFor="password">Password</label>
+                      <AdminFieldLabel htmlFor="password" required>Password</AdminFieldLabel>
                       <input id="password" type="password" name="password" value={formData.password} onChange={handleChange} minLength={6} required />
                     </div>
                     <div className="admin-form-group">
-                      <label htmlFor="confirmPassword">Confirm Password</label>
+                      <AdminFieldLabel htmlFor="confirmPassword" required>Confirm Password</AdminFieldLabel>
                       <input id="confirmPassword" type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} minLength={6} required />
                     </div>
                   </>
                 )}
 
                 <div className="admin-form-group">
-                  <label htmlFor="status">Status</label>
+                  <AdminFieldLabel htmlFor="status">Status</AdminFieldLabel>
                   <select id="status" name="status" value={formData.status ? 'active' : 'inactive'} onChange={(e) => setFormData((prev) => ({ ...prev, status: e.target.value === 'active' }))}>
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>

@@ -11,6 +11,9 @@ import { getImageUrl } from '../../../services/api';
 import { validateOfferDates } from '../../../utils/offerDateValidation';
 import './AdminOffersManager.css';
 import { CMS_IMAGE_ACCEPT, rejectInvalidCmsImageFile } from '../../../utils/imageUploadValidation';
+import useAdminSearch from '../../../hooks/useAdminSearch';
+import { matchesAdminSearch, statusSearchLabel, ADMIN_NO_MATCH_MESSAGE } from '../../../utils/adminSearch';
+import AdminFieldLabel from '../../../components/admin/AdminFieldLabel';
 
 /**
  * Offers Management studio — fully wired to the live backend:
@@ -90,9 +93,17 @@ const emptyOfferForm = {
 const ITEMS_PER_PAGE = 5;
 
 const isExpired = (offer) => {
-  if (!offer.endDate) return false;
+  if (typeof offer?.isExpired === 'boolean') return offer.isExpired;
+  if (!offer?.endDate) return false;
   const end = new Date(offer.endDate);
   return !Number.isNaN(end.getTime()) && end.getTime() < Date.now();
+};
+
+const isScheduled = (offer) => {
+  if (typeof offer?.isScheduled === 'boolean') return offer.isScheduled;
+  if (!offer?.startDate) return false;
+  const start = new Date(offer.startDate);
+  return !Number.isNaN(start.getTime()) && start.getTime() > Date.now();
 };
 
 const formatDate = (value) => {
@@ -123,11 +134,15 @@ export const AdminOffersManager = () => {
   const [offers, setOffers] = useState([]);
   const [offersLoading, setOffersLoading] = useState(true);
   const [offerSaving, setOfferSaving] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const { searchInput, searchQuery, onSearchChange } = useAdminSearch();
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortOption, setSortOption] = useState('newest');
   const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, categoryFilter, statusFilter]);
 
   const [isOfferModalOpen, setIsOfferModalOpen] = useState(false);
   const [editingOffer, setEditingOffer] = useState(null);
@@ -250,9 +265,17 @@ export const AdminOffersManager = () => {
 
   const filteredOffers = useMemo(() => {
     let list = offers.filter((offer) => {
-      const matchesSearch = offer.title.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = categoryFilter === 'all' || offer.category === categoryFilter;
       const expired = isExpired(offer);
+      const matchesSearch = matchesAdminSearch(searchQuery, [
+        offer.title,
+        offer.subtitle,
+        offer.productName,
+        offer.category,
+        statusSearchLabel(offer.active),
+        offer.featured ? 'featured' : '',
+        expired ? 'expired' : '',
+      ]);
+      const matchesCategory = categoryFilter === 'all' || offer.category === categoryFilter;
       let matchesStatus = true;
       if (statusFilter === 'active') matchesStatus = offer.active && !expired;
       else if (statusFilter === 'inactive') matchesStatus = !offer.active;
@@ -570,6 +593,9 @@ export const AdminOffersManager = () => {
   };
 
   const renderStatusBadge = (offer) => {
+    if (offer.isScheduled || isScheduled(offer)) {
+      return <span className="product-status-badge inactive" style={{ background: '#fef3c7', color: '#b45309' }}>🟡 Scheduled</span>;
+    }
     if (!offer.active) return <span className="product-status-badge inactive">⚪ Inactive</span>;
     if (isExpired(offer)) return <span className="product-status-badge inactive" style={{ background: '#fee2e2', color: '#b91c1c' }}>🔴 Expired</span>;
     return <span className="product-status-badge active">🟢 Active</span>;
@@ -650,9 +676,9 @@ export const AdminOffersManager = () => {
               <FaSearch className="search-icon-admin" />
               <input
                 type="text"
-                placeholder="Search offers..."
-                value={searchQuery}
-                onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                placeholder="Search by title, product, category, status..."
+                value={searchInput}
+                onChange={onSearchChange}
               />
             </div>
             <div className="offm-toolbar-filters">
@@ -755,7 +781,7 @@ export const AdminOffersManager = () => {
           ) : (
             <div className="dashboard-panel admin-empty-state">
               <FaTags className="admin-empty-icon" />
-              <h3>No offers found</h3>
+              <h3>{searchQuery ? ADMIN_NO_MATCH_MESSAGE : 'No offers found'}</h3>
               <p>Try adjusting your search or filters, or add a new offer.</p>
             </div>
           )}
@@ -812,7 +838,7 @@ export const AdminOffersManager = () => {
           <form className="offm-banner-form" onSubmit={handleHeroSubmit}>
             <h3>Hero Banner Management</h3>
             <div className="admin-form-group">
-              <label>Banner Image</label>
+              <AdminFieldLabel htmlFor="offm-hero-image" optional>Banner Image</AdminFieldLabel>
               <div className="image-upload-zone">
                 <input type="file" accept={CMS_IMAGE_ACCEPT} id="hero-upload" onChange={handleHeroImage} style={{ display: 'none' }} />
                 <label htmlFor="hero-upload" style={{ cursor: 'pointer', margin: 0, color: 'var(--admin-sidebar-active)', fontWeight: 600 }}>
@@ -820,25 +846,25 @@ export const AdminOffersManager = () => {
                 </label>
               </div>
             </div>
-            <div className="admin-form-group"><label>Main Title</label><input type="text" name="title" value={heroForm.title} onChange={handleHeroChange} /></div>
-            <div className="admin-form-group"><label>Subtitle</label><input type="text" name="subtitle" value={heroForm.subtitle} onChange={handleHeroChange} /></div>
-            <div className="admin-form-group"><label>Description</label><textarea name="description" rows={2} value={heroForm.description} onChange={handleHeroChange} /></div>
+            <div className="admin-form-group"><AdminFieldLabel htmlFor="offm-hero-title" optional>Main Title</AdminFieldLabel><input id="offm-hero-title" type="text" name="title" value={heroForm.title} onChange={handleHeroChange} /></div>
+            <div className="admin-form-group"><AdminFieldLabel htmlFor="offm-hero-subtitle" optional>Subtitle</AdminFieldLabel><input id="offm-hero-subtitle" type="text" name="subtitle" value={heroForm.subtitle} onChange={handleHeroChange} /></div>
+            <div className="admin-form-group"><AdminFieldLabel htmlFor="offm-hero-description" optional>Description</AdminFieldLabel><textarea id="offm-hero-description" name="description" rows={2} value={heroForm.description} onChange={handleHeroChange} /></div>
             <div className="admin-form-group row-split" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-              <div><label>Primary Button Text</label><input type="text" name="primaryText" value={heroForm.primaryText} onChange={handleHeroChange} /></div>
-              <div><label>Primary Button URL</label><input type="text" name="primaryUrl" value={heroForm.primaryUrl} onChange={handleHeroChange} /></div>
+              <div><AdminFieldLabel htmlFor="offm-hero-primary-text" optional>Primary Button Text</AdminFieldLabel><input id="offm-hero-primary-text" type="text" name="primaryText" value={heroForm.primaryText} onChange={handleHeroChange} /></div>
+              <div><AdminFieldLabel htmlFor="offm-hero-primary-url" optional>Primary Button URL</AdminFieldLabel><input id="offm-hero-primary-url" type="text" name="primaryUrl" value={heroForm.primaryUrl} onChange={handleHeroChange} /></div>
             </div>
             <div className="admin-form-group row-split" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-              <div><label>Secondary Button Text</label><input type="text" name="secondaryText" value={heroForm.secondaryText} onChange={handleHeroChange} /></div>
-              <div><label>Secondary Button URL</label><input type="text" name="secondaryUrl" value={heroForm.secondaryUrl} onChange={handleHeroChange} /></div>
+              <div><AdminFieldLabel htmlFor="offm-hero-secondary-text" optional>Secondary Button Text</AdminFieldLabel><input id="offm-hero-secondary-text" type="text" name="secondaryText" value={heroForm.secondaryText} onChange={handleHeroChange} /></div>
+              <div><AdminFieldLabel htmlFor="offm-hero-secondary-url" optional>Secondary Button URL</AdminFieldLabel><input id="offm-hero-secondary-url" type="text" name="secondaryUrl" value={heroForm.secondaryUrl} onChange={handleHeroChange} /></div>
             </div>
             <div className="admin-form-group">
-              <label>Overlay Opacity: {heroForm.overlay}%</label>
+              <AdminFieldLabel htmlFor="offm-hero-overlay" optional>Overlay Opacity: {heroForm.overlay}%</AdminFieldLabel>
               <input type="range" min="0" max="90" name="overlay" value={heroForm.overlay} onChange={handleHeroChange} className="offm-range" />
             </div>
             <div className="admin-form-group row-split" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'end' }}>
               <div>
-                <label>Text Position</label>
-                <select name="textPosition" value={heroForm.textPosition} onChange={handleHeroChange}>
+                <AdminFieldLabel htmlFor="offm-hero-text-position" optional>Text Position</AdminFieldLabel>
+                <select id="offm-hero-text-position" name="textPosition" value={heroForm.textPosition} onChange={handleHeroChange}>
                   <option value="left">Left</option>
                   <option value="center">Center</option>
                   <option value="right">Right</option>
@@ -889,51 +915,52 @@ export const AdminOffersManager = () => {
             </div>
             <form onSubmit={handleSaveOffer}>
               <div className="modal-body">
-                <div className="admin-form-group"><label>Offer Title</label><input type="text" name="title" value={offerForm.title} onChange={handleOfferChange} placeholder="e.g. Mega Flash Sale" required /></div>
-                <div className="admin-form-group"><label>Subtitle</label><input type="text" name="subtitle" value={offerForm.subtitle} onChange={handleOfferChange} /></div>
-                <div className="admin-form-group"><label>Description</label><textarea name="description" rows={3} value={offerForm.description} onChange={handleOfferChange} /></div>
+                <div className="admin-form-group"><AdminFieldLabel htmlFor="offm-offer-title" required>Offer Title</AdminFieldLabel><input id="offm-offer-title" type="text" name="title" value={offerForm.title} onChange={handleOfferChange} placeholder="e.g. Mega Flash Sale" required /></div>
+                <div className="admin-form-group"><AdminFieldLabel htmlFor="offm-offer-subtitle" optional>Subtitle</AdminFieldLabel><input id="offm-offer-subtitle" type="text" name="subtitle" value={offerForm.subtitle} onChange={handleOfferChange} /></div>
+                <div className="admin-form-group"><AdminFieldLabel htmlFor="offm-offer-description" optional>Description</AdminFieldLabel><textarea id="offm-offer-description" name="description" rows={3} value={offerForm.description} onChange={handleOfferChange} /></div>
 
                 <div className="admin-form-group row-split" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
                   <div>
-                    <label>Offer Category</label>
-                    <select name="category" value={offerForm.category} onChange={handleOfferChange}>
+                    <AdminFieldLabel htmlFor="offm-offer-category" required>Offer Category</AdminFieldLabel>
+                    <select id="offm-offer-category" name="category" value={offerForm.category} onChange={handleOfferChange}>
                       <option value="">{categoryNames.length ? 'Select a category' : 'No categories — add one in the Categories tab'}</option>
                       {categoryNames.map((c) => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label>Offer Type</label>
-                    <select name="offerDepartment" value={offerForm.offerDepartment} onChange={handleOfferChange}>
+                    <AdminFieldLabel htmlFor="offm-offer-department" optional>Offer Type</AdminFieldLabel>
+                    <select id="offm-offer-department" name="offerDepartment" value={offerForm.offerDepartment} onChange={handleOfferChange}>
                       {PRODUCT_OFFER_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label>Discount Type</label>
-                    <select name="discountType" value={offerForm.discountType} onChange={handleOfferChange}>
+                    <AdminFieldLabel htmlFor="offm-discount-type" optional>Discount Type</AdminFieldLabel>
+                    <select id="offm-discount-type" name="discountType" value={offerForm.discountType} onChange={handleOfferChange}>
                       {DISCOUNT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
                     </select>
                   </div>
                 </div>
 
                 <div className="admin-form-group row-split" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
-                  <div><label>Discount Value</label><input type="number" step="0.01" name="discountValue" value={offerForm.discountValue} onChange={handleOfferChange} /></div>
-                  <div><label>Original Price (€)</label><input type="number" step="0.01" name="originalPrice" value={offerForm.originalPrice} onChange={handleOfferChange} /></div>
-                  <div><label>Offer Price (€)</label><input type="number" step="0.01" name="offerPrice" value={offerForm.offerPrice} onChange={handleOfferChange} /></div>
+                  <div><AdminFieldLabel htmlFor="offm-discount-value" optional>Discount Value</AdminFieldLabel><input id="offm-discount-value" type="number" step="0.01" name="discountValue" value={offerForm.discountValue} onChange={handleOfferChange} /></div>
+                  <div><AdminFieldLabel htmlFor="offm-original-price" optional>Original Price (€)</AdminFieldLabel><input id="offm-original-price" type="number" step="0.01" name="originalPrice" value={offerForm.originalPrice} onChange={handleOfferChange} /></div>
+                  <div><AdminFieldLabel htmlFor="offm-offer-price" optional>Offer Price (€)</AdminFieldLabel><input id="offm-offer-price" type="number" step="0.01" name="offerPrice" value={offerForm.offerPrice} onChange={handleOfferChange} /></div>
                 </div>
 
-                <div className="admin-form-group"><label>Offer Badge</label><input type="text" name="badge" value={offerForm.badge} onChange={handleOfferChange} placeholder="e.g. 20% OFF, BUY 1 GET 1, COMBO DEAL" /></div>
+                <div className="admin-form-group"><AdminFieldLabel htmlFor="offm-offer-badge" optional>Offer Badge</AdminFieldLabel><input id="offm-offer-badge" type="text" name="badge" value={offerForm.badge} onChange={handleOfferChange} placeholder="e.g. 20% OFF, BUY 1 GET 1, COMBO DEAL" /></div>
 
                 <div className="admin-form-group row-split" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                   <div>
-                    <label>Start Date *</label>
-                    <input type="date" name="startDate" value={offerForm.startDate} onChange={handleOfferChange} required />
+                    <AdminFieldLabel htmlFor="offm-start-date" required>Start Date</AdminFieldLabel>
+                    <input id="offm-start-date" type="date" name="startDate" value={offerForm.startDate} onChange={handleOfferChange} required />
                     {showOfferDateErrors && offerDateValidation.startDateError && (
                       <p className="offm-field-error" role="alert">{offerDateValidation.startDateError}</p>
                     )}
                   </div>
                   <div>
-                    <label>End Date *</label>
+                    <AdminFieldLabel htmlFor="offm-end-date" required>End Date</AdminFieldLabel>
                     <input
+                      id="offm-end-date"
                       type="date"
                       name="endDate"
                       value={offerForm.endDate}
@@ -948,7 +975,7 @@ export const AdminOffersManager = () => {
                 </div>
 
                 <div className="admin-form-group">
-                  <label>Offer Image *</label>
+                  <AdminFieldLabel htmlFor="offm-offer-image" required>Offer Image</AdminFieldLabel>
                   <div className="image-upload-zone offm-upload-mini">
                     <input type="file" accept={CMS_IMAGE_ACCEPT} id="up-image" onChange={handleOfferImage('image')} style={{ display: 'none' }} />
                     <label htmlFor="up-image" style={{ cursor: 'pointer', margin: 0, color: 'var(--admin-sidebar-active)', fontWeight: 600, fontSize: '0.82rem' }}>
@@ -958,7 +985,7 @@ export const AdminOffersManager = () => {
                   {offerForm.image && <img src={getImageUrl(offerForm.image)} alt="Offer" className="offm-upload-preview" />}
                 </div>
 
-                <div className="admin-form-group"><label>Sort Order</label><input type="number" name="sortOrder" value={offerForm.sortOrder} onChange={handleOfferChange} /></div>
+                <div className="admin-form-group"><AdminFieldLabel htmlFor="offm-sort-order" optional>Sort Order</AdminFieldLabel><input id="offm-sort-order" type="number" name="sortOrder" value={offerForm.sortOrder} onChange={handleOfferChange} /></div>
 
                 <div className="offm-toggle-grid">
                   <label className="offm-switch-row"><span>Active</span>
@@ -992,7 +1019,7 @@ export const AdminOffersManager = () => {
             </div>
             <form onSubmit={handleSaveCategory}>
               <div className="modal-body">
-                <div className="admin-form-group"><label>Category Name</label><input type="text" value={categoryForm.name} onChange={(e) => setCategoryForm((p) => ({ ...p, name: e.target.value }))} placeholder="e.g. Flash Sale" required /></div>
+                <div className="admin-form-group"><AdminFieldLabel htmlFor="offm-category-name" required>Category Name</AdminFieldLabel><input id="offm-category-name" type="text" value={categoryForm.name} onChange={(e) => setCategoryForm((p) => ({ ...p, name: e.target.value }))} placeholder="e.g. Flash Sale" required /></div>
                 <label className="offm-switch-row"><span>Active</span>
                   <span className="toggle-switch-admin"><input type="checkbox" checked={categoryForm.active} onChange={(e) => setCategoryForm((p) => ({ ...p, active: e.target.checked }))} /><span className="toggle-slider-admin" /></span>
                 </label>

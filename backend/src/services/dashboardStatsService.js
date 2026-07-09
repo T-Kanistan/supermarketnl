@@ -25,6 +25,15 @@ const ACTIVE_BANNER_FILTER = {
   deletedAt: null,
 };
 
+const ALL_BANNERS_FILTER = {
+  deletedAt: null,
+};
+
+const INACTIVE_BANNER_FILTER = {
+  isActive: false,
+  deletedAt: null,
+};
+
 const AVAILABLE_MESSAGE_FILTER = {
   status: { $ne: 'deleted' },
 };
@@ -41,6 +50,8 @@ export const fetchActiveCounts = async () => {
     activeFaqs,
     activeMessages,
     activeBanners,
+    inactiveBanners,
+    totalBanners,
     activeOffers,
     unreadMessages,
   ] = await Promise.all([
@@ -51,6 +62,8 @@ export const fetchActiveCounts = async () => {
     FAQ.countDocuments({ status: 'active' }),
     CustomerEnquiry.countDocuments(AVAILABLE_MESSAGE_FILTER),
     Banner.countDocuments(ACTIVE_BANNER_FILTER),
+    Banner.countDocuments(INACTIVE_BANNER_FILTER),
+    Banner.countDocuments(ALL_BANNERS_FILTER),
     Announcement.countDocuments({ status: 'active', isExpired: { $ne: true } }),
     CustomerEnquiry.countDocuments({ status: { $in: ['New', 'new'] }, isRead: false }),
   ]);
@@ -63,6 +76,8 @@ export const fetchActiveCounts = async () => {
     activeFaqs,
     activeMessages,
     activeBanners,
+    inactiveBanners,
+    totalBanners,
     activeOffers,
     unreadMessages,
     fetchedAt: new Date().toISOString(),

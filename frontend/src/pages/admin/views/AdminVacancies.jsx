@@ -21,7 +21,77 @@ import jobApplicationService from '../../../services/jobApplicationService';
 import { getImageUrl } from '../../../services/api';
 import { useToast } from '../../../context/ToastContext';
 import { useAuth } from '../../../context/AuthContext';
+import useAdminSearch from '../../../hooks/useAdminSearch';
+import { ADMIN_NO_MATCH_MESSAGE } from '../../../utils/adminSearch';
+import {
+  ADMIN_TEXT_LIMITS,
+  boundAdminText,
+  formatCharCounter,
+  sanitizeAdminText,
+  validateAdminText,
+} from '../../../utils/adminTextValidation';
+import AdminFieldLegend from '../../../components/admin/AdminFieldLegend';
 import './AdminVacancies.css';
+
+const {
+  vacancyTitle,
+  vacancyLocation,
+  vacancyEmploymentType,
+  vacancyWorkingDays,
+  vacancyWorkingHours,
+  vacancyDescription,
+} = ADMIN_TEXT_LIMITS;
+
+const validateVacancyForm = (data) => {
+  const errors = {};
+
+  const titleError = validateAdminText(data.title, {
+    required: true,
+    max: vacancyTitle.max,
+    requiredMessage: 'Job title is required',
+    maxMessage: `Job title cannot exceed ${vacancyTitle.max} characters`,
+  });
+  if (titleError) errors.title = titleError;
+
+  const locationError = validateAdminText(data.location, {
+    required: true,
+    max: vacancyLocation.max,
+    requiredMessage: 'Location is required',
+    maxMessage: `Location cannot exceed ${vacancyLocation.max} characters`,
+  });
+  if (locationError) errors.location = locationError;
+
+  const employmentTypeError = validateAdminText(data.employmentType, {
+    required: true,
+    max: vacancyEmploymentType.max,
+    requiredMessage: 'Employment type is required',
+    maxMessage: `Employment type cannot exceed ${vacancyEmploymentType.max} characters`,
+  });
+  if (employmentTypeError) errors.employmentType = employmentTypeError;
+
+  const workingDaysError = validateAdminText(data.workingDays, {
+    max: vacancyWorkingDays.max,
+    maxMessage: `Working days cannot exceed ${vacancyWorkingDays.max} characters`,
+  });
+  if (workingDaysError) errors.workingDays = workingDaysError;
+
+  const workingHoursError = validateAdminText(data.workingHours, {
+    max: vacancyWorkingHours.max,
+    maxMessage: `Working hours cannot exceed ${vacancyWorkingHours.max} characters`,
+  });
+  if (workingHoursError) errors.workingHours = workingHoursError;
+
+  const descriptionError = validateAdminText(data.description, {
+    required: true,
+    max: vacancyDescription.max,
+    requiredMessage: 'Job description is required',
+    maxMessage: `Job description cannot exceed ${vacancyDescription.max} characters`,
+    collapse: false,
+  });
+  if (descriptionError) errors.description = descriptionError;
+
+  return errors;
+};
 
 const VACANCIES_PER_PAGE = 8;
 const APPLICATIONS_PREVIEW = 6;
@@ -140,12 +210,12 @@ export const AdminVacancies = () => {
   const [loading, setLoading] = useState(true);
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [search, setSearch] = useState('');
-  const [appliedSearch, setAppliedSearch] = useState('');
+  const { searchInput, searchQuery, onSearchChange, applySearchNow, hasActiveSearch } = useAdminSearch();
   const [currentPage, setCurrentPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingVacancy, setEditingVacancy] = useState(null);
   const [formData, setFormData] = useState(emptyForm());
+  const [fieldErrors, setFieldErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
 
   const loadData = useCallback(async () => {
@@ -154,7 +224,7 @@ export const AdminVacancies = () => {
       const params = {};
       if (departmentFilter !== 'all') params.department = departmentFilter;
       if (statusFilter !== 'all') params.status = statusFilter;
-      if (appliedSearch.trim()) params.search = appliedSearch.trim();
+      if (searchQuery) params.search = searchQuery;
 
       const [statsData, vacancyData, applicationData] = await Promise.all([
         adminVacancyService.getStats(),
@@ -171,7 +241,7 @@ export const AdminVacancies = () => {
     } finally {
       setLoading(false);
     }
-  }, [addToast, appliedSearch, departmentFilter, statusFilter]);
+  }, [addToast, searchQuery, departmentFilter, statusFilter]);
 
   useEffect(() => {
     initialLoadDone.current = false;
@@ -193,7 +263,7 @@ export const AdminVacancies = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [departmentFilter, statusFilter, appliedSearch]);
+  }, [departmentFilter, statusFilter, searchQuery]);
 
   const totalPages = Math.max(1, Math.ceil(vacancies.length / VACANCIES_PER_PAGE));
   const paginatedVacancies = useMemo(() => {
@@ -212,6 +282,7 @@ export const AdminVacancies = () => {
   const openCreateModal = () => {
     setEditingVacancy(null);
     setFormData(emptyForm());
+    setFieldErrors({});
     setModalOpen(true);
   };
 
@@ -240,13 +311,49 @@ export const AdminVacancies = () => {
       setFormData((prev) => ({ ...prev, cvRequired: value === 'true' }));
       return;
     }
-    setFormData((prev) => ({ ...prev, [name]: value }));
+
+    const maxByField = {
+      title: vacancyTitle.max,
+      location: vacancyLocation.max,
+      employmentType: vacancyEmploymentType.max,
+      workingDays: vacancyWorkingDays.max,
+      workingHours: vacancyWorkingHours.max,
+      description: vacancyDescription.max,
+    };
+    const nextValue = maxByField[name] ? boundAdminText(value, maxByField[name]) : value;
+
+    setFormData((prev) => ({ ...prev, [name]: nextValue }));
+    setFieldErrors((prev) => ({ ...prev, [name]: '' }));
+  };
+
+  const focusFirstVacancyError = (errors) => {
+    const order = ['title', 'location', 'employmentType', 'workingDays', 'workingHours', 'description'];
+    const firstKey = order.find((key) => errors[key]);
+    if (!firstKey) return;
+    const node = document.querySelector(`[name="${firstKey}"]`);
+    node?.focus();
+    node?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.title.trim()) {
-      addToast('Job title is required', 'error');
+
+    const cleanedForm = {
+      ...formData,
+      title: sanitizeAdminText(formData.title),
+      location: sanitizeAdminText(formData.location),
+      employmentType: sanitizeAdminText(formData.employmentType),
+      workingDays: sanitizeAdminText(formData.workingDays),
+      workingHours: sanitizeAdminText(formData.workingHours),
+      description: sanitizeAdminText(formData.description, { collapse: false }),
+    };
+    setFormData(cleanedForm);
+
+    const errors = validateVacancyForm(cleanedForm);
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      addToast(Object.values(errors)[0], 'error');
+      requestAnimationFrame(() => focusFirstVacancyError(errors));
       return;
     }
 
@@ -259,9 +366,9 @@ export const AdminVacancies = () => {
     setSubmitting(true);
     try {
       const payload = {
-        ...formData,
-        cvRequired: formData.cvRequired !== false,
-        closingDate: formData.closingDate ? formData.closingDate : null,
+        ...cleanedForm,
+        cvRequired: cleanedForm.cvRequired !== false,
+        closingDate: cleanedForm.closingDate ? cleanedForm.closingDate : null,
       };
       if (editingVacancy) {
         await adminVacancyService.updateVacancy(editingVacancy.id, payload);
@@ -418,16 +525,19 @@ export const AdminVacancies = () => {
             <option key={option.value} value={option.value}>{option.label}</option>
           ))}
         </select>
-        <input
-          type="text"
-          className="admin-search-input"
-          placeholder="Search vacancy..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <button type="button" className="vacancy-filter-btn" onClick={() => setAppliedSearch(search)}>
-          <FaFilter /> Filter
-        </button>
+        <form onSubmit={applySearchNow} style={{ display: 'flex', gap: 8, flex: 1, minWidth: 220 }}>
+          <input
+            type="text"
+            className="admin-search-input"
+            placeholder="Search vacancy..."
+            value={searchInput}
+            onChange={onSearchChange}
+            style={{ flex: 1 }}
+          />
+          <button type="submit" className="vacancy-filter-btn">
+            <FaFilter /> Filter
+          </button>
+        </form>
       </div>
 
       <div className="vacancy-table-panel">
@@ -453,7 +563,9 @@ export const AdminVacancies = () => {
               <tbody>
                 {paginatedVacancies.length === 0 ? (
                   <tr>
-                    <td colSpan={10} style={{ textAlign: 'center', color: '#64748b' }}>No vacancies found.</td>
+                    <td colSpan={10} style={{ textAlign: 'center', color: '#64748b' }}>
+                      {hasActiveSearch ? ADMIN_NO_MATCH_MESSAGE : 'No vacancies found.'}
+                    </td>
                   </tr>
                 ) : (
                   paginatedVacancies.map((vacancy, index) => (
@@ -634,26 +746,41 @@ export const AdminVacancies = () => {
         <div className="vacancy-modal-overlay" onClick={() => !submitting && setModalOpen(false)}>
           <div className="vacancy-modal" onClick={(e) => e.stopPropagation()}>
             <h3>{editingVacancy ? 'Edit Vacancy' : 'Add New Vacancy'}</h3>
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} noValidate>
               <div className="vacancy-form-grid">
-                <label className="full-width">
-                  Job Title
-                  <input name="title" value={formData.title} onChange={handleFormChange} required />
+                <label className={`full-width${fieldErrors.title ? ' has-error' : ''}`}>
+                  <AdminFieldLegend required>Job Title</AdminFieldLegend>
+                  <input
+                    name="title"
+                    value={formData.title}
+                    onChange={handleFormChange}
+                    maxLength={vacancyTitle.max}
+                    className={fieldErrors.title ? 'admin-input-invalid' : ''}
+                    required
+                  />
+                  <div className="admin-field-meta">
+                    {fieldErrors.title ? (
+                      <p className="admin-field-error" role="alert">{fieldErrors.title}</p>
+                    ) : (
+                      <span />
+                    )}
+                    <span className="admin-char-counter">{formatCharCounter(formData.title, vacancyTitle.max)}</span>
+                  </div>
                 </label>
                 <label>
-                  Department
+                  <AdminFieldLegend optional>Department</AdminFieldLegend>
                   <select name="department" value={formData.department} onChange={handleFormChange}>
                     {DEPARTMENTS.map((dept) => <option key={dept} value={dept}>{dept}</option>)}
                   </select>
                 </label>
                 <label>
-                  Employment Type
+                  <AdminFieldLegend required>Employment Type</AdminFieldLegend>
                   <select name="employmentType" value={formData.employmentType} onChange={handleFormChange}>
                     {EMPLOYMENT_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
                   </select>
                 </label>
                 <label>
-                  Status
+                  <AdminFieldLegend optional>Status</AdminFieldLegend>
                   <select name="status" value={formData.status} onChange={handleFormChange}>
                     {STATUS_OPTIONS.filter((item) => item.value !== 'all').map((item) => (
                       <option key={item.value} value={item.value}>{item.label}</option>
@@ -661,7 +788,7 @@ export const AdminVacancies = () => {
                   </select>
                 </label>
                 <label>
-                  Closing Date
+                  <AdminFieldLegend required>Closing Date</AdminFieldLegend>
                   <input
                     type="date"
                     name="closingDate"
@@ -671,17 +798,60 @@ export const AdminVacancies = () => {
                     required
                   />
                 </label>
-                <label>
-                  Location
-                  <input name="location" value={formData.location} onChange={handleFormChange} />
+                <label className={fieldErrors.location ? 'has-error' : ''}>
+                  <AdminFieldLegend required>Location</AdminFieldLegend>
+                  <input
+                    name="location"
+                    value={formData.location}
+                    onChange={handleFormChange}
+                    maxLength={vacancyLocation.max}
+                    className={fieldErrors.location ? 'admin-input-invalid' : ''}
+                    required
+                  />
+                  <div className="admin-field-meta">
+                    {fieldErrors.location ? (
+                      <p className="admin-field-error" role="alert">{fieldErrors.location}</p>
+                    ) : (
+                      <span />
+                    )}
+                    <span className="admin-char-counter">{formatCharCounter(formData.location, vacancyLocation.max)}</span>
+                  </div>
                 </label>
-                <label>
-                  Working Days
-                  <input name="workingDays" value={formData.workingDays} onChange={handleFormChange} />
+                <label className={fieldErrors.workingDays ? 'has-error' : ''}>
+                  <AdminFieldLegend optional>Working Days</AdminFieldLegend>
+                  <input
+                    name="workingDays"
+                    value={formData.workingDays}
+                    onChange={handleFormChange}
+                    maxLength={vacancyWorkingDays.max}
+                    className={fieldErrors.workingDays ? 'admin-input-invalid' : ''}
+                  />
+                  <div className="admin-field-meta">
+                    {fieldErrors.workingDays ? (
+                      <p className="admin-field-error" role="alert">{fieldErrors.workingDays}</p>
+                    ) : (
+                      <span />
+                    )}
+                    <span className="admin-char-counter">{formatCharCounter(formData.workingDays, vacancyWorkingDays.max)}</span>
+                  </div>
                 </label>
-                <label>
-                  Working Hours
-                  <input name="workingHours" value={formData.workingHours} onChange={handleFormChange} />
+                <label className={fieldErrors.workingHours ? 'has-error' : ''}>
+                  <AdminFieldLegend optional>Working Hours</AdminFieldLegend>
+                  <input
+                    name="workingHours"
+                    value={formData.workingHours}
+                    onChange={handleFormChange}
+                    maxLength={vacancyWorkingHours.max}
+                    className={fieldErrors.workingHours ? 'admin-input-invalid' : ''}
+                  />
+                  <div className="admin-field-meta">
+                    {fieldErrors.workingHours ? (
+                      <p className="admin-field-error" role="alert">{fieldErrors.workingHours}</p>
+                    ) : (
+                      <span />
+                    )}
+                    <span className="admin-char-counter">{formatCharCounter(formData.workingHours, vacancyWorkingHours.max)}</span>
+                  </div>
                 </label>
                 <div className="full-width vacancy-cv-requirement">
                   <span>Resume / CV Requirement</span>
@@ -709,12 +879,27 @@ export const AdminVacancies = () => {
                   </div>
                 </div>
                 <label className="full-width">
-                  Summary
+                  <AdminFieldLegend optional>Summary</AdminFieldLegend>
                   <textarea name="summary" value={formData.summary} onChange={handleFormChange} />
                 </label>
-                <label className="full-width">
-                  Job Description
-                  <textarea name="description" value={formData.description} onChange={handleFormChange} />
+                <label className={`full-width${fieldErrors.description ? ' has-error' : ''}`}>
+                  <AdminFieldLegend required>Job Description</AdminFieldLegend>
+                  <textarea
+                    name="description"
+                    value={formData.description}
+                    onChange={handleFormChange}
+                    maxLength={vacancyDescription.max}
+                    className={fieldErrors.description ? 'admin-input-invalid' : ''}
+                    required
+                  />
+                  <div className="admin-field-meta">
+                    {fieldErrors.description ? (
+                      <p className="admin-field-error" role="alert">{fieldErrors.description}</p>
+                    ) : (
+                      <span />
+                    )}
+                    <span className="admin-char-counter">{formatCharCounter(formData.description, vacancyDescription.max)}</span>
+                  </div>
                 </label>
               </div>
               <div className="vacancy-modal-actions">

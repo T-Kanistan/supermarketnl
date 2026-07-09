@@ -1,6 +1,8 @@
 import path from 'path';
+import fs from 'fs';
 import {
   createJobApplication,
+  hasDuplicateJobApplication,
   listJobApplications,
   getJobApplicationById,
   updateJobApplicationStatus,
@@ -16,8 +18,26 @@ import {
   CV_UPLOAD_ERROR_MESSAGE,
 } from '../middlewares/jobApplicationUploadMiddleware.js';
 import { sanitizeJobApplicationInput } from '../utils/sanitize.js';
+import {
+  DUPLICATE_APPLICATION_CODE,
+  sendDuplicateApplicationResponse,
+} from '../utils/jobApplicationDuplicate.js';
 import Vacancy from '../models/Vacancy.js';
 import mongoose from 'mongoose';
+
+const removeUploadedCv = (file) => {
+  if (!file?.path) return;
+  try {
+    fs.unlinkSync(file.path);
+  } catch {
+    // Ignore missing temp upload files.
+  }
+};
+
+const respondDuplicateApplication = (res, req) => {
+  removeUploadedCv(req.file);
+  return sendDuplicateApplicationResponse(res);
+};
 
 const handleServiceError = (error, res, next) => {
   if (error.statusCode) {
@@ -35,6 +55,23 @@ const resolveVacancyCvRequirement = async (jobId) => {
   return vacancy.cvRequired !== false;
 };
 
+export const checkDuplicateJobApplication = async (req, res, next) => {
+  try {
+    const sanitized = sanitizeJobApplicationInput(req.body);
+    const duplicate = await hasDuplicateJobApplication({
+      jobId: sanitized.jobId,
+      email: sanitized.email,
+      phoneNumber: sanitized.phoneNumber,
+    });
+    res.status(200).json({
+      success: true,
+      duplicate,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const submitJobApplication = async (req, res, next) => {
   try {
     const sanitized = sanitizeJobApplicationInput(req.body);
@@ -45,6 +82,15 @@ export const submitJobApplication = async (req, res, next) => {
         success: false,
         message: CV_UPLOAD_ERROR_MESSAGE,
       });
+    }
+
+    const isDuplicate = await hasDuplicateJobApplication({
+      jobId: sanitized.jobId,
+      email: sanitized.email,
+      phoneNumber: sanitized.phoneNumber,
+    });
+    if (isDuplicate) {
+      return respondDuplicateApplication(res, req);
     }
 
     const resumeUrl = req.file ? getJobApplicationCvPublicPath(req.file.filename) : '';
@@ -80,6 +126,9 @@ export const submitJobApplication = async (req, res, next) => {
       data: application,
     });
   } catch (error) {
+    if (error?.code === DUPLICATE_APPLICATION_CODE || error?.statusCode === 409) {
+      return respondDuplicateApplication(res, req);
+    }
     next(error);
   }
 };

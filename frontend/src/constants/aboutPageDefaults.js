@@ -117,53 +117,102 @@ export const defaultAboutPage = {
   },
 };
 
-export const mergeAboutPage = (data) => ({
-  heroEyebrow: data?.heroEyebrow || defaultAboutPage.heroEyebrow,
-  heroHeading: data?.heroHeading || defaultAboutPage.heroHeading,
-  heroHighlight: data?.heroHighlight || defaultAboutPage.heroHighlight,
-  heroBadge: data?.heroBadge || defaultAboutPage.heroBadge,
-  heroDescription: data?.heroDescription || defaultAboutPage.heroDescription,
-  heroParagraphs:
-    Array.isArray(data?.heroParagraphs) && data.heroParagraphs.length
-      ? data.heroParagraphs
-      : defaultAboutPage.heroParagraphs,
-  heroHighlights: data?.heroHighlights || defaultAboutPage.heroHighlights,
-  heroImage: data?.heroImage || defaultAboutPage.heroImage,
-  button1Text: data?.button1Text || defaultAboutPage.button1Text,
-  button1Url: data?.button1Url || defaultAboutPage.button1Url,
-  button2Text: data?.button2Text || defaultAboutPage.button2Text,
-  button2Url: data?.button2Url || defaultAboutPage.button2Url,
-  heroDisplayOrder: data?.heroDisplayOrder ?? defaultAboutPage.heroDisplayOrder,
-  heroIsActive: data?.heroIsActive !== false,
-  storyTitle: data?.storyTitle || defaultAboutPage.storyTitle,
-  storyDescription: data?.storyDescription || defaultAboutPage.storyDescription,
-  storyTimeline:
-    Array.isArray(data?.storyTimeline) && data.storyTimeline.length
-      ? data.storyTimeline
-      : defaultAboutPage.storyTimeline,
-  storyImage: data?.storyImage || defaultAboutPage.storyImage,
-  missionTitle: data?.missionTitle || defaultAboutPage.missionTitle,
-  missionDescription: data?.missionDescription || defaultAboutPage.missionDescription,
-  visionTitle: data?.visionTitle || defaultAboutPage.visionTitle,
-  visionDescription: data?.visionDescription || defaultAboutPage.visionDescription,
-  promiseTitle: data?.promiseTitle || defaultAboutPage.promiseTitle,
-  promiseDescription: data?.promiseDescription || defaultAboutPage.promiseDescription,
-  mvpCards:
-    Array.isArray(data?.mvpCards) && data.mvpCards.length
-      ? data.mvpCards
-      : defaultAboutPage.mvpCards,
-  stats:
-    Array.isArray(data?.stats) && data.stats.length
-      ? data.stats
-      : defaultAboutPage.stats,
-  offerings:
-    Array.isArray(data?.offerings) && data.offerings.length
-      ? data.offerings
-      : defaultAboutPage.offerings,
-  owner: { ...defaultAboutPage.owner, ...data?.owner },
-});
+const EMPTY_ABOUT_PAGE = {
+  heroEyebrow: '',
+  heroHeading: '',
+  heroHighlight: '',
+  heroBadge: '',
+  heroDescription: '',
+  heroParagraphs: ['', '', '', ''],
+  heroHighlights: [],
+  heroImage: '',
+  button1Text: '',
+  button1Url: '',
+  button2Text: '',
+  button2Url: '',
+  heroDisplayOrder: 1,
+  heroIsActive: true,
+  storyTitle: '',
+  storyDescription: '',
+  storyImage: '',
+  storyIsActive: true,
+  storyTimeline: [],
+  mvpCards: [],
+  stats: [],
+  offerings: [],
+  owner: {
+    name: '',
+    designation: '',
+    yearsServing: '',
+    quote: '',
+    badge: '',
+    phone: '',
+    location: '',
+    photo: '',
+    sinceYear: '',
+    isActive: true,
+  },
+};
 
-export const emptyAboutPageForm = () => structuredClone(defaultAboutPage);
+const normalizeParagraphSlots = (paragraphs = []) => {
+  const slots = Array.isArray(paragraphs) ? [...paragraphs] : [];
+  while (slots.length < 4) slots.push('');
+  return slots.slice(0, 4);
+};
+
+export const mapAboutPageFromApi = (data) => {
+  if (!data) {
+    return {
+      ...EMPTY_ABOUT_PAGE,
+      owner: { ...EMPTY_ABOUT_PAGE.owner },
+      heroParagraphs: normalizeParagraphSlots(),
+    };
+  }
+
+  return {
+    heroEyebrow: data.heroEyebrow ?? '',
+    heroHeading: data.heroHeading ?? '',
+    heroHighlight: data.heroHighlight ?? '',
+    heroBadge: data.heroBadge ?? '',
+    heroDescription: data.heroDescription ?? '',
+    heroParagraphs: normalizeParagraphSlots(data.heroParagraphs),
+    heroHighlights: Array.isArray(data.heroHighlights) ? data.heroHighlights : [],
+    heroImage: data.heroImage ?? '',
+    button1Text: data.button1Text ?? '',
+    button1Url: data.button1Url ?? '',
+    button2Text: data.button2Text ?? '',
+    button2Url: data.button2Url ?? '',
+    heroDisplayOrder: data.heroDisplayOrder ?? 1,
+    heroIsActive: data.heroIsActive !== false,
+    storyTitle: data.storyTitle ?? '',
+    storyDescription: data.storyDescription ?? '',
+    storyImage: data.storyImage ?? '',
+    storyIsActive: data.storyIsActive !== false,
+    storyTimeline: Array.isArray(data.storyTimeline) ? data.storyTimeline : [],
+    mvpCards: Array.isArray(data.mvpCards) ? data.mvpCards : [],
+    stats: Array.isArray(data.stats) ? data.stats : [],
+    offerings: Array.isArray(data.offerings) ? data.offerings : [],
+    owner: {
+      name: data.owner?.name ?? '',
+      designation: data.owner?.designation ?? '',
+      yearsServing: data.owner?.yearsServing ?? '',
+      quote: data.owner?.quote ?? '',
+      badge: data.owner?.badge ?? '',
+      phone: data.owner?.phone ?? '',
+      location: data.owner?.location ?? '',
+      photo: data.owner?.photo ?? '',
+      sinceYear: data.owner?.sinceYear ?? '',
+      isActive: data.owner?.isActive !== false,
+    },
+  };
+};
+
+export const mergeAboutPage = (data) => mapAboutPageFromApi(data);
+
+export const emptyAboutPageForm = () => ({
+  ...EMPTY_ABOUT_PAGE,
+  owner: { ...EMPTY_ABOUT_PAGE.owner },
+});
 
 export const emptyAboutSectionForm = () => ({
   buttonText: '',

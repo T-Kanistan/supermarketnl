@@ -70,6 +70,8 @@ const footerCmsSchema = new mongoose.Schema(
     legalLinks: { type: [footerLinkSchema], default: [] },
     businessHours: { type: businessHoursSchema, default: () => ({}) },
     contact: { type: contactSchema, default: () => ({}) },
+    quickLinksTitle: { type: String, default: 'QUICK LINKS', trim: true },
+    categoriesTitle: { type: String, default: 'CATEGORIES', trim: true },
     businessHoursTitle: { type: String, default: 'BUSINESS HOURS', trim: true },
     supermarketLabel: { type: String, default: 'Supermarket', trim: true },
     foodCornerLabel: { type: String, default: 'Food Corner', trim: true },
@@ -102,6 +104,8 @@ export const getDefaultFooterCMS = () => ({
     phone: '+31659046526',
     email: 'info@winswereldwinkel.nl',
   },
+  quickLinksTitle: 'QUICK LINKS',
+  categoriesTitle: 'CATEGORIES',
   copyrightName: 'Wins Wereld Winkel',
   quickLinks: [
     { label: 'Home', url: '/', order: 1, show: true },

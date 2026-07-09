@@ -1,6 +1,8 @@
 import Banner, { BANNER_PAGE_TYPES, normalizePageType } from '../models/Banner.js';
 import { handleBase64Upload } from '../middlewares/uploadMiddleware.js';
 import { logManagerActivity } from './activityLogService.js';
+import { buildMultiFieldSearchFilter } from '../utils/adminSearchQuery.js';
+import { ADMIN_TEXT_LIMITS, assertAdminText } from '../utils/adminTextValidation.js';
 
 const notDeleted = { deletedAt: null };
 
@@ -61,30 +63,66 @@ export const formatBanner = (doc) => {
   };
 };
 
-const buildListQuery = ({ pageType, pageName, q, includeInactive = true }) => {
+const buildListQuery = ({ pageType, pageName, q, status = 'all', includeInactive = true }) => {
   const query = { ...notDeleted };
   const filterType = normalizePageType(pageType || pageName);
   if (filterType && filterType !== 'all') {
     query.pageType = filterType;
   }
-  if (!includeInactive) {
+
+  const normalizedStatus = String(status || 'all').toLowerCase();
+  if (normalizedStatus === 'active') {
+    query.isActive = true;
+  } else if (normalizedStatus === 'inactive') {
+    query.isActive = false;
+  } else if (!includeInactive) {
     query.isActive = true;
   }
-  if (q?.trim()) {
-    const term = q.trim();
-    query.$or = [
-      { title: { $regex: term, $options: 'i' } },
-      { highlightedTitle: { $regex: term, $options: 'i' } },
-      { description: { $regex: term, $options: 'i' } },
-      { pageType: { $regex: term, $options: 'i' } },
-      { badgeText: { $regex: term, $options: 'i' } },
-      // Legacy field search for unmigrated records
-      { mainHeading: { $regex: term, $options: 'i' } },
-      { highlightText: { $regex: term, $options: 'i' } },
-      { pageName: { $regex: term, $options: 'i' } },
-    ];
+
+  const searchFilter = buildMultiFieldSearchFilter(q, [
+    'title',
+    'highlightedTitle',
+    'description',
+    'pageType',
+    'badgeText',
+    'mainHeading',
+    'highlightText',
+    'pageName',
+  ]);
+  if (searchFilter) {
+    const statusTerm = String(q || '').toLowerCase().replace(/\s+/g, '').trim();
+    const statusClause =
+      statusTerm === 'active'
+        ? { isActive: true }
+        : statusTerm === 'inactive'
+          ? { isActive: false }
+          : null;
+    if (statusClause) {
+      query.$or = [searchFilter, statusClause];
+    } else {
+      Object.assign(query, searchFilter);
+    }
   }
   return query;
+};
+
+const buildSummaryQuery = ({ pageType, pageName }) => {
+  const query = { ...notDeleted };
+  const filterType = normalizePageType(pageType || pageName);
+  if (filterType && filterType !== 'all') {
+    query.pageType = filterType;
+  }
+  return query;
+};
+
+const getBannerSummary = async ({ pageType, pageName } = {}) => {
+  const baseQuery = buildSummaryQuery({ pageType, pageName });
+  const [total, active, inactive] = await Promise.all([
+    Banner.countDocuments(baseQuery),
+    Banner.countDocuments({ ...baseQuery, isActive: true }),
+    Banner.countDocuments({ ...baseQuery, isActive: false }),
+  ]);
+  return { total, active, inactive };
 };
 
 export const listBanners = async ({
@@ -93,18 +131,20 @@ export const listBanners = async ({
   q,
   page = 1,
   limit = 10,
+  status = 'all',
   includeInactive = true,
 }) => {
   const safeLimit = Math.min(Math.max(Number(limit) || 10, 1), 100);
   const safePage = Math.max(Number(page) || 1, 1);
-  const query = buildListQuery({ pageType, pageName, q, includeInactive });
+  const query = buildListQuery({ pageType, pageName, q, status, includeInactive });
 
-  const [items, total] = await Promise.all([
+  const [items, total, summary] = await Promise.all([
     Banner.find(query)
       .sort({ displayOrder: 1, updatedAt: -1 })
       .skip((safePage - 1) * safeLimit)
       .limit(safeLimit),
     Banner.countDocuments(query),
+    getBannerSummary({ pageType, pageName }),
   ]);
 
   return {
@@ -115,6 +155,7 @@ export const listBanners = async ({
       total,
       totalPages: Math.ceil(total / safeLimit) || 1,
     },
+    summary,
   };
 };
 
@@ -161,14 +202,28 @@ export const getActiveBannerByPage = async (pageType) => {
 
 const normalizePayload = async (body, { isUpdate = false } = {}) => {
   const pageType = normalizePageType(body.pageType || body.pageName);
+  const { bannerBadge, bannerTitle, bannerHighlightedTitle, bannerDescription } = ADMIN_TEXT_LIMITS;
+
   const payload = {
     pageType,
-    badgeText: body.badgeText?.trim() ?? '',
-    title: (body.title || body.mainHeading)?.trim(),
-    highlightedTitle: (body.highlightedTitle || body.highlightText)?.trim() ?? '',
-    description: body.description?.trim() ?? '',
-    buttonText: (body.buttonText || body.button1Text)?.trim() ?? '',
-    buttonUrl: (body.buttonUrl || body.button1Url)?.trim() ?? '',
+    badgeText: assertAdminText(body.badgeText ?? '', {
+      max: bannerBadge.max,
+      maxMessage: `Badge text cannot exceed ${bannerBadge.max} characters.`,
+    }),
+    title: assertAdminText((body.title || body.mainHeading) ?? '', {
+      required: !isUpdate,
+      max: bannerTitle.max,
+      requiredMessage: 'Title is required',
+      maxMessage: `Title cannot exceed ${bannerTitle.max} characters.`,
+    }),
+    highlightedTitle: assertAdminText((body.highlightedTitle || body.highlightText) ?? '', {
+      max: bannerHighlightedTitle.max,
+      maxMessage: `Highlighted title cannot exceed ${bannerHighlightedTitle.max} characters.`,
+    }),
+    description: assertAdminText(body.description ?? '', {
+      max: bannerDescription.max,
+      maxMessage: `Description cannot exceed ${bannerDescription.max} characters.`,
+    }),
     sideCardTitle: body.sideCardTitle?.trim() ?? '',
     sideCardDescription: body.sideCardDescription?.trim() ?? '',
     sideCardIcon: body.sideCardIcon?.trim() ?? '',
@@ -182,7 +237,7 @@ const normalizePayload = async (body, { isUpdate = false } = {}) => {
         ? Number(body.displayOrder)
         : 0,
     isActive:
-      body.isActive !== undefined
+      body.isActive !== undefined && body.isActive !== null && body.isActive !== ''
         ? body.isActive === true || body.isActive === 'true'
         : true,
   };
@@ -207,6 +262,9 @@ const normalizePayload = async (body, { isUpdate = false } = {}) => {
       const error = new Error('Banner image is required');
       error.statusCode = 400;
       throw error;
+    }
+    if (payload.isActive === undefined || payload.isActive === null) {
+      payload.isActive = true;
     }
   }
 
@@ -267,6 +325,12 @@ export const updateBanner = async (id, body, user) => {
 };
 
 export const updateBannerStatus = async (id, isActive, user) => {
+  if (isActive === undefined || isActive === null) {
+    const error = new Error('Banner status is required');
+    error.statusCode = 400;
+    throw error;
+  }
+
   const banner = await Banner.findOne({ _id: id, ...notDeleted });
   if (!banner) {
     const error = new Error('Banner not found');

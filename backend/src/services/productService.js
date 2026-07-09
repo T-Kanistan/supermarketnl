@@ -13,6 +13,11 @@ const parseBoolean = (value) => {
   return undefined;
 };
 
+const sanitizeText = (value) =>
+  String(value || '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
 export const normalizeProductType = (value) => {
   const raw = value == null ? '' : String(value).trim().toLowerCase();
   if (!raw) return 'grocery';
@@ -48,6 +53,121 @@ const parseTimeToMinutes = (timeValue) => {
     return hours * 60 + Number(match12[2]);
   }
   return null;
+};
+
+const MENU_TIMING_RANGE_REGEX =
+  /^((0[1-9])|(1[0-2])):([0-5][0-9])\s?(AM|PM)\s*-\s*((0[1-9])|(1[0-2])):([0-5][0-9])\s?(AM|PM)$/i;
+
+const normalizeMenuDisplayTiming = (value) => {
+  const raw = sanitizeText(value);
+  const match = raw.match(MENU_TIMING_RANGE_REGEX);
+  if (!match) return '';
+  return `${match[1]}:${match[4]} ${match[5].toUpperCase()} - ${match[6]}:${match[9]} ${match[10].toUpperCase()}`;
+};
+
+const isAllowedProductImageReference = (value) => {
+  const raw = sanitizeText(value);
+  if (!raw) return false;
+  if (/^data:image\/(jpeg|jpg|png|webp);base64,/i.test(raw)) return true;
+  return /\.(jpe?g|png|webp)(\?.*)?$/i.test(raw);
+};
+
+const normalizeComparableProductName = (value) => sanitizeText(value).toLowerCase();
+
+const assertUniqueProductNameInCatalogCategory = async ({
+  productName,
+  productType,
+  categoryId,
+  excludeId = null,
+}) => {
+  const comparableName = normalizeComparableProductName(productName);
+  if (!comparableName || !productType || !categoryId) return;
+
+  const filter = {
+    status: { $ne: 'deleted' },
+    productType,
+  };
+  if (excludeId) {
+    filter._id = { $ne: excludeId };
+  }
+
+  const existing = await Product.find(filter).select('productName name categoryId');
+  const duplicate = existing.some(
+    (item) =>
+      String(item.categoryId || '') === String(categoryId || '') &&
+      normalizeComparableProductName(item.productName || item.name) === comparableName
+  );
+  if (duplicate) {
+    const error = new Error('This product already exists.');
+    error.statusCode = 400;
+    throw error;
+  }
+};
+
+const validateProductNameRules = (value) => {
+  const productName = sanitizeText(value);
+  if (!productName) {
+    const error = new Error('Please enter the product name.');
+    error.statusCode = 400;
+    throw error;
+  }
+  if (productName.length < 2 || productName.length > 100) {
+    const error = new Error('Product name must be between 2 and 100 characters.');
+    error.statusCode = 400;
+    throw error;
+  }
+  if (!/^[A-Za-z0-9\s\-'"&()]+$/.test(productName)) {
+    const error = new Error('Product name must contain only letters, numbers, spaces, hyphens, apostrophes, ampersands, and parentheses.');
+    error.statusCode = 400;
+    throw error;
+  }
+  return productName;
+};
+
+const validatePriceRules = (value) => {
+  if (value === undefined || value === null || String(value).trim() === '') {
+    const error = new Error('Please enter the product price.');
+    error.statusCode = 400;
+    throw error;
+  }
+  const raw = String(value).trim();
+  if (!/^\d+(\.\d{1,2})?$/.test(raw)) {
+    const error = new Error('Please enter a valid price.');
+    error.statusCode = 400;
+    throw error;
+  }
+  const price = Number(raw);
+  if (!Number.isFinite(price)) {
+    const error = new Error('Please enter a valid price.');
+    error.statusCode = 400;
+    throw error;
+  }
+  if (price <= 0) {
+    const error = new Error('Price must be greater than €0.');
+    error.statusCode = 400;
+    throw error;
+  }
+  if (price > 9999.99) {
+    const error = new Error('Please enter a valid price.');
+    error.statusCode = 400;
+    throw error;
+  }
+  return price;
+};
+
+const validateGroceryWeightUnit = (value) => {
+  const weightUnit = sanitizeText(value);
+  if (!weightUnit) {
+    const error = new Error('Please enter the weight or unit size.');
+    error.statusCode = 400;
+    throw error;
+  }
+  if (weightUnit.length > 20) {
+    const error = new Error('Weight / unit size cannot exceed 20 characters.');
+    error.statusCode = 400;
+    throw error;
+  }
+  return weightUnit;
 };
 
 export const validateCookingTimes = (startTime, endTime) => {
@@ -246,26 +366,23 @@ export const normalizeProductPayload = async (body, { isUpdate = false } = {}) =
   const productType = normalizeProductType(
     body.productType || body.type || body.productCatalogType
   );
-  const productName = (body.productName || body.name || '').trim();
+  const productName = sanitizeText(body.productName || body.name || '');
   const priceValue = body.price;
   const hasPrice = priceValue !== undefined && priceValue !== null && priceValue !== '';
-  const price = hasPrice ? Number(priceValue) : undefined;
+  const price = hasPrice ? validatePriceRules(priceValue) : undefined;
 
-  if (!isUpdate && !productName) {
-    const error = new Error('Product name is required');
-    error.statusCode = 400;
-    throw error;
-  }
+  if (!isUpdate) validateProductNameRules(productName);
 
-  if (!isUpdate && (price === undefined || Number.isNaN(price) || price < 0)) {
-    const error = new Error('Price must be greater than or equal to 0');
-    error.statusCode = 400;
-    throw error;
-  }
+  if (!isUpdate && price === undefined) validatePriceRules(priceValue);
 
   const imageInput = body.imageUrl ?? body.image;
-  if (!isUpdate && !imageInput) {
-    const error = new Error('Product image is required');
+  if (!isUpdate && productType === 'food-corner' && !imageInput) {
+    const error = new Error('Please upload a product image.');
+    error.statusCode = 400;
+    throw error;
+  }
+  if (imageInput && !isAllowedProductImageReference(imageInput)) {
+    const error = new Error('Only JPG, JPEG, PNG, and WEBP images are allowed.');
     error.statusCode = 400;
     throw error;
   }
@@ -283,8 +400,9 @@ export const normalizeProductPayload = async (body, { isUpdate = false } = {}) =
   }
 
   const featuredValue =
-    parseBoolean(body.showOnHomepage ?? body.featuredProduct ?? body.isFeatured ?? body.featured) ??
-    false;
+    productType === 'grocery'
+      ? parseBoolean(body.showOnHomepage ?? body.featuredProduct ?? body.isFeatured ?? body.featured) ?? false
+      : false;
 
   const payload = {
     productType,
@@ -302,7 +420,9 @@ export const normalizeProductPayload = async (body, { isUpdate = false } = {}) =
       body.stockStatus ||
       (body.stock > 0 || body.stock === 'in_stock' ? 'in_stock' : 'out_of_stock');
     payload.stockStatus = stockStatus === 'out_of_stock' ? 'out_of_stock' : 'in_stock';
-    payload.weightUnit = (body.weightUnit || body.weightUnitSize || body.weight || '').trim();
+    payload.weightUnit = validateGroceryWeightUnit(
+      body.weightUnit || body.weightUnitSize || body.weight || ''
+    );
     payload.shortDescription = '';
     payload.menuDisplayTiming = '';
     payload.specialBadge = '';
@@ -315,8 +435,18 @@ export const normalizeProductPayload = async (body, { isUpdate = false } = {}) =
       validateCookingTimes(cookingStartTime, cookingEndTime);
     }
 
-    payload.shortDescription = (body.shortDescription || body.description || '').trim();
-    payload.menuDisplayTiming = (body.menuDisplayTiming || body.displayTime || '').trim();
+    payload.shortDescription = sanitizeText(body.shortDescription || body.description || '');
+    if (payload.shortDescription.length > 500) {
+      const error = new Error('Description cannot exceed 500 characters.');
+      error.statusCode = 400;
+      throw error;
+    }
+    payload.menuDisplayTiming = normalizeMenuDisplayTiming(body.menuDisplayTiming || body.displayTime || '');
+    if (!payload.menuDisplayTiming) {
+      const error = new Error('Please enter a valid time range.');
+      error.statusCode = 400;
+      throw error;
+    }
     payload.specialBadge = (body.specialBadge || body.badge || '').trim();
     payload.cookingStartTime = cookingStartTime;
     payload.cookingEndTime = cookingEndTime;
@@ -349,23 +479,11 @@ export const buildPartialProductUpdate = async (body, existing) => {
   }
 
   if (hasField(body, 'productName', 'name')) {
-    const productName = (body.productName || body.name || '').trim();
-    if (!productName) {
-      const error = new Error('Product name is required');
-      error.statusCode = 400;
-      throw error;
-    }
-    update.productName = productName;
+    update.productName = validateProductNameRules(body.productName || body.name || '');
   }
 
   if (body.price !== undefined) {
-    const price = Number(body.price);
-    if (Number.isNaN(price) || price < 0) {
-      const error = new Error('Price must be greater than or equal to 0');
-      error.statusCode = 400;
-      throw error;
-    }
-    update.price = price;
+    update.price = validatePriceRules(body.price);
   }
 
   if (hasField(body, 'categoryId', 'category', 'categoryName')) {
@@ -378,11 +496,27 @@ export const buildPartialProductUpdate = async (body, existing) => {
   }
 
   if (hasField(body, 'featuredProduct', 'isFeatured', 'featured', 'showOnHomepage')) {
-    const featuredValue = Boolean(
-      parseBoolean(body.showOnHomepage ?? body.featuredProduct ?? body.isFeatured ?? body.featured)
-    );
-    update.featuredProduct = featuredValue;
-    update.showOnHomepage = featuredValue;
+    if (productType === 'grocery') {
+      const featuredValue = Boolean(
+        parseBoolean(body.showOnHomepage ?? body.featuredProduct ?? body.isFeatured ?? body.featured)
+      );
+      update.featuredProduct = featuredValue;
+      update.showOnHomepage = featuredValue;
+    }
+  }
+
+  if (hasField(body, 'productType', 'type', 'productCatalogType') && productType === 'food-corner') {
+    update.showOnHomepage = false;
+    update.featuredProduct = false;
+    update.weightUnit = '';
+    update.stockStatus = 'in_stock';
+    update.shortDescription = update.shortDescription ?? existingPlain.shortDescription ?? '';
+  }
+
+  if (hasField(body, 'productType', 'type', 'productCatalogType') && productType === 'grocery') {
+    update.menuDisplayTiming = '';
+    update.shortDescription = '';
+    update.displayTime = '';
   }
 
   if (body.status !== undefined) {
@@ -400,14 +534,28 @@ export const buildPartialProductUpdate = async (body, existing) => {
         body.stockStatus === 'out_of_stock' ? 'out_of_stock' : 'in_stock';
     }
     if (hasField(body, 'weightUnit', 'weightUnitSize', 'weight')) {
-      update.weightUnit = (body.weightUnit || body.weightUnitSize || body.weight || '').trim();
+      update.weightUnit = validateGroceryWeightUnit(
+        body.weightUnit || body.weightUnitSize || body.weight || ''
+      );
     }
   } else {
     if (hasField(body, 'shortDescription', 'description')) {
-      update.shortDescription = (body.shortDescription || body.description || '').trim();
+      const cleanedDescription = sanitizeText(body.shortDescription || body.description || '');
+      if (cleanedDescription.length > 500) {
+        const error = new Error('Description cannot exceed 500 characters.');
+        error.statusCode = 400;
+        throw error;
+      }
+      update.shortDescription = cleanedDescription;
     }
     if (hasField(body, 'menuDisplayTiming', 'displayTime')) {
-      update.menuDisplayTiming = (body.menuDisplayTiming || body.displayTime || '').trim();
+      const cleanedTiming = normalizeMenuDisplayTiming(body.menuDisplayTiming || body.displayTime || '');
+      if (!cleanedTiming) {
+        const error = new Error('Please enter a valid time range.');
+        error.statusCode = 400;
+        throw error;
+      }
+      update.menuDisplayTiming = cleanedTiming;
     }
     if (hasField(body, 'specialBadge', 'badge')) {
       update.specialBadge = (body.specialBadge || body.badge || '').trim();
@@ -425,6 +573,11 @@ export const buildPartialProductUpdate = async (body, existing) => {
 
   if (hasField(body, 'imageUrl', 'image')) {
     const imageInput = body.imageUrl ?? body.image;
+    if (imageInput && !isAllowedProductImageReference(imageInput)) {
+      const error = new Error('Only JPG, JPEG, PNG, and WEBP images are allowed.');
+      error.statusCode = 400;
+      throw error;
+    }
     update.imageUrl = imageInput ? await resolveImage(imageInput) : existingPlain.imageUrl || '';
   }
 
@@ -478,6 +631,11 @@ export const createProduct = async (body, user) => {
   }
 
   const payload = await normalizeProductPayload(body);
+  await assertUniqueProductNameInCatalogCategory({
+    productName: payload.productName,
+    productType: payload.productType,
+    categoryId: payload.categoryId,
+  });
   payload.createdBy = user?._id || null;
   payload.updatedBy = user?._id || null;
 
@@ -504,6 +662,37 @@ export const updateProduct = async (id, body, user) => {
   }
 
   const updateData = await buildPartialProductUpdate(body, product);
+  const mergedType = updateData.productType || product.productType;
+  const mergedTiming = sanitizeText(updateData.menuDisplayTiming ?? product.menuDisplayTiming ?? product.displayTime);
+  const mergedDescription = sanitizeText(updateData.shortDescription ?? product.shortDescription ?? product.description);
+  if (mergedType === 'food-corner') {
+    if (!mergedTiming) {
+      const error = new Error('Please enter the menu display time.');
+      error.statusCode = 400;
+      throw error;
+    }
+    if (!normalizeMenuDisplayTiming(mergedTiming)) {
+      const error = new Error('Please enter a valid time range.');
+      error.statusCode = 400;
+      throw error;
+    }
+    if (mergedDescription.length > 500) {
+      const error = new Error('Description cannot exceed 500 characters.');
+      error.statusCode = 400;
+      throw error;
+    }
+  }
+  const nextType = updateData.productType || product.productType;
+  const nextCategoryId = updateData.categoryId || product.categoryId;
+  const nextProductName = updateData.productName || product.productName || product.name;
+  if (nextProductName && nextType && nextCategoryId) {
+    await assertUniqueProductNameInCatalogCategory({
+      productName: nextProductName,
+      productType: nextType,
+      categoryId: nextCategoryId,
+      excludeId: product._id,
+    });
+  }
   if (role === 'manager') {
     delete updateData.productType;
   }

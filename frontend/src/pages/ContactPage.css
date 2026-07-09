@@ -252,6 +252,32 @@
   color: #ef4444;
 }
 
+.field-optional {
+  color: #94a3b8;
+  font-weight: 500;
+  font-size: 0.85em;
+}
+
+.contact-field-error {
+  margin: 0;
+  color: #dc2626;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.contact-form input.contact-input-invalid,
+.contact-form textarea.contact-input-invalid {
+  border-color: #dc2626;
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.1);
+}
+
+.contact-form input.contact-input-invalid:focus,
+.contact-form textarea.contact-input-invalid:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.14);
+}
+
 .input-wrapper {
   position: relative;
   display: flex;

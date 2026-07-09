@@ -6,9 +6,28 @@ import { useCMS } from '../context/CMSContext';
 import categoryService from '../services/categoryService';
 import { getImageUrl } from '../services/api';
 import { buildStoreLogoAlt } from '../utils/seoImageAlt';
-import { mergeFooterPage } from '../constants/footerPageDefaults';
 import { mapProductCategoriesToFooterLinks } from '../utils/footerCategories';
+import BusinessHoursDisplay from './BusinessHoursDisplay';
 import './Footer.css';
+
+const isExternalLink = (value = '') => /^https?:\/\//i.test(String(value).trim());
+
+const FooterNavLink = ({ path, children, className = '' }) => {
+  const cleanedPath = String(path || '').trim();
+  if (!cleanedPath) return <span className={className}>{children}</span>;
+  if (isExternalLink(cleanedPath)) {
+    return (
+      <a href={cleanedPath} target="_blank" rel="noreferrer" className={className}>
+        {children}
+      </a>
+    );
+  }
+  return (
+    <Link to={cleanedPath} className={className}>
+      {children}
+    </Link>
+  );
+};
 
 const Footer = () => {
   const location = useLocation();
@@ -54,19 +73,21 @@ const Footer = () => {
     );
   }
 
-  const footer = cmsData.footerPage || mergeFooterPage();
+  const footer = cmsData.footerPage || {};
 
-  const address = cmsData.address || 'Hilversum, Netherlands';
-  const phone = cmsData.contactPhone || '+31659046526';
-  const email = cmsData.contactEmail || 'info@winswereldwinkel.nl';
+  const address = cmsData.address || '';
+  const phone = cmsData.contactPhone || '';
+  const email = cmsData.contactEmail || '';
   const phoneHref = `tel:${phone.replace(/[^\d+]/g, '')}`;
   const emailHref = `mailto:${email}`;
   const mapsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
 
-  const quickLinks = footer.quickLinks.filter((link) => link.enabled && link.label);
+  const quickLinks = (Array.isArray(footer.quickLinks) ? footer.quickLinks : [])
+    .filter((link) => link.enabled && link.label);
   const footerCategoryLinks = mapProductCategoriesToFooterLinks(catalogCategories);
-  const legalLinks = footer.legalLinks.filter((link) => link.enabled && link.label);
-  const copyrightName = footer.copyrightText || cmsData.storeName || 'Wins Wereld Winkel';
+  const legalLinks = (Array.isArray(footer.legalLinks) ? footer.legalLinks : [])
+    .filter((link) => link.enabled && link.label);
+  const copyrightName = footer.copyrightText || cmsData.storeName || '';
 
   return (
     <footer className="footer-main" id="footer">
@@ -74,7 +95,7 @@ const Footer = () => {
         <div className="footer-main-grid">
           <div className="footer-main-col brand-col">
             <img
-              src={getImageUrl(cmsData.logo) || '/logo.png'}
+              src={getImageUrl(cmsData.footerLogo || cmsData.logo) || '/logo.png'}
               alt={buildStoreLogoAlt()}
               className="footer-main-logo"
               width="160"
@@ -104,16 +125,18 @@ const Footer = () => {
           </div>
 
           <div className="footer-main-col">
-            <h4 className="footer-main-title">{footer.quickLinksTitle}</h4>
+            <h4 className="footer-main-title">{footer.quickLinksTitle || ''}</h4>
             <div className="footer-main-links">
               {quickLinks.map((link) => (
-                <Link key={link.id} to={link.path}>{link.label}</Link>
+                <FooterNavLink key={link.id} path={link.path}>
+                  {link.label}
+                </FooterNavLink>
               ))}
             </div>
           </div>
 
           <div className="footer-main-col">
-            <h4 className="footer-main-title">{footer.categoriesTitle}</h4>
+            <h4 className="footer-main-title">{footer.categoriesTitle || ''}</h4>
             <div className="footer-main-links">
               {footerCategoryLinks.map((link) => (
                 <Link
@@ -127,12 +150,20 @@ const Footer = () => {
           </div>
 
           <div className="footer-main-col">
-            <h4 className="footer-main-title">{footer.businessHoursTitle}</h4>
+            <h4 className="footer-main-title">{footer.businessHoursTitle || ''}</h4>
             <div className="footer-contact-list">
-              <p><FiClock /> {footer.supermarketLabel}</p>
-              <p className="footer-hours-sub">{cmsData.supermarketTimings || ''}</p>
-              <p><FiClock /> {footer.foodCornerLabel}</p>
-              <p className="footer-hours-sub">{cmsData.foodCornerTimings || ''}</p>
+              <p><FiClock /> {footer.supermarketLabel || ''}</p>
+              <BusinessHoursDisplay
+                value={cmsData.supermarketTimings || ''}
+                loading={loading}
+                className="footer-hours-sub"
+              />
+              <p><FiClock /> {footer.foodCornerLabel || ''}</p>
+              <BusinessHoursDisplay
+                value={cmsData.foodCornerTimings || ''}
+                loading={loading}
+                className="footer-hours-sub"
+              />
               {footer.sundayHours && (
                 <p className="footer-hours-sub">{footer.sundayHours}</p>
               )}
@@ -140,17 +171,23 @@ const Footer = () => {
           </div>
 
           <div className="footer-main-col footer-contact-col">
-            <h4 className="footer-main-title">{footer.contactTitle}</h4>
+            <h4 className="footer-main-title">{footer.contactTitle || ''}</h4>
             <div className="footer-contact-list">
-              <a href={mapsHref} target="_blank" rel="noreferrer" className="footer-contact-link">
-                <FiMapPin /> {address}
-              </a>
-              <a href={phoneHref} className="footer-contact-link">
-                <FiPhone /> {phone}
-              </a>
-              <a href={emailHref} className="footer-contact-link">
-                <FiMail /> {email}
-              </a>
+              {address && (
+                <a href={mapsHref} target="_blank" rel="noreferrer" className="footer-contact-link">
+                  <FiMapPin /> {address}
+                </a>
+              )}
+              {phone && (
+                <a href={phoneHref} className="footer-contact-link">
+                  <FiPhone /> {phone}
+                </a>
+              )}
+              {email && (
+                <a href={emailHref} className="footer-contact-link">
+                  <FiMail /> {email}
+                </a>
+              )}
             </div>
           </div>
         </div>
@@ -159,9 +196,9 @@ const Footer = () => {
           {legalLinks.length > 0 && (
             <div className="footer-legal-links">
               {legalLinks.map((link) => (
-                <Link key={link.id} to={link.path} className="footer-legal-pill">
+                <FooterNavLink key={link.id} path={link.path} className="footer-legal-pill">
                   {link.label}
-                </Link>
+                </FooterNavLink>
               ))}
             </div>
           )}

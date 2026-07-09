@@ -24,6 +24,8 @@ const mapActiveCounts = (counts = {}) => ({
   totalFaqs: counts.activeFaqs ?? 0,
   totalMessages: counts.activeMessages ?? 0,
   activeBanners: counts.activeBanners ?? 0,
+  inactiveBanners: counts.inactiveBanners ?? 0,
+  totalBanners: counts.totalBanners ?? 0,
   activeOffers: counts.activeOffers ?? 0,
   unreadEnquiries: counts.unreadMessages ?? 0,
   totalEnquiries: counts.activeMessages ?? 0,

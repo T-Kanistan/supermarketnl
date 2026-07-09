@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { FaPlus, FaEdit, FaTrash, FaQuestionCircle, FaArrowUp, FaArrowDown, FaSave } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaQuestionCircle, FaArrowUp, FaArrowDown, FaSave, FaSearch } from 'react-icons/fa';
 import faqService from '../../../services/faqService';
 import { sortFaqsByOrder, stripLeadingNumberFromQuestion } from '../../../utils/faqUtils';
 import { useToast } from '../../../context/ToastContext';
@@ -10,6 +10,14 @@ import {
   FAQ_LIMIT_REACHED_WARNING,
 } from '../../../constants/faqLimits';
 import { invalidateDashboardStats } from '../../../utils/dashboardStatsRefresh';
+import useAdminSearch from '../../../hooks/useAdminSearch';
+import { filterByAdminSearch, statusSearchLabel, ADMIN_NO_MATCH_MESSAGE } from '../../../utils/adminSearch';
+
+import { ADMIN_TEXT_LIMITS } from '../../../utils/adminTextValidation';
+import AdminFieldLabel from '../../../components/admin/AdminFieldLabel';
+
+const FAQ_QUESTION_MAX_LENGTH = ADMIN_TEXT_LIMITS.faqQuestion.max;
+const FAQ_ANSWER_MAX_LENGTH = ADMIN_TEXT_LIMITS.faqAnswer.max;
 
 export const AdminFaqs = () => {
   const [faqs, setFaqs] = useState([]);
@@ -20,18 +28,33 @@ export const AdminFaqs = () => {
   const [isSavingOrder, setIsSavingOrder] = useState(false);
   const [editingFaq, setEditingFaq] = useState(null);
   const [dragIndex, setDragIndex] = useState(null);
+  const { searchInput, searchQuery, onSearchChange, hasActiveSearch } = useAdminSearch();
 
   const { addToast } = useToast();
   const { isAdmin } = useAuth();
 
   const faqCount = faqs.length;
   const isLimitReached = useMemo(() => faqCount >= MAX_FAQ_COUNT, [faqCount]);
+  const filteredFaqs = useMemo(
+    () =>
+      filterByAdminSearch(faqs, searchQuery, (faq) => [
+        stripLeadingNumberFromQuestion(faq.question),
+        faq.question,
+        faq.answer,
+        statusSearchLabel(faq.status),
+      ]),
+    [faqs, searchQuery]
+  );
 
   const [formData, setFormData] = useState({
     question: '',
     answer: '',
     status: 'active',
     displayOrder: '',
+  });
+  const [fieldErrors, setFieldErrors] = useState({
+    question: '',
+    answer: '',
   });
 
   const syncOrderValues = (list) => {
@@ -147,6 +170,7 @@ export const AdminFaqs = () => {
       status: 'active',
       displayOrder: String((faqs.length || 0) + 1),
     });
+    setFieldErrors({ question: '', answer: '' });
     setIsModalOpen(true);
   };
 
@@ -158,12 +182,120 @@ export const AdminFaqs = () => {
       status: faq.status || 'active',
       displayOrder: String(faq.displayOrder ?? faq.order ?? ''),
     });
+    setFieldErrors({ question: '', answer: '' });
     setIsModalOpen(true);
   };
 
+  const sanitizeText = (value) =>
+    String(value || '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+  const normalizeComparable = (value) =>
+    String(value || '')
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .trim();
+
+  const getDuplicateErrors = useCallback(
+    (draft) => {
+      const normalizedQuestion = normalizeComparable(stripLeadingNumberFromQuestion(draft.question || ''));
+      const normalizedAnswer = normalizeComparable(draft.answer);
+
+      const others = faqs.filter((faq) => faq.id !== editingFaq?.id);
+
+      const questionExists =
+        Boolean(normalizedQuestion) &&
+        others.some(
+          (faq) =>
+            normalizeComparable(stripLeadingNumberFromQuestion(faq.question || '')) === normalizedQuestion
+        );
+
+      const answerExists =
+        Boolean(normalizedAnswer) &&
+        others.some((faq) => normalizeComparable(faq.answer) === normalizedAnswer);
+
+      return {
+        question: questionExists
+          ? 'This FAQ question already exists. Please enter a different question.'
+          : '',
+        answer: answerExists ? 'This FAQ answer already exists.' : '',
+      };
+    },
+    [faqs, editingFaq]
+  );
+
+  const validateDuplicateFields = useCallback(
+    (draft) => {
+      const duplicateErrors = getDuplicateErrors(draft);
+      setFieldErrors((prev) => ({
+        ...prev,
+        question:
+          prev.question === 'This FAQ question already exists. Please enter a different question.' ||
+          duplicateErrors.question
+            ? duplicateErrors.question
+            : prev.question,
+        answer:
+          prev.answer === 'This FAQ answer already exists.' || duplicateErrors.answer
+            ? duplicateErrors.answer
+            : prev.answer,
+      }));
+      return duplicateErrors;
+    },
+    [getDuplicateErrors]
+  );
+
+  const getFieldValidationErrors = useCallback((draft) => {
+    const question = sanitizeText(stripLeadingNumberFromQuestion(draft.question || ''));
+    const answer = sanitizeText(draft.answer || '');
+    return {
+      question: !question
+        ? 'Please enter a FAQ question.'
+        : question.length > FAQ_QUESTION_MAX_LENGTH
+          ? 'Question cannot exceed 150 characters.'
+          : '',
+      answer: !answer
+        ? 'Please enter a FAQ answer.'
+        : answer.length > FAQ_ANSWER_MAX_LENGTH
+          ? 'Answer cannot exceed 1000 characters.'
+          : '',
+    };
+  }, []);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => {
+      const limit = name === 'question'
+        ? FAQ_QUESTION_MAX_LENGTH
+        : name === 'answer'
+          ? FAQ_ANSWER_MAX_LENGTH
+          : null;
+      const boundedValue = limit ? String(value || '').slice(0, limit) : value;
+      const next = { ...prev, [name]: boundedValue };
+      if (name === 'question' || name === 'answer') {
+        const contentErrors = getFieldValidationErrors(next);
+        setFieldErrors((prevErrors) => ({
+          ...prevErrors,
+          [name]: contentErrors[name],
+        }));
+        validateDuplicateFields(next);
+      }
+      return next;
+    });
+  };
+
+  const handleFieldBlur = (e) => {
+    const { name, value } = e.target;
+    if (name !== 'question' && name !== 'answer') return;
+    const trimmedValue = sanitizeText(value);
+    const next = { ...formData, [name]: trimmedValue };
+    setFormData(next);
+    const contentErrors = getFieldValidationErrors(next);
+    setFieldErrors((prev) => ({
+      ...prev,
+      [name]: contentErrors[name],
+    }));
+    validateDuplicateFields(next);
   };
 
   const handleDelete = async (id) => {
@@ -185,12 +317,29 @@ export const AdminFaqs = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.question?.trim() || formData.question.trim().length < 5) {
-      addToast('Question must be at least 5 characters', 'error');
+    const normalizedQuestion = sanitizeText(stripLeadingNumberFromQuestion(formData.question || ''));
+    const normalizedAnswer = sanitizeText(formData.answer || '');
+    const contentErrors = getFieldValidationErrors({
+      ...formData,
+      question: normalizedQuestion,
+      answer: normalizedAnswer,
+    });
+    setFieldErrors((prev) => ({
+      ...prev,
+      ...contentErrors,
+    }));
+    if (contentErrors.question || contentErrors.answer) {
+      addToast(contentErrors.question || contentErrors.answer, 'error');
       return;
     }
-    if (!formData.answer?.trim() || formData.answer.trim().length < 10) {
-      addToast('Answer must be at least 10 characters', 'error');
+
+    const duplicateErrors = validateDuplicateFields({
+      ...formData,
+      question: normalizedQuestion,
+      answer: normalizedAnswer,
+    });
+    if (duplicateErrors.question || duplicateErrors.answer) {
+      addToast(duplicateErrors.question || duplicateErrors.answer, 'error');
       return;
     }
 
@@ -201,8 +350,8 @@ export const AdminFaqs = () => {
     }
 
     const payload = {
-      question: stripLeadingNumberFromQuestion(formData.question),
-      answer: formData.answer.trim(),
+      question: normalizedQuestion,
+      answer: normalizedAnswer,
       status: formData.status,
       displayOrder,
     };
@@ -225,7 +374,19 @@ export const AdminFaqs = () => {
       fetchFaqs();
     } catch (err) {
       console.error('Failed to save FAQ', err);
-      addToast(err.response?.data?.message || 'Failed to save FAQ', 'error');
+      const serverMessage = err.response?.data?.message || 'Failed to save FAQ';
+      if (serverMessage.includes('question already exists')) {
+        setFieldErrors((prev) => ({
+          ...prev,
+          question: 'This FAQ question already exists. Please enter a different question.',
+        }));
+      } else if (serverMessage.includes('answer already exists')) {
+        setFieldErrors((prev) => ({
+          ...prev,
+          answer: 'This FAQ answer already exists.',
+        }));
+      }
+      addToast(serverMessage, 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -265,12 +426,24 @@ export const AdminFaqs = () => {
         </div>
       ) : null}
 
+      <div className="table-controls">
+        <div className="search-box-admin">
+          <FaSearch className="search-icon-admin" />
+          <input
+            type="text"
+            placeholder="Search by question or answer..."
+            value={searchInput}
+            onChange={onSearchChange}
+          />
+        </div>
+      </div>
+
       {loading ? (
         <div style={{ background: 'white', padding: '40px', borderRadius: '16px', animation: 'pulse 1.5s infinite ease-in-out' }}>
           <div style={{ height: '30px', width: '200px', background: '#cbd5e1', marginBottom: '20px' }}></div>
           <div style={{ height: '150px', background: '#cbd5e1' }}></div>
         </div>
-      ) : faqs.length > 0 ? (
+      ) : filteredFaqs.length > 0 ? (
         <div className="table-responsive-wrapper">
           <table className="admin-table">
             <thead>
@@ -283,13 +456,15 @@ export const AdminFaqs = () => {
               </tr>
             </thead>
             <tbody>
-              {faqs.map((faq, index) => (
+              {filteredFaqs.map((faq) => {
+                const index = faqs.findIndex((item) => item.id === faq.id);
+                return (
                 <tr
                   key={faq.id}
-                  draggable
-                  onDragStart={() => handleDragStart(index)}
+                  draggable={!hasActiveSearch}
+                  onDragStart={() => !hasActiveSearch && handleDragStart(index)}
                   onDragOver={(e) => e.preventDefault()}
-                  onDrop={() => handleDrop(index)}
+                  onDrop={() => !hasActiveSearch && handleDrop(index)}
                 >
                   <td data-label="Order">
                     <input
@@ -311,10 +486,10 @@ export const AdminFaqs = () => {
                       <button type="button" className="btn-action-cell edit" onClick={() => openEditModal(faq)} title="Edit FAQ">
                         <FaEdit />
                       </button>
-                      <button type="button" className="btn-action-cell" onClick={() => moveFaq(index, -1)} title="Move up">
+                      <button type="button" className="btn-action-cell" onClick={() => moveFaq(index, -1)} title="Move up" disabled={hasActiveSearch}>
                         <FaArrowUp />
                       </button>
-                      <button type="button" className="btn-action-cell" onClick={() => moveFaq(index, 1)} title="Move down">
+                      <button type="button" className="btn-action-cell" onClick={() => moveFaq(index, 1)} title="Move down" disabled={hasActiveSearch}>
                         <FaArrowDown />
                       </button>
                       {isAdmin && (
@@ -325,15 +500,20 @@ export const AdminFaqs = () => {
                     </div>
                   </td>
                 </tr>
-              ))}
+              );
+              })}
             </tbody>
           </table>
         </div>
       ) : (
         <div className="dashboard-panel admin-empty-state">
           <FaQuestionCircle className="admin-empty-icon" />
-          <h3>No FAQs found!</h3>
-          <p>Click &quot;Add FAQ&quot; above to create one.</p>
+          <h3>{hasActiveSearch ? ADMIN_NO_MATCH_MESSAGE : 'No FAQs found!'}</h3>
+          <p>
+            {hasActiveSearch
+              ? 'Try a different search term.'
+              : 'Click "Add FAQ" above to create one.'}
+          </p>
         </div>
       )}
 
@@ -348,16 +528,57 @@ export const AdminFaqs = () => {
             <form onSubmit={handleSubmit}>
               <div className="modal-body">
                 <div className="admin-form-group">
-                  <label>Question text</label>
-                  <input type="text" name="question" value={formData.question} onChange={handleChange} minLength={5} maxLength={300} required />
-                </div>
-                <div className="admin-form-group">
-                  <label>Answer text</label>
-                  <textarea name="answer" value={formData.answer} onChange={handleChange} rows="4" minLength={10} maxLength={5000} required />
-                </div>
-                <div className="admin-form-group">
-                  <label>Order</label>
+                  <AdminFieldLabel htmlFor="faq-question" required>
+                    Question text
+                  </AdminFieldLabel>
                   <input
+                    id="faq-question"
+                    type="text"
+                    name="question"
+                    value={formData.question}
+                    onChange={handleChange}
+                    onBlur={handleFieldBlur}
+                    maxLength={FAQ_QUESTION_MAX_LENGTH}
+                    required
+                    className={fieldErrors.question ? 'admin-input-invalid' : ''}
+                    aria-invalid={Boolean(fieldErrors.question)}
+                  />
+                  <p style={{ marginTop: '6px', fontSize: '0.8rem', color: '#64748b' }}>
+                    {formData.question.length} / {FAQ_QUESTION_MAX_LENGTH}
+                  </p>
+                  {fieldErrors.question ? (
+                    <p className="admin-field-error" role="alert">{fieldErrors.question}</p>
+                  ) : null}
+                </div>
+                <div className="admin-form-group">
+                  <AdminFieldLabel htmlFor="faq-answer" required>
+                    Answer text
+                  </AdminFieldLabel>
+                  <textarea
+                    id="faq-answer"
+                    name="answer"
+                    value={formData.answer}
+                    onChange={handleChange}
+                    onBlur={handleFieldBlur}
+                    rows="4"
+                    maxLength={FAQ_ANSWER_MAX_LENGTH}
+                    required
+                    className={fieldErrors.answer ? 'admin-input-invalid' : ''}
+                    aria-invalid={Boolean(fieldErrors.answer)}
+                  />
+                  <p style={{ marginTop: '6px', fontSize: '0.8rem', color: '#64748b' }}>
+                    {formData.answer.length} / {FAQ_ANSWER_MAX_LENGTH}
+                  </p>
+                  {fieldErrors.answer ? (
+                    <p className="admin-field-error" role="alert">{fieldErrors.answer}</p>
+                  ) : null}
+                </div>
+                <div className="admin-form-group">
+                  <AdminFieldLabel htmlFor="faq-order" required>
+                    Order
+                  </AdminFieldLabel>
+                  <input
+                    id="faq-order"
                     type="number"
                     name="displayOrder"
                     min="1"
@@ -367,8 +588,8 @@ export const AdminFaqs = () => {
                   />
                 </div>
                 <div className="admin-form-group">
-                  <label>Status</label>
-                  <select name="status" value={formData.status} onChange={handleChange}>
+                  <AdminFieldLabel htmlFor="faq-status">Status</AdminFieldLabel>
+                  <select id="faq-status" name="status" value={formData.status} onChange={handleChange}>
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
                   </select>

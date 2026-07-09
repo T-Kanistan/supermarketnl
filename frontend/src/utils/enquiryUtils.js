@@ -28,13 +28,15 @@ export const buildWhatsAppEnquiryMessage = ({
   message,
   isFoodCorner = false,
 }) => {
+  const resolvedPhone = (phone || '').trim() || 'N/A';
+
   if (isFoodCorner) {
     return `Hello Wins Wereld Winkel,
 
 I would like to enquire about a food corner item.
 
 Customer Name: ${fullName}
-Phone Number: ${phone}
+Phone Number: ${resolvedPhone}
 Food Item: ${productName}
 
 Message:
@@ -48,7 +50,7 @@ Thank you.`;
 I would like to enquire about a product.
 
 Customer Name: ${fullName}
-Phone Number: ${phone}
+Phone Number: ${resolvedPhone}
 Product Name: ${productName}
 Quantity: ${quantity || 'N/A'}
 
@@ -92,10 +94,12 @@ export const buildCustomerEnquiryWhatsAppMessage = ({
   email,
   enquiryType,
   message,
-}) => `📩 Customer Enquiry
+}) => {
+  const resolvedPhone = String(phoneNumber || phone || '').trim() || 'N/A';
+  return `📩 Customer Enquiry
 
 👤 Name: ${fullName}
-📞 Phone: ${phoneNumber || phone}
+📞 Phone: ${resolvedPhone}
 📧 Email: ${email}
 
 📋 Enquiry Type:
@@ -106,6 +110,7 @@ ${message}
 
 Send to:
 +31659046526`;
+};
 
 export const openCustomerEnquiryWhatsApp = (payload) => {
   const text = buildCustomerEnquiryWhatsAppMessage(payload);

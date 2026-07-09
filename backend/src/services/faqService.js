@@ -1,6 +1,7 @@
 import FAQ from '../models/FAQ.js';
 import { logManagerActivity } from './activityLogService.js';
 import { MAX_FAQ_COUNT, FAQ_LIMIT_ERROR_MESSAGE } from '../constants/faqLimits.js';
+import { buildMultiFieldSearchFilter } from '../utils/adminSearchQuery.js';
 
 const notDeletedFilter = { status: { $ne: 'deleted' } };
 
@@ -48,32 +49,80 @@ export const getNextDisplayOrder = async () => {
 };
 
 const normalizeQuestion = (question) => stripLeadingNumberFromQuestion(question).trim();
+const sanitizeFaqText = (value) =>
+  String(value || '')
+    .replace(/\s+/g, ' ')
+    .trim();
+const normalizeComparisonValue = (value) =>
+  String(value || '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const normalizeComparableQuestion = (question) =>
+  normalizeComparisonValue(stripLeadingNumberFromQuestion(question));
+
+const normalizeComparableAnswer = (answer) => normalizeComparisonValue(answer);
+
+const assertNoDuplicateFaq = async ({ question, answer, excludeId = null }) => {
+  const comparableQuestion = normalizeComparableQuestion(question);
+  const comparableAnswer = normalizeComparableAnswer(answer);
+
+  if (!comparableQuestion && !comparableAnswer) return;
+
+  const filter = { ...notDeletedFilter };
+  if (excludeId) {
+    filter._id = { $ne: excludeId };
+  }
+
+  const existingFaqs = await FAQ.find(filter).select('question answer');
+
+  if (
+    comparableQuestion &&
+    existingFaqs.some((item) => normalizeComparableQuestion(item.question) === comparableQuestion)
+  ) {
+    const error = new Error('This FAQ question already exists. Please enter a different question.');
+    error.statusCode = 400;
+    error.field = 'question';
+    throw error;
+  }
+
+  if (
+    comparableAnswer &&
+    existingFaqs.some((item) => normalizeComparableAnswer(item.answer) === comparableAnswer)
+  ) {
+    const error = new Error('This FAQ answer already exists.');
+    error.statusCode = 400;
+    error.field = 'answer';
+    throw error;
+  }
+};
 
 const validateFaqPayload = (fields, { isUpdate = false } = {}) => {
-  const question = fields.question !== undefined ? normalizeQuestion(fields.question) : '';
-  const answer = (fields.answer || '').trim();
+  const question = fields.question !== undefined ? sanitizeFaqText(normalizeQuestion(fields.question)) : '';
+  const answer = sanitizeFaqText(fields.answer || '');
 
   if (!isUpdate || fields.question !== undefined) {
-    if (!question || question.length < 5) {
-      const error = new Error('Question must be at least 5 characters');
+    if (!question) {
+      const error = new Error('Please enter a FAQ question.');
       error.statusCode = 400;
       throw error;
     }
-    if (question.length > 300) {
-      const error = new Error('Question must not exceed 300 characters');
+    if (question.length > 150) {
+      const error = new Error('Question cannot exceed 150 characters.');
       error.statusCode = 400;
       throw error;
     }
   }
 
   if (!isUpdate || fields.answer !== undefined) {
-    if (!answer || answer.length < 10) {
-      const error = new Error('Answer must be at least 10 characters');
+    if (!answer) {
+      const error = new Error('Please enter a FAQ answer.');
       error.statusCode = 400;
       throw error;
     }
-    if (answer.length > 5000) {
-      const error = new Error('Answer must not exceed 5000 characters');
+    if (answer.length > 1000) {
+      const error = new Error('Answer cannot exceed 1000 characters.');
       error.statusCode = 400;
       throw error;
     }
@@ -115,12 +164,13 @@ const assertUniqueDisplayOrder = async (displayOrder, excludeId = null) => {
 export const listFaqs = async ({ includeDeleted = false, search } = {}) => {
   const filter = includeDeleted ? {} : { ...notDeletedFilter };
 
-  if (search) {
-    const regex = new RegExp(
-      String(search).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
-      'i'
-    );
-    filter.$or = [{ question: regex }, { answer: regex }];
+  const searchFilter = buildMultiFieldSearchFilter(search, [
+    'question',
+    'answer',
+    'status',
+  ]);
+  if (searchFilter) {
+    Object.assign(filter, searchFilter);
   }
 
   const items = await FAQ.find(filter).sort(faqSortQuery);
@@ -156,6 +206,10 @@ export const assertCanCreateFaq = async () => {
 export const createFaq = async (body, user) => {
   await assertCanCreateFaq();
   validateFaqPayload(body);
+  await assertNoDuplicateFaq({
+    question: body.question,
+    answer: body.answer,
+  });
 
   let displayOrder;
   if (body.displayOrder !== undefined || body.order !== undefined) {
@@ -165,8 +219,8 @@ export const createFaq = async (body, user) => {
   }
 
   const faq = await FAQ.create({
-    question: normalizeQuestion(body.question),
-    answer: body.answer.trim(),
+    question: sanitizeFaqText(normalizeQuestion(body.question)),
+    answer: sanitizeFaqText(body.answer),
     status: body.status || 'active',
     displayOrder,
     order: displayOrder,
@@ -200,9 +254,14 @@ export const updateFaq = async (id, body, user) => {
     },
     { isUpdate: true }
   );
+  await assertNoDuplicateFaq({
+    question: body.question ?? faq.question,
+    answer: body.answer ?? faq.answer,
+    excludeId: faq._id,
+  });
 
-  if (body.question !== undefined) faq.question = normalizeQuestion(body.question);
-  if (body.answer !== undefined) faq.answer = body.answer.trim();
+  if (body.question !== undefined) faq.question = sanitizeFaqText(normalizeQuestion(body.question));
+  if (body.answer !== undefined) faq.answer = sanitizeFaqText(body.answer);
   if (body.status !== undefined) faq.status = body.status;
   if (body.displayOrder !== undefined || body.order !== undefined) {
     const nextOrder = await assertUniqueDisplayOrder(body.displayOrder ?? body.order, faq._id);

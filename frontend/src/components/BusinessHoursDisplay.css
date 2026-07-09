@@ -1,0 +1,119 @@
+.timing-schedules {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.timing-schedule {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.timing-days {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #334155;
+  line-height: 1.35;
+  white-space: pre-line;
+}
+
+.timing-hours {
+  display: block;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.35;
+  white-space: pre-line;
+}
+
+.timing-unavailable {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #94a3b8;
+  line-height: 1.4;
+}
+
+.timing-schedules--loading {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.timing-skeleton-line {
+  display: block;
+  height: 14px;
+  width: 100%;
+  max-width: 220px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: business-hours-shimmer 1.4s infinite;
+}
+
+.timing-skeleton-line--short {
+  max-width: 160px;
+}
+
+@keyframes business-hours-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.footer-hours-sub.timing-schedules,
+.footer-hours-sub .timing-schedules {
+  padding-left: 24px;
+}
+
+.footer-hours-sub .timing-days,
+.footer-hours-sub .timing-hours,
+.footer-hours-sub .timing-unavailable {
+  color: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  opacity: 0.9;
+}
+
+.footer-hours-sub .timing-hours {
+  font-weight: 600;
+}
+
+.contact-hours-display.timing-schedules,
+.contact-hours-display .timing-schedules {
+  text-align: right;
+}
+
+.contact-hours-display .timing-days {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.contact-hours-display .timing-hours {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.fc-hours-time.timing-schedules,
+.fc-hours-time .timing-schedules {
+  margin-top: 4px;
+}
+
+.fc-hours-time .timing-days {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #166534;
+}
+
+.fc-hours-time .timing-hours {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #14532d;
+}

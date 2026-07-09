@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { FaSave, FaUpload, FaInfoCircle, FaArrowLeft } from 'react-icons/fa';
+import { FaSave, FaUpload, FaInfoCircle } from 'react-icons/fa';
 import { useToast } from '../../../context/ToastContext';
 import { useAuth } from '../../../context/AuthContext';
 import { getImageUrl } from '../../../services/api';
 import homepageAboutService from '../../../services/homepageAboutService';
 import { CMS_IMAGE_ACCEPT, rejectInvalidCmsImageFile } from '../../../utils/imageUploadValidation';
+import AdminFieldLabel from '../../../components/admin/AdminFieldLabel';
 
 const defaultForm = {
   id: null,
@@ -19,7 +20,7 @@ const defaultForm = {
   resolvedContent: null,
 };
 
-const ImageUploadField = ({ label, value, inputId, onUpload, disabled, isUploading, hint }) => {
+const ImageUploadField = ({ label, value, inputId, onUpload, disabled, isUploading, hint, required = false, optional = false }) => {
   const fileInputRef = useRef(null);
 
   const openFilePicker = () => {
@@ -28,7 +29,9 @@ const ImageUploadField = ({ label, value, inputId, onUpload, disabled, isUploadi
 
   return (
     <div className="admin-form-group">
-      <label>{label}</label>
+      <AdminFieldLabel htmlFor={inputId} required={required} optional={optional}>
+        {label}
+      </AdminFieldLabel>
       {hint ? <p className="admin-field-hint" style={{ marginBottom: '10px' }}>{hint}</p> : null}
       <div style={{ display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
         {value && (
@@ -177,15 +180,9 @@ const AdminHomepageAbout = () => {
     ? formData.resolvedContent || formData
     : formData;
 
-  const backLink = isManager ? '/admin/dashboard' : '/admin/dashboard/site-settings';
-  const backLabel = isManager ? 'Back to Dashboard' : 'Back';
-
   if (loading) {
     return (
       <div>
-        <Link to={backLink} className="view-back-link">
-          <FaArrowLeft aria-hidden="true" /> {backLabel}
-        </Link>
         <div className="admin-page-loading">Loading homepage about section...</div>
       </div>
     );
@@ -193,10 +190,6 @@ const AdminHomepageAbout = () => {
 
   return (
     <div>
-      <Link to={backLink} className="view-back-link">
-        <FaArrowLeft aria-hidden="true" /> {backLabel}
-      </Link>
-
       <div className="view-header">
         <div className="view-title-wrap">
           <h2>Homepage About Section</h2>
@@ -271,8 +264,11 @@ const AdminHomepageAbout = () => {
           <h4>Section Content</h4>
 
           <div className="admin-form-group">
-            <label>Section Heading</label>
+            <AdminFieldLabel htmlFor="homepage-section-heading" required={!fieldsDisabled} optional={fieldsDisabled}>
+              Section Heading
+            </AdminFieldLabel>
             <input
+              id="homepage-section-heading"
               type="text"
               value={formData.sectionHeading}
               onChange={(e) => updateField('sectionHeading', e.target.value)}
@@ -284,8 +280,11 @@ const AdminHomepageAbout = () => {
           </div>
 
           <div className="admin-form-group">
-            <label>Short Description</label>
+            <AdminFieldLabel htmlFor="homepage-short-description" required={!fieldsDisabled} optional={fieldsDisabled}>
+              Short Description
+            </AdminFieldLabel>
             <textarea
+              id="homepage-short-description"
               value={formData.shortDescription}
               onChange={(e) => updateField('shortDescription', e.target.value)}
               rows="5"
@@ -302,8 +301,11 @@ const AdminHomepageAbout = () => {
 
           <div className="admin-form-group row-split">
             <div>
-              <label>Button Text</label>
+              <AdminFieldLabel htmlFor="homepage-button-text" required={!fieldsDisabled} optional={fieldsDisabled}>
+                Button Text
+              </AdminFieldLabel>
               <input
+                id="homepage-button-text"
                 type="text"
                 value={formData.buttonText}
                 onChange={(e) => updateField('buttonText', e.target.value)}
@@ -314,8 +316,11 @@ const AdminHomepageAbout = () => {
               />
             </div>
             <div>
-              <label>Button Link</label>
+              <AdminFieldLabel htmlFor="homepage-button-link" required={!fieldsDisabled} optional={fieldsDisabled}>
+                Button Link
+              </AdminFieldLabel>
               <input
+                id="homepage-button-link"
                 type="text"
                 value={formData.buttonLink}
                 onChange={(e) => updateField('buttonLink', e.target.value)}
@@ -328,21 +333,13 @@ const AdminHomepageAbout = () => {
 
           <ImageUploadField
             label="About Image"
+            optional
             value={formData.aboutImage}
             inputId="homepage-about-image"
             onUpload={handleImageUpload}
             disabled={fieldsDisabled}
             isUploading={isUploading}
           />
-
-          <div className="admin-form-group">
-            <label>Status</label>
-            <select value={formData.status} onChange={(e) => updateField('status', e.target.value)}>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="draft">Draft</option>
-            </select>
-          </div>
         </div>
 
         {preview && (
@@ -360,9 +357,6 @@ const AdminHomepageAbout = () => {
               <p style={{ color: '#475569', marginBottom: '12px' }}>{preview.shortDescription}</p>
               <p style={{ margin: 0, color: '#64748b', fontSize: '0.9rem' }}>
                 Button: {preview.buttonText} → {preview.buttonLink}
-              </p>
-              <p style={{ margin: '8px 0 0', color: '#64748b', fontSize: '0.85rem' }}>
-                Status: {formData.status}
               </p>
             </div>
           </div>

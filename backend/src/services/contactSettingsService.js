@@ -2,6 +2,8 @@ import ContactCMS, { getDefaultContactCMS } from '../models/ContactCMS.js';
 import FooterCMS from '../models/FooterCMS.js';
 import siteSettingsService from './siteSettingsService.js';
 import { extractIframeSrc } from '../middleware/validation.js';
+import { assertOpeningHoursValid } from '../utils/openingHoursValidation.js';
+import { assertContactInfoValid } from '../utils/contactInfoValidation.js';
 
 const ensureContactSettings = async () => {
   let doc = await ContactCMS.findOne();
@@ -200,6 +202,25 @@ export const updateContactSettings = async (body) => {
     const error = new Error('No valid fields provided for update');
     error.statusCode = 400;
     throw error;
+  }
+
+  if (
+    payload.supermarketOpeningHours !== undefined ||
+    payload.foodCornerOpeningHours !== undefined
+  ) {
+    const settings = await siteSettingsService.getSiteSettings();
+    assertOpeningHoursValid(
+      payload.supermarketOpeningHours ?? settings.supermarketOpeningHours,
+      payload.foodCornerOpeningHours ?? settings.foodCornerOpeningHours
+    );
+  }
+
+  if (payload.phoneNumber !== undefined || payload.emailAddress !== undefined) {
+    const current = await ensureContactSettings();
+    assertContactInfoValid(
+      payload.phoneNumber ?? current.phoneNumber,
+      payload.emailAddress ?? current.email
+    );
   }
 
   const existing = await ensureContactSettings();

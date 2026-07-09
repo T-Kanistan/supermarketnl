@@ -1,5 +1,6 @@
 import api, { apiRequest } from './api';
 import { extractMapEmbedUrl } from '../utils/mapEmbed';
+import { mergeContactPage } from '../constants/contactPageDefaults';
 
 const mapSocials = (data) => ({
   facebook: data.facebookUrl || '',
@@ -9,15 +10,15 @@ const mapSocials = (data) => ({
   youtube: data.youtubeUrl || '',
 });
 
-const mapApiToForm = (data) => ({
-  contactPhone: data.phoneNumber,
-  contactEmail: data.emailAddress,
-  storeName: data.storeName,
-  address: data.storeAddress,
-  supermarketTimings: data.supermarketOpeningHours,
-  foodCornerTimings: data.foodCornerOpeningHours,
+const mapApiToForm = (data = {}) => ({
+  contactPhone: data.phoneNumber ?? '',
+  contactEmail: data.emailAddress ?? '',
+  storeName: data.storeName ?? '',
+  address: data.storeAddress ?? '',
+  supermarketTimings: data.supermarketOpeningHours ?? '',
+  foodCornerTimings: data.foodCornerOpeningHours ?? '',
   socials: mapSocials(data),
-  contactPage: {
+  contactPage: mergeContactPage({
     phoneSubtext: data.phoneSubtext,
     emailNote: data.emailSubtext,
     holidayHours: data.holidayNote,
@@ -45,9 +46,31 @@ const mapApiToForm = (data) => ({
     privacyNote: data.privacyNote,
     helpBoxText: data.helpBoxTitle,
     helpBoxSubtext: data.helpBoxSubtitle,
-    mapEmbedUrl: extractMapEmbedUrl(data.googleMapsEmbedUrl),
-  },
+    mapEmbedUrl: data.googleMapsEmbedUrl
+      ? extractMapEmbedUrl(data.googleMapsEmbedUrl)
+      : undefined,
+  }),
 });
+
+export const mergeContactSettingsIntoForm = (formData, contactSettings) => {
+  if (!contactSettings) return formData;
+
+  return {
+    ...formData,
+    contactPhone: contactSettings.contactPhone ?? formData.contactPhone ?? '',
+    contactEmail: contactSettings.contactEmail ?? formData.contactEmail ?? '',
+    storeName: contactSettings.storeName ?? formData.storeName ?? '',
+    address: contactSettings.address ?? formData.address ?? '',
+    supermarketTimings:
+      contactSettings.supermarketTimings ?? formData.supermarketTimings ?? '',
+    foodCornerTimings:
+      contactSettings.foodCornerTimings ?? formData.foodCornerTimings ?? '',
+    contactPage: mergeContactPage({
+      ...(formData.contactPage || {}),
+      ...(contactSettings.contactPage || {}),
+    }),
+  };
+};
 
 const mapFormToApi = (formData) => {
   const cp = formData.contactPage || {};

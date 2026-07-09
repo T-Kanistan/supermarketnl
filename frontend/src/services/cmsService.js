@@ -12,8 +12,9 @@ export const mapHomeResponse = (home) => ({
 });
 
 export const cmsService = {
-  getHomeSettings: async () => {
-    const home = await apiRequest(() => api.get('/cms/settings'));
+  getHomeSettings: async ({ bustCache = false } = {}) => {
+    const url = bustCache ? `/cms/settings?_=${Date.now()}` : '/cms/settings';
+    const home = await apiRequest(() => api.get(url));
     return mapHomeResponse(home);
   },
 

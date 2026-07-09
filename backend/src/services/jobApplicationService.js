@@ -4,6 +4,13 @@ import Vacancy from '../models/Vacancy.js';
 import mongoose from 'mongoose';
 import { parsePagination, buildPaginationMeta } from '../utils/pagination.js';
 import { resolveJobApplicationCvPath } from '../middlewares/jobApplicationUploadMiddleware.js';
+import { buildMultiFieldSearchFilter } from '../utils/adminSearchQuery.js';
+import {
+  DuplicateJobApplicationError,
+  findDuplicateApplication,
+  normalizeApplicantEmail,
+  normalizeApplicantPhone,
+} from '../utils/jobApplicationDuplicate.js';
 
 const getStatusLabel = (status) => APPLICATION_STATUS_LABELS[status] || status;
 
@@ -50,28 +57,50 @@ const resolveVacancySnapshot = async (vacancyId) => {
   return Vacancy.findOne({ $or: lookup }).lean();
 };
 
+export const hasDuplicateJobApplication = async ({ jobId, email, phoneNumber }) => {
+  const duplicate = await findDuplicateApplication({ jobId, email, phoneNumber });
+  return Boolean(duplicate);
+};
+
 export const createJobApplication = async (payload) => {
+  const duplicate = await findDuplicateApplication({
+    jobId: payload.jobId,
+    email: payload.email,
+    phoneNumber: payload.phoneNumber,
+  });
+  if (duplicate) {
+    throw new DuplicateJobApplicationError();
+  }
+
   const vacancy = await resolveVacancySnapshot(payload.jobId);
   const resumeUrl = payload.resumeUrl || payload.cvFile || '';
 
-  const application = await JobApplication.create({
-    jobId: payload.jobId,
-    jobTitle: payload.jobTitle || vacancy?.title || 'Vacancy',
-    department: payload.department || vacancy?.department || '',
-    employmentType: payload.employmentType || vacancy?.employmentType || '',
-    location: payload.location || vacancy?.location || '',
-    firstName: payload.firstName,
-    lastName: payload.lastName,
-    email: payload.email,
-    phoneNumber: payload.phoneNumber,
-    address: payload.address,
-    cvFile: resumeUrl,
-    resumeUrl,
-    appliedDate: new Date(),
-    status: 'pending',
-    applicationStatus: APPLICATION_STATUS_LABELS.pending,
-  });
-  return formatApplication(application);
+  try {
+    const application = await JobApplication.create({
+      jobId: payload.jobId,
+      jobTitle: payload.jobTitle || vacancy?.title || 'Vacancy',
+      department: payload.department || vacancy?.department || '',
+      employmentType: payload.employmentType || vacancy?.employmentType || '',
+      location: payload.location || vacancy?.location || '',
+      firstName: payload.firstName,
+      lastName: payload.lastName,
+      email: normalizeApplicantEmail(payload.email),
+      phoneNumber: payload.phoneNumber,
+      normalizedPhone: normalizeApplicantPhone(payload.phoneNumber),
+      address: payload.address,
+      cvFile: resumeUrl,
+      resumeUrl,
+      appliedDate: new Date(),
+      status: 'pending',
+      applicationStatus: APPLICATION_STATUS_LABELS.pending,
+    });
+    return formatApplication(application);
+  } catch (error) {
+    if (error?.code === 11000) {
+      throw new DuplicateJobApplicationError();
+    }
+    throw error;
+  }
 };
 
 export const listJobApplications = async (filters = {}) => {
@@ -82,19 +111,20 @@ export const listJobApplications = async (filters = {}) => {
   if (filters.vacancyId) {
     filter.jobId = filters.vacancyId;
   }
-  if (filters.search) {
-    const regex = new RegExp(filters.search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-    filter.$or = [
-      { firstName: regex },
-      { lastName: regex },
-      { email: regex },
-      { phoneNumber: regex },
-      { jobTitle: regex },
-      { department: regex },
-      { employmentType: regex },
-      { location: regex },
-      { address: regex },
-    ];
+  const searchFilter = buildMultiFieldSearchFilter(filters.search, [
+    'firstName',
+    'lastName',
+    'email',
+    'phoneNumber',
+    'jobTitle',
+    'department',
+    'employmentType',
+    'location',
+    'address',
+    'status',
+  ]);
+  if (searchFilter) {
+    Object.assign(filter, searchFilter);
   }
 
   const { page, limit, skip } = parsePagination(filters);

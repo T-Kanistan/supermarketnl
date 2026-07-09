@@ -73,8 +73,8 @@ export const AboutOffers = mongoose.model(
   new mongoose.Schema(
     {
       title: { type: String, required: true, trim: true },
-      description: { type: String, required: true, trim: true },
-      image: { type: String, required: true, trim: true },
+      description: { type: String, default: '', trim: true },
+      image: { type: String, default: '', trim: true },
       display_order: { type: Number, default: 0 },
       is_active: { type: Boolean, default: true },
     },

@@ -6,6 +6,9 @@ import { useToast } from '../../../context/ToastContext';
 import { useAuth } from '../../../context/AuthContext';
 import { invalidateDashboardStats } from '../../../utils/dashboardStatsRefresh';
 import { CMS_IMAGE_ACCEPT, rejectInvalidCmsImageFile } from '../../../utils/imageUploadValidation';
+import useAdminSearch from '../../../hooks/useAdminSearch';
+import { ADMIN_NO_MATCH_MESSAGE } from '../../../utils/adminSearch';
+import AdminFieldLabel from '../../../components/admin/AdminFieldLabel';
 
 const emptyForm = {
   customerName: '',
@@ -45,9 +48,16 @@ export const AdminTestimonials = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [editingTestimonial, setEditingTestimonial] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
   const [formData, setFormData] = useState(emptyForm);
   const fileInputRef = useRef(null);
+  const {
+    searchInput,
+    searchQuery,
+    onSearchChange,
+    clearSearch,
+    applySearchNow,
+    hasActiveSearch,
+  } = useAdminSearch();
 
   const { addToast } = useToast();
   const { isAdmin } = useAuth();
@@ -55,8 +65,8 @@ export const AdminTestimonials = () => {
   const fetchTestimonials = useCallback(async (query = '') => {
     setLoading(true);
     try {
-      const data = query.trim()
-        ? await testimonialService.searchTestimonials(query.trim())
+      const data = query
+        ? await testimonialService.searchTestimonials(query)
         : await testimonialService.getAllTestimonials();
       setTestimonials(data);
     } catch (err) {
@@ -68,13 +78,8 @@ export const AdminTestimonials = () => {
   }, [addToast]);
 
   useEffect(() => {
-    fetchTestimonials();
-  }, [fetchTestimonials]);
-
-  const handleSearch = (e) => {
-    e.preventDefault();
     fetchTestimonials(searchQuery);
-  };
+  }, [fetchTestimonials, searchQuery]);
 
   const openAddModal = () => {
     setEditingTestimonial(null);
@@ -193,29 +198,22 @@ export const AdminTestimonials = () => {
         </button>
       </div>
 
-      <form onSubmit={handleSearch} style={{ marginBottom: '20px', display: 'flex', gap: '12px', maxWidth: '420px' }}>
+      <form onSubmit={applySearchNow} style={{ marginBottom: '20px', display: 'flex', gap: '12px', maxWidth: '420px' }}>
         <input
           type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          value={searchInput}
+          onChange={onSearchChange}
           placeholder="Search by customer name or review..."
           style={{ flex: 1 }}
         />
         <button type="submit" className="action-btn-secondary">
           <FaSearch /> Search
         </button>
-        {searchQuery && (
-          <button
-            type="button"
-            className="action-btn-secondary"
-            onClick={() => {
-              setSearchQuery('');
-              fetchTestimonials('');
-            }}
-          >
+        {hasActiveSearch || searchInput ? (
+          <button type="button" className="action-btn-secondary" onClick={clearSearch}>
             Clear
           </button>
-        )}
+        ) : null}
       </form>
 
       {loading ? (
@@ -282,8 +280,10 @@ export const AdminTestimonials = () => {
       ) : (
         <div className="dashboard-panel admin-empty-state">
           <FaCommentDots className="admin-empty-icon" />
-          <h3>No testimonials found!</h3>
-          <p>Click &ldquo;Add Testimonial&rdquo; above to add new customer feedback.</p>
+          <h3>{hasActiveSearch ? ADMIN_NO_MATCH_MESSAGE : 'No testimonials found!'}</h3>
+          {!hasActiveSearch ? (
+            <p>Click &ldquo;Add Testimonial&rdquo; above to add new customer feedback.</p>
+          ) : null}
         </div>
       )}
 
@@ -298,8 +298,11 @@ export const AdminTestimonials = () => {
             <form onSubmit={handleSubmit}>
               <div className="modal-body">
                 <div className="admin-form-group">
-                  <label>Customer Name</label>
+                  <AdminFieldLabel htmlFor="testimonial-name" required>
+                    Customer Name
+                  </AdminFieldLabel>
                   <input
+                    id="testimonial-name"
                     type="text"
                     name="customerName"
                     value={formData.customerName}
@@ -312,8 +315,10 @@ export const AdminTestimonials = () => {
                 </div>
 
                 <div className="admin-form-group">
-                  <label>Rating Score (Stars)</label>
-                  <select name="rating" value={formData.rating} onChange={handleChange}>
+                  <AdminFieldLabel htmlFor="testimonial-rating" required>
+                    Rating Score (Stars)
+                  </AdminFieldLabel>
+                  <select id="testimonial-rating" name="rating" value={formData.rating} onChange={handleChange}>
                     <option value={5}>5 Stars</option>
                     <option value={4}>4 Stars</option>
                     <option value={3}>3 Stars</option>
@@ -323,8 +328,11 @@ export const AdminTestimonials = () => {
                 </div>
 
                 <div className="admin-form-group">
-                  <label>Customer Review</label>
+                  <AdminFieldLabel htmlFor="testimonial-review" required>
+                    Customer Review
+                  </AdminFieldLabel>
                   <textarea
+                    id="testimonial-review"
                     name="review"
                     value={formData.review}
                     onChange={handleChange}
@@ -338,7 +346,9 @@ export const AdminTestimonials = () => {
                 </div>
 
                 <div className="admin-form-group">
-                  <label>Avatar Image (Optional)</label>
+                  <AdminFieldLabel htmlFor="testimonial-avatar" optional>
+                    Avatar Image
+                  </AdminFieldLabel>
                   <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
                     <img
                       src={resolveAvatarSrc(previewAvatar)}
@@ -368,8 +378,10 @@ export const AdminTestimonials = () => {
                 </div>
 
                 <div className="admin-form-group" style={{ marginTop: '16px' }}>
-                  <label>Status</label>
-                  <select name="status" value={formData.status} onChange={handleChange}>
+                  <AdminFieldLabel htmlFor="testimonial-status" required>
+                    Status
+                  </AdminFieldLabel>
+                  <select id="testimonial-status" name="status" value={formData.status} onChange={handleChange}>
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
                   </select>

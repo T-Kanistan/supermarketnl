@@ -1,11 +1,21 @@
-import { useState, useEffect, useCallback } from 'react';
-import { FaPlus, FaEdit, FaTrash, FaTags } from 'react-icons/fa';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { FaPlus, FaEdit, FaTrash, FaTags, FaSearch } from 'react-icons/fa';
 import categoryService from '../../../services/categoryService';
 import { getImageUrl } from '../../../services/api';
 import { useToast } from '../../../context/ToastContext';
 import { formatCategoryName } from '../../../utils/formatCategoryName';
 import { invalidateDashboardStats } from '../../../utils/dashboardStatsRefresh';
-import { CMS_IMAGE_ACCEPT, rejectInvalidCmsImageFile } from '../../../utils/imageUploadValidation';
+import useAdminSearch from '../../../hooks/useAdminSearch';
+import { filterByAdminSearch, statusSearchLabel, ADMIN_NO_MATCH_MESSAGE } from '../../../utils/adminSearch';
+import AdminValidatedField from '../../../components/admin/AdminValidatedField';
+import AdminFieldLabel from '../../../components/admin/AdminFieldLabel';
+import {
+  ADMIN_TEXT_LIMITS,
+  CATEGORY_IMAGE_ACCEPT,
+  validateCategoryName,
+  validateCategoryImage,
+  validateCategoryImageFile,
+} from '../../../utils/adminTextValidation';
 
 export const AdminCategories = () => {
   const [categories, setCategories] = useState([]);
@@ -13,6 +23,7 @@ export const AdminCategories = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
+  const { searchInput, searchQuery, onSearchChange, hasActiveSearch } = useAdminSearch();
 
   const { addToast } = useToast();
 
@@ -21,6 +32,7 @@ export const AdminCategories = () => {
     image: '',
     status: 'active',
   });
+  const [fieldErrors, setFieldErrors] = useState({ name: '', image: '' });
 
   const fetchCategories = useCallback(async () => {
     setLoading(true);
@@ -47,6 +59,8 @@ export const AdminCategories = () => {
     return () => { isMounted = false; };
   }, [fetchCategories]);
 
+  const resetFieldErrors = () => setFieldErrors({ name: '', image: '' });
+
   const openAddModal = () => {
     setEditingCategory(null);
     setFormData({
@@ -54,6 +68,7 @@ export const AdminCategories = () => {
       image: '',
       status: 'active',
     });
+    resetFieldErrors();
     setIsModalOpen(true);
   };
 
@@ -64,24 +79,60 @@ export const AdminCategories = () => {
       image: category.image || '',
       status: category.status || 'active',
     });
+    resetFieldErrors();
     setIsModalOpen(true);
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    if (name === 'image') {
+      setFieldErrors((prev) => ({ ...prev, image: '' }));
+    }
+  };
+
+  const handleValidatedChange = (name, value) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFieldErrors((prev) => ({ ...prev, [name]: '' }));
+  };
+
+  const handleValidatedBlur = (name, value) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (name === 'name') {
+      setFieldErrors((prev) => ({ ...prev, name: validateCategoryName(value) }));
+    }
   };
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (rejectInvalidCmsImageFile(file, (msg) => addToast(msg, 'error'), e.target)) return;
+
+    const { valid, error } = validateCategoryImageFile(file);
+    if (!valid) {
+      setFieldErrors((prev) => ({ ...prev, image: error }));
+      e.target.value = '';
+      return;
+    }
+
+    setFieldErrors((prev) => ({ ...prev, image: '' }));
 
     const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData((prev) => ({ ...prev, image: reader.result }));
-      };
-      reader.readAsDataURL(file);
+    reader.onloadend = () => {
+      setFormData((prev) => ({ ...prev, image: reader.result }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const validateForm = () => {
+    const errors = {
+      name: validateCategoryName(formData.name),
+      image: validateCategoryImage(formData.image, {
+        isEdit: Boolean(editingCategory),
+        existingImage: editingCategory?.image,
+      }),
+    };
+    setFieldErrors(errors);
+    return !Object.values(errors).some(Boolean);
   };
 
   const handleDelete = async (id) => {
@@ -99,10 +150,7 @@ export const AdminCategories = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.name) {
-      addToast('Please enter a category name', 'error');
-      return;
-    }
+    if (!validateForm()) return;
 
     setIsSubmitting(true);
     try {
@@ -118,11 +166,27 @@ export const AdminCategories = () => {
       fetchCategories();
     } catch (err) {
       console.error('Failed to save category', err);
-      addToast('Failed to save category', 'error');
+      addToast(err.response?.data?.message || 'Failed to save category', 'error');
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  const filteredCategories = useMemo(() => {
+    const sorted = [...categories].sort((a, b) => {
+      const aTime = Date.parse(a.createdAt) || 0;
+      const bTime = Date.parse(b.createdAt) || 0;
+      if (bTime !== aTime) return bTime - aTime;
+      return String(b.id || b._id || '').localeCompare(String(a.id || a._id || ''));
+    });
+    return filterByAdminSearch(sorted, searchQuery, (cat) => [
+      cat.name,
+      cat.id,
+      statusSearchLabel(cat.status),
+    ]);
+  }, [categories, searchQuery]);
+
+  const { min: nameMin, max: nameMax } = ADMIN_TEXT_LIMITS.categoryName;
 
   return (
     <div>
@@ -136,12 +200,24 @@ export const AdminCategories = () => {
         </button>
       </div>
 
+      <div className="table-controls">
+        <div className="search-box-admin">
+          <FaSearch className="search-icon-admin" />
+          <input
+            type="text"
+            placeholder="Search by name, ID, or status..."
+            value={searchInput}
+            onChange={onSearchChange}
+          />
+        </div>
+      </div>
+
       {loading ? (
         <div style={{ background: 'white', padding: '40px', borderRadius: '16px', animation: 'pulse 1.5s infinite ease-in-out' }}>
           <div style={{ height: '30px', width: '200px', background: '#cbd5e1', marginBottom: '20px' }}></div>
           <div style={{ height: '150px', background: '#cbd5e1' }}></div>
         </div>
-      ) : (categories?.length ?? 0) > 0 ? (
+      ) : filteredCategories.length > 0 ? (
         <div className="table-responsive-wrapper">
           <table className="admin-table">
             <thead>
@@ -154,7 +230,7 @@ export const AdminCategories = () => {
               </tr>
             </thead>
             <tbody>
-              {categories.map((cat) => (
+              {filteredCategories.map((cat) => (
                 <tr key={cat.id}>
                   <td data-label="Image">
                     <img 
@@ -189,12 +265,15 @@ export const AdminCategories = () => {
       ) : (
         <div className="dashboard-panel admin-empty-state">
           <FaTags className="admin-empty-icon" />
-          <h3>No categories found!</h3>
-          <p>Click "Add Category" above to create one.</p>
+          <h3>{hasActiveSearch ? ADMIN_NO_MATCH_MESSAGE : 'No categories found!'}</h3>
+          <p>
+            {hasActiveSearch
+              ? 'Try a different search term.'
+              : 'Click "Add Category" above to create one.'}
+          </p>
         </div>
       )}
 
-      {/* Add / Edit Category Modal */}
       {isModalOpen && (
         <div className="admin-modal-overlay">
           <div className="admin-modal-container">
@@ -205,48 +284,60 @@ export const AdminCategories = () => {
             
             <form onSubmit={handleSubmit}>
               <div className="modal-body">
-                <div className="admin-form-group">
-                  <label>Category Name</label>
-                  <input 
-                    type="text" 
-                    name="name" 
-                    value={formData.name} 
-                    onChange={handleChange} 
-                    placeholder="e.g. Vegetables" 
-                    required 
-                  />
-                </div>
+                <AdminValidatedField
+                  label="Category Name"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleValidatedChange}
+                  onBlur={handleValidatedBlur}
+                  error={fieldErrors.name}
+                  maxLength={nameMax}
+                  minLength={nameMin}
+                  required
+                  placeholder="e.g. Vegetables"
+                />
 
                 <div className="admin-form-group row-split">
                   <div>
-                    <label>Category Image URL</label>
-                    <input 
-                      type="text" 
-                      name="image" 
-                      value={formData.image} 
-                      onChange={handleChange} 
-                      placeholder="https://..." 
-                      required 
+                    <AdminFieldLabel htmlFor="category-image-url" required>
+                      Category Image URL
+                    </AdminFieldLabel>
+                    <input
+                      type="text"
+                      id="category-image-url"
+                      name="image"
+                      value={formData.image}
+                      onChange={handleChange}
+                      placeholder="https://..."
+                      className={fieldErrors.image ? 'admin-input-invalid' : ''}
+                      aria-invalid={fieldErrors.image ? 'true' : undefined}
                     />
                   </div>
                   <div>
-                    <label>Or Upload Image File</label>
+                    <AdminFieldLabel htmlFor="cat-file" required>
+                      Or Upload Image File
+                    </AdminFieldLabel>
                     <div className="image-upload-zone" style={{ padding: '8px' }}>
                       <input 
                         type="file" 
-                        accept={CMS_IMAGE_ACCEPT} 
+                        accept={CATEGORY_IMAGE_ACCEPT}
                         id="cat-file" 
                         onChange={handleImageUpload} 
                         style={{ display: 'none' }} 
                       />
                       <label htmlFor="cat-file" style={{ cursor: 'pointer', margin: 0 }}>
                         <p style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--admin-sidebar-active)' }}>
-                          Browse Files
+                          Browse JPG, PNG, WEBP (max 2MB)
                         </p>
                       </label>
                     </div>
                   </div>
                 </div>
+                {fieldErrors.image ? (
+                  <div className="admin-field-meta">
+                    <p className="admin-field-error" role="alert">{fieldErrors.image}</p>
+                  </div>
+                ) : null}
 
                 {formData.image && (
                   <div className="upload-preview-container">
@@ -261,8 +352,8 @@ export const AdminCategories = () => {
                 )}
 
                 <div className="admin-form-group" style={{ marginTop: '16px' }}>
-                  <label>Status</label>
-                  <select name="status" value={formData.status} onChange={handleChange}>
+                  <AdminFieldLabel htmlFor="category-status">Status</AdminFieldLabel>
+                  <select id="category-status" name="status" value={formData.status} onChange={handleChange}>
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
                   </select>

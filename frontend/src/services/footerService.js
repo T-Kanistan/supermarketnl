@@ -1,5 +1,6 @@
 import api, { apiRequest } from './api';
 import { mapSocialLinksToSocials } from '../constants/footerPageDefaults';
+import { sanitizeLegalLinkLabel, sanitizeLegalLinkPath } from '../utils/legalLinksValidation';
 
 const mapLinkToPage = (link) => ({
   id: String(link.id),
@@ -40,8 +41,8 @@ export const mapFooterApiToFrontend = (data) => {
     foodCornerTimings: s.foodCornerHours || '',
     socials,
     footerPage: {
-      quickLinksTitle: 'QUICK LINKS',
-      categoriesTitle: 'CATEGORIES',
+      quickLinksTitle: s.quickLinksTitle || '',
+      categoriesTitle: s.categoriesTitle || '',
       businessHoursTitle: s.businessHoursTitle || 'BUSINESS HOURS',
       contactTitle: s.contactTitle || 'CONTACT',
       supermarketLabel: s.supermarketLabel || 'Supermarket',
@@ -70,8 +71,9 @@ const mapSocialLinkToApi = (link, index) => ({
 });
 
 export const footerService = {
-  getFooterSettings: async () => {
-    const data = await apiRequest(() => api.get('/footer/settings?full=true'));
+  getFooterSettings: async ({ bustCache = false } = {}) => {
+    const url = bustCache ? `/footer/settings?full=true&_=${Date.now()}` : '/footer/settings?full=true';
+    const data = await apiRequest(() => api.get(url));
     return mapFooterApiToFrontend(data);
   },
 
@@ -85,7 +87,9 @@ export const footerService = {
     await apiRequest(() =>
       api.put('/footer/settings', {
         footerDescription: formData.footerDescription,
-        footerLogo: formData.logo,
+        footerLogo: formData.footerLogo || formData.logo,
+        quickLinksTitle: footer.quickLinksTitle,
+        categoriesTitle: footer.categoriesTitle,
         businessHoursTitle: footer.businessHoursTitle,
         supermarketLabel: footer.supermarketLabel,
         supermarketHours: formData.supermarketTimings,
@@ -98,7 +102,12 @@ export const footerService = {
         emailAddress: formData.contactEmail,
         copyrightName: footer.copyrightText,
         quickLinks: (footer.quickLinks || []).map(mapPageLinkToApi),
-        legalLinks: (footer.legalLinks || []).map(mapPageLinkToApi),
+        legalLinks: (footer.legalLinks || []).map((link, index) => ({
+          label: sanitizeLegalLinkLabel(link.label),
+          url: sanitizeLegalLinkPath(link.path || ''),
+          displayOrder: link.order ?? index + 1,
+          isVisible: link.enabled !== false,
+        })),
         socialMediaLinks: (footer.socialLinks || []).map(mapSocialLinkToApi),
       })
     );

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useSearchParams, useLocation } from 'react-router-dom';
 import { FaPlus, FaEdit, FaTrash, FaSearch, FaBoxOpen, FaStar, FaRegStar, FaSlidersH } from 'react-icons/fa';
 import productService from '../../../services/productService';
@@ -9,12 +9,24 @@ import { useAuth } from '../../../context/AuthContext';
 import { formatCategoryName } from '../../../utils/formatCategoryName';
 import { invalidateDashboardStats } from '../../../utils/dashboardStatsRefresh';
 import { CMS_IMAGE_ACCEPT, rejectInvalidCmsImageFile } from '../../../utils/imageUploadValidation';
+import useAdminSearch from '../../../hooks/useAdminSearch';
+import { matchesAdminSearch, statusSearchLabel, ADMIN_NO_MATCH_MESSAGE } from '../../../utils/adminSearch';
+import {
+  ADMIN_TEXT_LIMITS,
+  boundAdminText,
+  formatCharCounter,
+  sanitizeAdminText,
+  validateAdminText,
+} from '../../../utils/adminTextValidation';
+import AdminFieldLabel from '../../../components/admin/AdminFieldLabel';
 
 export const AdminProducts = () => {
+  const { productName, weightUnit, productDescription, menuTiming } = ADMIN_TEXT_LIMITS;
   const { isAdmin, isManager } = useAuth();
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const isFoodCornerRoute = location.pathname.endsWith('/food-corner');
+  const isGroceryCatalog = !isFoodCornerRoute;
   const resolveCatalogType = () =>
     isFoodCornerRoute || searchParams.get('type') === 'food-corner' ? 'food-corner' : 'grocery';
   const [products, setProducts] = useState([]);
@@ -36,7 +48,7 @@ export const AdminProducts = () => {
     value: '',
   });
 
-  const [searchQuery, setSearchQuery] = useState('');
+  const { searchInput, searchQuery, onSearchChange } = useAdminSearch();
   const [typeFilter, setTypeFilter] = useState(resolveCatalogType);
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -48,7 +60,7 @@ export const AdminProducts = () => {
   const [formData, setFormData] = useState({
     productName: '',
     categoryId: '',
-    price: 0,
+    price: '',
     stockStatus: 'in_stock',
     weightUnit: '',
     imageUrl: '',
@@ -59,6 +71,8 @@ export const AdminProducts = () => {
     description: '',
     status: 'active',
   });
+  const [formErrors, setFormErrors] = useState({});
+  const formFieldRefs = useRef({});
 
   const mapProductType = (value) => {
     const raw = value == null ? '' : String(value).trim().toLowerCase();
@@ -66,6 +80,12 @@ export const AdminProducts = () => {
     if (raw === 'food' || raw === 'food-corner' || raw === 'food corner' || raw === 'foodcorner') return 'food-corner';
     if (raw === 'grocery' || raw === 'supermarket' || raw === 'supermarket section') return 'grocery';
     return 'grocery';
+  };
+
+  const formatPriceForForm = (price) => {
+    if (price === undefined || price === null || price === '') return '';
+    const parsed = Number(price);
+    return Number.isFinite(parsed) ? parsed : '';
   };
 
   const loadModalCategories = useCallback(async (productType) => {
@@ -145,6 +165,7 @@ export const AdminProducts = () => {
   const closeModal = () => {
     setIsModalOpen(false);
     setEditingProduct(null);
+    setFormErrors({});
   };
 
   const handleStatusToggle = async (product) => {
@@ -198,12 +219,12 @@ export const AdminProducts = () => {
       return;
     }
     setEditingProduct(null);
-    const selectedProductType = typeFilter === 'food-corner' ? 'food-corner' : 'grocery';
+    const selectedProductType = isGroceryCatalog ? 'grocery' : 'food-corner';
     const cats = await loadModalCategories(selectedProductType);
     setFormData({
       productName: '',
       categoryId: cats[0]?.categoryId || cats[0]?.id || '',
-      price: 0,
+      price: '',
       stockStatus: 'in_stock',
       weightUnit: '',
       imageUrl: '',
@@ -214,6 +235,7 @@ export const AdminProducts = () => {
       description: '',
       status: 'active',
     });
+    setFormErrors({});
     setIsModalOpen(true);
   };
 
@@ -222,7 +244,7 @@ export const AdminProducts = () => {
       addToast('Only administrators can perform batch price adjustments', 'error');
       return;
     }
-    const currentType = typeFilter === 'food-corner' ? 'food-corner' : 'grocery';
+    const currentType = isGroceryCatalog ? 'grocery' : 'food-corner';
     const cats = currentType === 'food-corner' ? foodCornerCategories : categories;
     setAdjustFormData({
       productType: currentType,
@@ -237,6 +259,7 @@ export const AdminProducts = () => {
   const handleAdjustChange = (e) => {
     const { name, value } = e.target;
     if (name === 'productType') {
+      if (isGroceryCatalog) return;
       const cats = value === 'food-corner' ? foodCornerCategories : categories;
       setAdjustFormData((prev) => ({
         ...prev,
@@ -300,12 +323,16 @@ export const AdminProducts = () => {
   };
 
   const openEditModal = (product) => {
-    const productType = mapProductType(product.productType || product.type);
+    const productType = isGroceryCatalog ? 'grocery' : mapProductType(product.productType || product.type);
+    if (isGroceryCatalog && mapProductType(product.productType || product.type) !== 'grocery') {
+      addToast('Food Corner items must be edited from Food Corner Management.', 'error');
+      return;
+    }
     setEditingProduct(product);
     setFormData({
       productName: product.productName || product.name || '',
       categoryId: resolveFormCategoryId(product, productType),
-      price: product.price || 0,
+      price: formatPriceForForm(product.price),
       stockStatus: product.stockStatus || (product.stock > 0 ? 'in_stock' : 'out_of_stock'),
       weightUnit: product.weightUnit || product.weight || '',
       imageUrl: product.imageUrl || product.image || '',
@@ -316,6 +343,7 @@ export const AdminProducts = () => {
       description: product.description || product.shortDescription || '',
       status: product.status === 'inactive' ? 'inactive' : 'active',
     });
+    setFormErrors({});
     setIsModalOpen(true);
   };
 
@@ -334,23 +362,232 @@ export const AdminProducts = () => {
       return;
     }
     if (name === 'productType') {
+      if (isGroceryCatalog) return;
+      const isFoodCorner = mapProductType(value) === 'food-corner';
+      const cats = isFoodCorner ? foodCornerCategories : categories;
       setFormData((prev) => ({
         ...prev,
         productType: value,
-        categoryId: '',
+        categoryId: cats[0]?.categoryId || cats[0]?.id || cats[0]?.slug || '',
+        ...(isFoodCorner
+          ? {
+              stockStatus: 'in_stock',
+              weightUnit: '',
+              showOnHomepage: false,
+              featuredProduct: false,
+            }
+          : {
+              menuDisplayTiming: '',
+              description: '',
+            }),
+      }));
+      setFormErrors((prev) => ({
+        ...prev,
+        productType: '',
+        weightUnit: '',
+        stockStatus: '',
+        menuDisplayTiming: '',
+        description: '',
+        imageUrl: '',
       }));
       return;
     }
+    if (name === 'description') {
+      setFormData((prev) => ({
+        ...prev,
+        description: boundAdminText(value, productDescription.max),
+      }));
+      setFormErrors((prev) => ({ ...prev, description: '' }));
+      return;
+    }
+    if (name === 'productName') {
+      setFormData((prev) => ({
+        ...prev,
+        productName: boundAdminText(value, productName.max),
+      }));
+      setFormErrors((prev) => ({ ...prev, productName: '' }));
+      return;
+    }
+    if (name === 'weightUnit') {
+      setFormData((prev) => ({
+        ...prev,
+        weightUnit: boundAdminText(value, weightUnit.max),
+      }));
+      setFormErrors((prev) => ({ ...prev, weightUnit: '' }));
+      return;
+    }
+    if (name === 'price') {
+      setFormData((prev) => ({ ...prev, price: value }));
+      setFormErrors((prev) => ({ ...prev, price: '' }));
+      return;
+    }
+    if (name === 'menuDisplayTiming') {
+      setFormData((prev) => ({
+        ...prev,
+        menuDisplayTiming: boundAdminText(value, menuTiming.max),
+      }));
+      setFormErrors((prev) => ({ ...prev, menuDisplayTiming: '' }));
+      return;
+    }
     setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormErrors((prev) => ({ ...prev, [name]: '' }));
+  };
+
+  const sanitizeText = (value, { collapse = true } = {}) => sanitizeAdminText(value, { collapse });
+
+  const normalizeForCompare = (value) => sanitizeText(value).toLowerCase();
+
+  const isDuplicateProductName = (candidate, draft) => {
+    const normalizedName = normalizeForCompare(candidate);
+    if (!normalizedName) return false;
+    return products.some((product) => {
+      if (editingProduct && product.id === editingProduct.id) return false;
+      const sameType = mapProductType(product.productType || product.type) === mapProductType(draft.productType);
+      const sameCategory = String(product.categoryId || '') === String(draft.categoryId || '');
+      const sameName = normalizeForCompare(product.productName || product.name) === normalizedName;
+      return sameType && sameCategory && sameName;
+    });
+  };
+
+  const validMenuTiming = (value) => {
+    const cleaned = sanitizeText(value);
+    const match = cleaned.match(/^((0[1-9])|(1[0-2])):([0-5][0-9])\s?(AM|PM)\s*-\s*((0[1-9])|(1[0-2])):([0-5][0-9])\s?(AM|PM)$/i);
+    return Boolean(match);
+  };
+
+  const validateProductForm = (draft) => {
+    const errors = {};
+    const catalogType = isGroceryCatalog ? 'grocery' : mapProductType(draft.productType);
+    const isFoodCorner = catalogType === 'food-corner';
+    const cleanedName = sanitizeText(draft.productName);
+    const cleanedDescription = sanitizeText(draft.description);
+    const cleanedTiming = sanitizeText(draft.menuDisplayTiming);
+    const imageValue = String(draft.imageUrl || '').trim();
+
+    if (!draft.productType) {
+      errors.productType = 'Please select a product catalog type.';
+    }
+    if (!cleanedName) {
+      errors.productName = 'Please enter the product name.';
+    } else {
+      const nameError = validateAdminText(cleanedName, {
+        min: productName.min,
+        max: productName.max,
+        rangeMessage: 'Product name must be between 2 and 100 characters.',
+        maxMessage: 'Product name must be between 2 and 100 characters.',
+      });
+      if (nameError) {
+        errors.productName = nameError;
+      } else if (!/^[A-Za-z0-9\s\-'"&()]+$/.test(cleanedName)) {
+        errors.productName = "Only letters, numbers, spaces, hyphens (-), apostrophes ('), ampersands (&), and parentheses () are allowed.";
+      } else if (isDuplicateProductName(cleanedName, draft)) {
+        errors.productName = 'This product already exists.';
+      }
+    }
+
+    if (!draft.categoryId) {
+      errors.categoryId = 'Please select a category.';
+    }
+
+    const rawPrice = String(draft.price ?? '').trim();
+    if (!rawPrice) {
+      errors.price = 'Please enter the product price.';
+    } else if (!/^\d+(\.\d{1,2})?$/.test(rawPrice)) {
+      errors.price = 'Please enter a valid price.';
+    } else {
+      const parsedPrice = Number(rawPrice);
+      if (!Number.isFinite(parsedPrice)) errors.price = 'Please enter a valid price.';
+      else if (parsedPrice <= 0) errors.price = 'Price must be greater than €0.';
+      else if (parsedPrice > 9999.99) errors.price = 'Please enter a valid price.';
+    }
+
+    if (!isFoodCorner) {
+      if (!draft.stockStatus || !['in_stock', 'out_of_stock'].includes(draft.stockStatus)) {
+        errors.stockStatus = 'Please select a stock status.';
+      }
+
+      const cleanedWeightUnit = sanitizeText(draft.weightUnit);
+      const weightUnitError = validateAdminText(cleanedWeightUnit, {
+        required: true,
+        max: weightUnit.max,
+        requiredMessage: 'Please enter the weight or unit size.',
+        maxMessage: `Weight / unit size cannot exceed ${weightUnit.max} characters.`,
+      });
+      if (weightUnitError) errors.weightUnit = weightUnitError;
+
+      if (draft.description !== undefined && String(draft.description).trim()) {
+        const groceryDescription = sanitizeText(draft.description, { collapse: false });
+        if (groceryDescription.length > productDescription.max) {
+          errors.description = `Description cannot exceed ${productDescription.max} characters.`;
+        }
+      }
+    }
+
+    if (isFoodCorner) {
+      if (!cleanedTiming) {
+        errors.menuDisplayTiming = 'Please enter the menu display time.';
+      } else if (cleanedTiming.length > menuTiming.max) {
+        errors.menuDisplayTiming = `Menu display timing cannot exceed ${menuTiming.max} characters.`;
+      } else if (!validMenuTiming(cleanedTiming)) {
+        errors.menuDisplayTiming = 'Please enter a valid time range.';
+      }
+      if (cleanedDescription.length > productDescription.max) {
+        errors.description = `Description cannot exceed ${productDescription.max} characters.`;
+      }
+      const needsImage = !editingProduct;
+      if (needsImage && (!imageValue || imageValue.startsWith('blob:'))) {
+        errors.imageUrl = 'Please upload a product image.';
+      } else if (imageValue && !imageValue.startsWith('blob:') && !/\.(jpe?g|png|webp)(\?.*)?$/i.test(imageValue) && !/^data:image\/(jpeg|jpg|png|webp);/i.test(imageValue)) {
+        errors.imageUrl = 'Only JPG, JPEG, PNG, and WEBP images are allowed.';
+      }
+    }
+
+    return errors;
+  };
+
+  const focusFirstInvalidField = (errors) => {
+    const order = ['productType', 'productName', 'categoryId', 'price', 'stockStatus', 'weightUnit', 'menuDisplayTiming', 'description', 'imageUrl'];
+    const firstKey = order.find((key) => errors[key]);
+    if (!firstKey) return;
+    const node = formFieldRefs.current[firstKey];
+    if (node && typeof node.focus === 'function') {
+      node.focus();
+      node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
+
+  const handleFieldBlur = (e) => {
+    const { name, value } = e.target;
+    if (!['productName', 'description', 'menuDisplayTiming', 'weightUnit', 'price'].includes(name)) return;
+    let nextValue = value;
+    if (['productName', 'description', 'menuDisplayTiming', 'weightUnit'].includes(name)) {
+      nextValue = sanitizeText(value, name === 'description' ? { collapse: false } : undefined);
+    }
+    const next = { ...formData, [name]: nextValue };
+    setFormData(next);
+    const errors = validateProductForm(next);
+    setFormErrors((prev) => ({ ...prev, [name]: errors[name] || '' }));
   };
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    const allowedMime = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedMime.includes(String(file.type || '').toLowerCase())) {
+      addToast('Only JPG, JPEG, PNG, and WEBP images are allowed.', 'error');
+      e.target.value = '';
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      addToast('Image size must not exceed 2 MB.', 'error');
+      e.target.value = '';
+      return;
+    }
     if (rejectInvalidCmsImageFile(file, (msg) => addToast(msg, 'error'), e.target)) return;
 
     const previewUrl = URL.createObjectURL(file);
     setFormData((prev) => ({ ...prev, imageUrl: previewUrl }));
+    setFormErrors((prev) => ({ ...prev, imageUrl: '' }));
 
     try {
       const uploadedUrl = await productService.uploadProductImage(file);
@@ -379,28 +616,69 @@ export const AdminProducts = () => {
     }
   };
 
+  const buildSubmitPayload = (draft) => {
+    const catalogType = isGroceryCatalog ? 'grocery' : mapProductType(draft.productType);
+    const isFoodCorner = catalogType === 'food-corner';
+    const base = {
+      productType: catalogType,
+      productName: sanitizeText(draft.productName),
+      categoryId: draft.categoryId,
+      price: Number(String(draft.price).trim()),
+      imageUrl: String(draft.imageUrl || '').trim(),
+      status: draft.status,
+    };
+
+    if (isFoodCorner) {
+      return {
+        ...base,
+        menuDisplayTiming: sanitizeText(draft.menuDisplayTiming),
+        description: sanitizeText(draft.description, { collapse: false }),
+      };
+    }
+
+    return {
+      ...base,
+      stockStatus: draft.stockStatus,
+      weightUnit: sanitizeText(draft.weightUnit),
+      showOnHomepage: Boolean(draft.showOnHomepage),
+      featuredProduct: Boolean(draft.showOnHomepage),
+    };
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!editingProduct && !isAdmin) {
       addToast('Only administrators can add products', 'error');
       return;
     }
-    if (!formData.productName) {
-      addToast('Product name is required', 'error');
+    const cleanedForm = {
+      ...formData,
+      productType: isGroceryCatalog ? 'grocery' : formData.productType,
+      productName: sanitizeText(formData.productName),
+      weightUnit: sanitizeText(formData.weightUnit),
+      menuDisplayTiming: sanitizeText(formData.menuDisplayTiming),
+      description: sanitizeText(formData.description, { collapse: false }),
+      imageUrl: String(formData.imageUrl || '').trim(),
+    };
+    setFormData(cleanedForm);
+
+    const errors = validateProductForm(cleanedForm);
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      addToast(Object.values(errors)[0], 'error');
+      requestAnimationFrame(() => focusFirstInvalidField(errors));
       return;
     }
-    if (!formData.imageUrl?.trim() || formData.imageUrl.startsWith('blob:')) {
-      addToast('Please upload a product image before saving', 'error');
-      return;
-    }
+
+    const submitPayload = buildSubmitPayload(cleanedForm);
 
     setIsSubmitting(true);
     try {
       if (editingProduct) {
-        await productService.updateProduct(editingProduct.id, formData);
+        await productService.updateProduct(editingProduct.id, submitPayload);
         addToast('Product updated successfully', 'success');
       } else {
-        await productService.createProduct(formData);
+        await productService.createProduct(submitPayload);
         addToast('New product added successfully', 'success');
       }
       invalidateDashboardStats();
@@ -408,35 +686,16 @@ export const AdminProducts = () => {
       fetchData();
     } catch (err) {
       console.error('Failed to save product', err);
-      addToast(err.message || err.response?.data?.message || 'Failed to save product', 'error');
+      const message = err.message || err.response?.data?.message || 'Failed to save product';
+      if (message.includes('already exists')) {
+        setFormErrors((prev) => ({ ...prev, productName: 'This product already exists.' }));
+        requestAnimationFrame(() => focusFirstInvalidField({ productName: true }));
+      }
+      addToast(message, 'error');
     } finally {
       setIsSubmitting(false);
     }
   };
-
-  const filteredProducts = useMemo(() => {
-    return products.filter((prod) => {
-      const name = prod.productName || prod.name || '';
-      const productType = mapProductType(prod.productType || prod.type);
-      const productStatus = prod.status === 'inactive' ? 'inactive' : 'active';
-      const matchesSearch = name.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesType = productType === mapProductType(typeFilter);
-      const matchesCategory = categoryFilter === 'all' || prod.categoryId === categoryFilter;
-      const matchesStatus =
-        statusFilter === 'all' ||
-        (statusFilter === 'active' && productStatus === 'active') ||
-        (statusFilter === 'inactive' && productStatus === 'inactive');
-      return matchesSearch && matchesType && matchesCategory && matchesStatus;
-    });
-  }, [products, searchQuery, typeFilter, categoryFilter, statusFilter]);
-
-  // Paginated products
-  const paginatedProducts = useMemo(() => {
-    const offset = (currentPage - 1) * itemsPerPage;
-    return filteredProducts.slice(offset, offset + itemsPerPage);
-  }, [filteredProducts, currentPage]);
-
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage) || 1;
 
   const getCategoryName = (catId, productType = 'grocery') => {
     if (mapProductType(productType) === 'food-corner') {
@@ -455,6 +714,45 @@ export const AdminProducts = () => {
     if (cat) return formatCategoryName(cat.name);
     return formatCategoryName(catId) || 'General';
   };
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, typeFilter, categoryFilter, statusFilter]);
+
+  const filteredProducts = useMemo(() => {
+    return products.filter((prod) => {
+      const productType = mapProductType(prod.productType || prod.type);
+      const productStatus = prod.status === 'inactive' ? 'inactive' : 'active';
+      const categoryName = getCategoryName(prod.categoryId, productType);
+      const matchesSearch = matchesAdminSearch(searchQuery, [
+        prod.productName,
+        prod.name,
+        categoryName,
+        prod.categoryId,
+        prod.weightUnit,
+        prod.unit,
+        prod.price,
+        statusSearchLabel(productStatus),
+        prod.stockStatus,
+        productType,
+      ]);
+      const matchesType = productType === mapProductType(typeFilter);
+      const matchesCategory = categoryFilter === 'all' || prod.categoryId === categoryFilter;
+      const matchesStatus =
+        statusFilter === 'all' ||
+        (statusFilter === 'active' && productStatus === 'active') ||
+        (statusFilter === 'inactive' && productStatus === 'inactive');
+      return matchesSearch && matchesType && matchesCategory && matchesStatus;
+    });
+  }, [products, searchQuery, typeFilter, categoryFilter, statusFilter, categories, foodCornerCategories]);
+
+  // Paginated products
+  const paginatedProducts = useMemo(() => {
+    const offset = (currentPage - 1) * itemsPerPage;
+    return filteredProducts.slice(offset, offset + itemsPerPage);
+  }, [filteredProducts, currentPage]);
+
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage) || 1;
 
   const renderStatusBadge = (status) => {
     const isActive = status !== 'inactive';
@@ -496,9 +794,9 @@ export const AdminProducts = () => {
           <FaSearch className="search-icon-admin" />
           <input 
             type="text" 
-            placeholder="Search by product name..." 
-            value={searchQuery}
-            onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+            placeholder="Search by name, category, price, status..." 
+            value={searchInput}
+            onChange={(e) => onSearchChange(e)}
           />
         </div>
 
@@ -602,7 +900,11 @@ export const AdminProducts = () => {
                     </span>
                   </td>
                   <td data-label="Category">{getCategoryName(prod.categoryId, prod.productType || prod.type)}</td>
-                  <td data-label="Price" style={{ fontWeight: 600 }}>€{(prod.price || 12.99).toFixed(2)}</td>
+                  <td data-label="Price" style={{ fontWeight: 600 }}>
+                    {prod.price != null && Number.isFinite(Number(prod.price))
+                      ? `€${Number(prod.price).toFixed(2)}`
+                      : '—'}
+                  </td>
                   <td data-label="Stock / Availability">
                     {mapProductType(prod.productType || prod.type) === 'food-corner' ? (
                       <span style={{ fontSize: '0.85rem', color: '#475569' }}>
@@ -685,8 +987,12 @@ export const AdminProducts = () => {
       ) : (
         <div className="dashboard-panel admin-empty-state">
           <FaBoxOpen className="admin-empty-icon" />
-          <h3>No products found!</h3>
-          <p>Try refining your search filter or click "Add Product" to add a new catalog item.</p>
+          <h3>{searchQuery ? ADMIN_NO_MATCH_MESSAGE : 'No products found!'}</h3>
+          <p>
+            {searchQuery
+              ? 'Try a different search term or clear filters.'
+              : 'Try refining your search filter or click "Add Product" to add a new catalog item.'}
+          </p>
         </div>
       )}
 
@@ -703,41 +1009,89 @@ export const AdminProducts = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="modal-header">
-              <h3>{editingProduct ? 'Edit Product Item' : 'Add Catalog Product'}</h3>
+              <h3>
+                {editingProduct
+                  ? isGroceryCatalog
+                    ? 'Edit Grocery Product'
+                    : 'Edit Food Corner Item'
+                  : isGroceryCatalog
+                    ? 'Add Grocery Product'
+                    : 'Add Food Corner Item'}
+              </h3>
               <button type="button" className="modal-close-btn" onClick={closeModal} aria-label="Close modal">&times;</button>
             </div>
             
             <form onSubmit={handleSubmit}>
               <div className="modal-body">
+                {(() => {
+                  const isGroceryProduct = isGroceryCatalog || mapProductType(formData.productType) === 'grocery';
+                  const isFoodCornerProduct = !isGroceryProduct;
+
+                  return (
+                    <>
+                {isGroceryCatalog ? (
+                  <div className="admin-form-group">
+                    <AdminFieldLabel required>Product Catalog Type</AdminFieldLabel>
+                    <input
+                      type="text"
+                      value="Grocery (Supermarket Section)"
+                      readOnly
+                      disabled
+                      style={{ background: '#f8fafc', color: '#475569', cursor: 'not-allowed' }}
+                    />
+                  </div>
+                ) : (
                 <div className="admin-form-group">
-                  <label>Product Catalog Type</label>
+                  <AdminFieldLabel required>Product Catalog Type</AdminFieldLabel>
                   <select
                     name="productType"
                     value={formData.productType}
                     onChange={handleChange}
                     disabled={Boolean(editingProduct) && isManager}
+                    ref={(el) => { formFieldRefs.current.productType = el; }}
+                    className={formErrors.productType ? 'admin-input-invalid' : ''}
                   >
-                    <option value="grocery">Grocery (Supermarket Section)</option>
                     <option value="food-corner">Food Corner (Kitchen Section)</option>
                   </select>
+                  {formErrors.productType ? <p className="admin-field-error" role="alert">{formErrors.productType}</p> : null}
                 </div>
+                )}
 
                 <div className="admin-form-group">
-                  <label>Product Name</label>
+                  <AdminFieldLabel htmlFor="productName" required>Product Name</AdminFieldLabel>
                   <input 
                     type="text" 
                     name="productName" 
                     value={formData.productName} 
                     onChange={handleChange} 
+                    onBlur={handleFieldBlur}
                     placeholder="e.g. Farm Fresh Apples" 
+                    maxLength={productName.max}
+                    ref={(el) => { formFieldRefs.current.productName = el; }}
+                    className={formErrors.productName ? 'admin-input-invalid' : ''}
                     required 
                   />
+                  <div className="admin-field-meta">
+                    {formErrors.productName ? (
+                      <p className="admin-field-error" role="alert">{formErrors.productName}</p>
+                    ) : (
+                      <span />
+                    )}
+                    <span className="admin-char-counter">{formatCharCounter(formData.productName, productName.max)}</span>
+                  </div>
                 </div>
 
                 <div className="admin-form-group row-split">
                   <div>
-                    <label>Category Section</label>
-                    <select name="categoryId" value={formData.categoryId} onChange={handleChange} required>
+                    <AdminFieldLabel htmlFor="categoryId" required>Category Section</AdminFieldLabel>
+                    <select
+                      name="categoryId"
+                      value={formData.categoryId}
+                      onChange={handleChange}
+                      required
+                      ref={(el) => { formFieldRefs.current.categoryId = el; }}
+                      className={formErrors.categoryId ? 'admin-input-invalid' : ''}
+                    >
                       {formData.productType !== 'food-corner' ? (
                         categories.map((cat) => (
                           <option key={cat.id || cat.categoryId} value={cat.categoryId || cat.id}>{formatCategoryName(cat.name || cat.categoryName)}</option>
@@ -750,102 +1104,179 @@ export const AdminProducts = () => {
                         ))
                       )}
                     </select>
+                    {formErrors.categoryId ? <p className="admin-field-error" role="alert">{formErrors.categoryId}</p> : null}
                   </div>
                   <div>
-                    <label>Price (€)</label>
+                    <AdminFieldLabel htmlFor="price" required>Price (€)</AdminFieldLabel>
                     <input 
                       type="number" 
                       step="0.01" 
+                      min="0.01"
                       name="price" 
-                      value={formData.price} 
-                      onChange={handleChange} 
-                      required 
+                      value={formData.price === '' ? '' : formData.price}
+                      onChange={handleChange}
+                      onBlur={handleFieldBlur}
+                      placeholder="0.00"
+                      ref={(el) => { formFieldRefs.current.price = el; }}
+                      className={formErrors.price ? 'admin-input-invalid' : ''}
                     />
+                    {formErrors.price ? <p className="admin-field-error" role="alert">{formErrors.price}</p> : null}
                   </div>
                 </div>
 
-                {formData.productType === 'grocery' ? (
+                {isGroceryProduct ? (
                   <div className="admin-form-group row-split">
                     <div>
-                      <label>Stock Status</label>
+                      <AdminFieldLabel htmlFor="stockStatus" required>Stock Status</AdminFieldLabel>
                       <select
                         name="stockStatus"
                         value={formData.stockStatus}
                         onChange={handleChange}
+                        ref={(el) => { formFieldRefs.current.stockStatus = el; }}
+                        className={formErrors.stockStatus ? 'admin-input-invalid' : ''}
                         required
                       >
                         <option value="in_stock">In Stock</option>
                         <option value="out_of_stock">Out of Stock</option>
                       </select>
+                      {formErrors.stockStatus ? (
+                        <p className="admin-field-error" role="alert">{formErrors.stockStatus}</p>
+                      ) : null}
                     </div>
                     <div>
-                      <label>Weight / Unit Size</label>
+                      <AdminFieldLabel htmlFor="weightUnit" required>Weight / Unit Size</AdminFieldLabel>
                       <input 
                         type="text" 
                         name="weightUnit" 
                         value={formData.weightUnit} 
-                        onChange={handleChange} 
-                        placeholder="e.g. 5KG or 1L" 
+                        onChange={handleChange}
+                        onBlur={handleFieldBlur}
+                        placeholder="e.g. 5KG or 1L"
+                        maxLength={weightUnit.max}
+                        ref={(el) => { formFieldRefs.current.weightUnit = el; }}
+                        className={formErrors.weightUnit ? 'admin-input-invalid' : ''}
+                        required
                       />
+                      <div className="admin-field-meta">
+                        {formErrors.weightUnit ? (
+                          <p className="admin-field-error" role="alert">{formErrors.weightUnit}</p>
+                        ) : (
+                          <span />
+                        )}
+                        <span className="admin-char-counter">{formatCharCounter(formData.weightUnit, weightUnit.max)}</span>
+                      </div>
                     </div>
                   </div>
                 ) : null}
 
-                {formData.productType === 'food-corner' && (
+                {isFoodCornerProduct && (
                   <>
                     <div className="admin-form-group">
-                      <label>Menu Display Timings</label>
+                      <AdminFieldLabel htmlFor="menuDisplayTiming" required>Menu Display Timings</AdminFieldLabel>
                       <input
                         type="text"
                         name="menuDisplayTiming"
                         value={formData.menuDisplayTiming}
                         onChange={handleChange}
+                        onBlur={handleFieldBlur}
                         placeholder="06:00 PM - 10:00 PM"
+                        maxLength={menuTiming.max}
+                        ref={(el) => { formFieldRefs.current.menuDisplayTiming = el; }}
+                        className={formErrors.menuDisplayTiming ? 'admin-input-invalid' : ''}
                       />
+                      <div className="admin-field-meta">
+                        {formErrors.menuDisplayTiming ? (
+                          <p className="admin-field-error" role="alert">{formErrors.menuDisplayTiming}</p>
+                        ) : (
+                          <span />
+                        )}
+                        <span className="admin-char-counter">{formatCharCounter(formData.menuDisplayTiming, menuTiming.max)}</span>
+                      </div>
                     </div>
                     <div className="admin-form-group">
-                      <label>Description</label>
+                      <AdminFieldLabel htmlFor="description" optional>Description</AdminFieldLabel>
                       <textarea
                         name="description"
                         value={formData.description}
                         onChange={handleChange}
+                        onBlur={handleFieldBlur}
                         rows={3}
                         placeholder="Short description for the menu item"
+                        maxLength={productDescription.max}
+                        ref={(el) => { formFieldRefs.current.description = el; }}
+                        className={formErrors.description ? 'admin-input-invalid' : ''}
                       />
+                      <div className="admin-field-meta">
+                        {formErrors.description ? (
+                          <p className="admin-field-error" role="alert">{formErrors.description}</p>
+                        ) : (
+                          <span />
+                        )}
+                        <span className="admin-char-counter">{formatCharCounter(formData.description, productDescription.max)}</span>
+                      </div>
                     </div>
                   </>
                 )}
 
-                <div className="admin-form-group row-split">
-                  <div>
-                    <label>Image URL</label>
-                    <input 
-                      type="text" 
-                      name="imageUrl" 
-                      value={formData.imageUrl} 
-                      onChange={handleChange} 
-                      placeholder="/uploads/products/..." 
-                      required 
-                    />
-                  </div>
-                  <div>
-                    <label>Or Upload Product Image</label>
-                    <div className="image-upload-zone" style={{ padding: '8px' }}>
+                <div className="admin-form-group">
+                  <AdminFieldLabel required={isFoodCornerProduct} optional={isGroceryProduct}>
+                    Product Image
+                  </AdminFieldLabel>
+                  <div className="row-split" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div>
+                      <label className="admin-field-hint" style={{ fontWeight: 600, color: '#334155' }}>Image URL</label>
                       <input 
-                        type="file" 
-                        accept={CMS_IMAGE_ACCEPT} 
-                        id="prod-file" 
-                        onChange={handleImageUpload} 
-                        style={{ display: 'none' }} 
+                        type="text" 
+                        name="imageUrl" 
+                        value={formData.imageUrl} 
+                        onChange={handleChange} 
+                        placeholder="/uploads/products/..." 
+                        ref={(el) => { formFieldRefs.current.imageUrl = el; }}
+                        className={formErrors.imageUrl ? 'admin-input-invalid' : ''}
                       />
-                      <label htmlFor="prod-file" style={{ cursor: 'pointer', margin: 0 }}>
-                        <p style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--admin-sidebar-active)' }}>
-                          Browse Files
-                        </p>
-                      </label>
+                      {formErrors.imageUrl ? <p className="admin-field-error" role="alert">{formErrors.imageUrl}</p> : null}
+                    </div>
+                    <div>
+                      <label className="admin-field-hint" style={{ fontWeight: 600, color: '#334155' }}>Or Upload Product Image</label>
+                      <div className="image-upload-zone" style={{ padding: '8px' }}>
+                        <input 
+                          type="file" 
+                          accept={CMS_IMAGE_ACCEPT} 
+                          id="prod-file" 
+                          onChange={handleImageUpload} 
+                          style={{ display: 'none' }} 
+                        />
+                        <label htmlFor="prod-file" style={{ cursor: 'pointer', margin: 0 }}>
+                          <p style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--admin-sidebar-active)' }}>
+                            Browse Files
+                          </p>
+                        </label>
+                      </div>
                     </div>
                   </div>
                 </div>
+
+                <div className="admin-form-group">
+                  <AdminFieldLabel htmlFor="product-status">Product Status</AdminFieldLabel>
+                  <select name="status" value={formData.status} onChange={handleChange}>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
+
+                {isGroceryProduct ? (
+                  <div className="admin-form-group">
+                    <label className="admin-checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontWeight: 600, color: '#334155' }}>
+                      <input
+                        type="checkbox"
+                        name="showOnHomepage"
+                        checked={formData.showOnHomepage}
+                        onChange={handleChange}
+                      />
+                      Show on Homepage (Featured Products)
+                    </label>
+                  </div>
+                ) : null}
 
                 {formData.imageUrl && (
                   <div className="upload-preview-container">
@@ -858,26 +1289,9 @@ export const AdminProducts = () => {
                     />
                   </div>
                 )}
-
-                <div className="admin-form-group">
-                  <label className="admin-checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontWeight: 600, color: '#334155' }}>
-                    <input
-                      type="checkbox"
-                      name="showOnHomepage"
-                      checked={formData.showOnHomepage}
-                      onChange={handleChange}
-                    />
-                    Show on Homepage (Featured Products)
-                  </label>
-                </div>
-
-                <div className="admin-form-group">
-                  <label>Product Status</label>
-                  <select name="status" value={formData.status} onChange={handleChange}>
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                  </select>
-                </div>
+                    </>
+                  );
+                })()}
               </div>
 
               <div className="modal-footer">
@@ -922,20 +1336,29 @@ export const AdminProducts = () => {
                 </div>
 
                 <div className="admin-form-group">
-                  <label>Product Catalog Type</label>
+                  <AdminFieldLabel required>Product Catalog Type</AdminFieldLabel>
+                  {isGroceryCatalog ? (
+                    <input
+                      type="text"
+                      value="Grocery (Supermarket Section)"
+                      readOnly
+                      disabled
+                      style={{ background: '#f8fafc', color: '#475569', cursor: 'not-allowed' }}
+                    />
+                  ) : (
                   <select
                     name="productType"
                     value={adjustFormData.productType}
                     onChange={handleAdjustChange}
                     required
                   >
-                    <option value="grocery">Grocery (Supermarket Section)</option>
                     <option value="food-corner">Food Corner (Kitchen Section)</option>
                   </select>
+                  )}
                 </div>
 
                 <div className="admin-form-group">
-                  <label>Category Section</label>
+                  <AdminFieldLabel required>Category Section</AdminFieldLabel>
                   <select 
                     name="categoryId" 
                     value={adjustFormData.categoryId} 
@@ -960,7 +1383,7 @@ export const AdminProducts = () => {
 
                 <div className="admin-form-group row-split" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div>
-                    <label>Adjustment Direction</label>
+                    <AdminFieldLabel required>Adjustment Direction</AdminFieldLabel>
                     <select 
                       name="direction" 
                       value={adjustFormData.direction} 
@@ -972,7 +1395,7 @@ export const AdminProducts = () => {
                     </select>
                   </div>
                   <div>
-                    <label>Adjustment Type</label>
+                    <AdminFieldLabel required>Adjustment Type</AdminFieldLabel>
                     <select 
                       name="adjustmentType" 
                       value={adjustFormData.adjustmentType} 
@@ -986,9 +1409,9 @@ export const AdminProducts = () => {
                 </div>
 
                 <div className="admin-form-group">
-                  <label>
+                  <AdminFieldLabel required>
                     Adjustment Value {adjustFormData.adjustmentType === 'percentage' ? '(%)' : '(€)'}
-                  </label>
+                  </AdminFieldLabel>
                   <input 
                     type="number" 
                     step="any"

@@ -8,6 +8,11 @@ import {
   normalizeEnquiryStatus,
   statusMatchesFilter,
 } from '../constants/enquiryStatuses.js';
+import {
+  validateContactFormPayload,
+  CONTACT_FORM_MESSAGE_REQUIRED,
+  CONTACT_FORM_EMAIL_INVALID,
+} from '../utils/contactFormValidation.js';
 
 const startOfDay = (date) => {
   const d = new Date(date);
@@ -62,19 +67,16 @@ export const buildEnquiryFilter = (query = {}) => {
     filter.enquiryType = query.enquiryType;
   }
 
-  if (query.search) {
-    const regex = new RegExp(
-      String(query.search).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
-      'i'
-    );
-    filter.$or = [
-      { senderName: regex },
-      { email: regex },
-      { phone: regex },
-      { subject: regex },
-      { message: regex },
-      { productName: regex },
-    ];
+  const searchFilter = buildMultiFieldSearchFilter(query.search, [
+    'senderName',
+    'email',
+    'phone',
+    'subject',
+    'message',
+    'productName',
+  ]);
+  if (searchFilter) {
+    Object.assign(filter, searchFilter);
   }
 
   if (query.date) {
@@ -87,35 +89,39 @@ export const buildEnquiryFilter = (query = {}) => {
 };
 
 const validateEnquiryPayload = (sanitized, enquiryType) => {
-  // Full name is optional; only reject when a too-short value is supplied.
   if (sanitized.senderName && sanitized.senderName.length < 3) {
     const error = new Error('Name must be at least 3 characters');
     error.statusCode = 400;
     throw error;
   }
+
+  if (enquiryType === 'contact-us') {
+    const errors = validateContactFormPayload({
+      email: sanitized.email,
+      phone: sanitized.phone,
+      message: sanitized.message,
+    });
+    if (errors.length) {
+      const error = new Error(errors[0].message);
+      error.statusCode = 400;
+      error.errors = errors;
+      throw error;
+    }
+    return;
+  }
+
   if (!sanitized.email) {
     const error = new Error('Email is required');
     error.statusCode = 400;
     throw error;
   }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sanitized.email)) {
-    const error = new Error('Please provide a valid email address');
-    error.statusCode = 400;
-    throw error;
-  }
-  if (!sanitized.phone) {
-    const error = new Error('Phone is required');
+    const error = new Error(CONTACT_FORM_EMAIL_INVALID);
     error.statusCode = 400;
     throw error;
   }
   if (!sanitized.message) {
-    const error = new Error('Message is required');
-    error.statusCode = 400;
-    throw error;
-  }
-
-  if (enquiryType === 'contact-us' && !sanitized.subject) {
-    const error = new Error('Subject is required');
+    const error = new Error(CONTACT_FORM_MESSAGE_REQUIRED);
     error.statusCode = 400;
     throw error;
   }
@@ -129,6 +135,9 @@ const validateEnquiryPayload = (sanitized, enquiryType) => {
 
 const buildSubject = (enquiryType, sanitized) => {
   if (sanitized.subject) return sanitized.subject;
+  if (enquiryType === 'contact-us') {
+    return 'Contact Form Enquiry';
+  }
   if (enquiryType === 'product-enquiry') {
     return `Product Enquiry: ${sanitized.productName}`;
   }
@@ -146,7 +155,7 @@ export const createEnquiry = async (body, enquiryType) => {
     enquiryType,
     senderName: sanitized.senderName || 'Guest Customer',
     email: sanitized.email,
-    phone: sanitized.phone,
+    phone: sanitized.phone || '',
     subject: buildSubject(enquiryType, sanitized),
     message: sanitized.message,
     productName: sanitized.productName || '',

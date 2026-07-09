@@ -12,8 +12,6 @@ const toFormPayload = (data) => {
   appendField(formData, 'title', data.title || data.mainHeading);
   appendField(formData, 'highlightedTitle', data.highlightedTitle || data.highlightText);
   appendField(formData, 'description', data.description);
-  appendField(formData, 'buttonText', data.buttonText || data.button1Text);
-  appendField(formData, 'buttonUrl', data.buttonUrl || data.button1Url);
   appendField(formData, 'sideCardTitle', data.sideCardTitle);
   appendField(formData, 'sideCardDescription', data.sideCardDescription);
   appendField(formData, 'sideCardIcon', data.sideCardIcon);
@@ -58,6 +56,7 @@ export const bannerService = {
         total: 0,
         totalPages: 1,
       },
+      summary: response.data?.summary || { total: 0, active: 0, inactive: 0 },
     };
   },
 

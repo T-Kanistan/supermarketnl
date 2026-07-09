@@ -14,7 +14,6 @@ export const MANAGER_ALLOWED_DASHBOARD_ROUTES = [
   'food-corner',
   'food-corner-items',
   'offers',
-  'offers-manager',
   'announcements',
   'messages',
   'vacancies',

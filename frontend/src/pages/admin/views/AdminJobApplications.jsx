@@ -4,6 +4,8 @@ import jobApplicationService from '../../../services/jobApplicationService';
 import { getImageUrl } from '../../../services/api';
 import { useToast } from '../../../context/ToastContext';
 import { useAuth } from '../../../context/AuthContext';
+import useAdminSearch from '../../../hooks/useAdminSearch';
+import { ADMIN_NO_MATCH_MESSAGE } from '../../../utils/adminSearch';
 
 const STATUS_OPTIONS = [
   { value: 'pending', label: 'New Application' },
@@ -22,7 +24,7 @@ export const AdminJobApplications = () => {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
-  const [search, setSearch] = useState('');
+  const { searchInput, searchQuery, onSearchChange, hasActiveSearch } = useAdminSearch();
   const [selected, setSelected] = useState(null);
 
   const { addToast } = useToast();
@@ -33,7 +35,7 @@ export const AdminJobApplications = () => {
     try {
       const params = {};
       if (statusFilter !== 'all') params.status = statusFilter;
-      if (search.trim()) params.search = search.trim();
+      if (searchQuery) params.search = searchQuery;
       const data = await jobApplicationService.getApplications(params);
       setApplications(
         [...data].sort(
@@ -46,7 +48,7 @@ export const AdminJobApplications = () => {
     } finally {
       setLoading(false);
     }
-  }, [addToast, statusFilter, search]);
+  }, [addToast, statusFilter, searchQuery]);
 
   useEffect(() => {
     fetchApplications();
@@ -110,8 +112,8 @@ export const AdminJobApplications = () => {
         <input
           type="search"
           placeholder="Search applicant, job, email..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          value={searchInput}
+          onChange={onSearchChange}
           className="admin-search-input"
           style={{ minWidth: 260 }}
         />
@@ -120,7 +122,9 @@ export const AdminJobApplications = () => {
       {loading ? (
         <p style={{ padding: 24 }}>Loading applications...</p>
       ) : applications.length === 0 ? (
-        <p style={{ padding: 24, color: '#64748b' }}>No job applications found.</p>
+        <p style={{ padding: 24, color: '#64748b' }}>
+          {hasActiveSearch ? ADMIN_NO_MATCH_MESSAGE : 'No job applications found.'}
+        </p>
       ) : (
         <div className="table-responsive">
           <table className="admin-table">

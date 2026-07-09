@@ -1,4 +1,5 @@
 import LegalPageCMS, { getDefaultLegalPages } from '../models/LegalPageCMS.js';
+import { assertAdminText, ADMIN_TEXT_LIMITS } from '../utils/adminTextValidation.js';
 
 const ensureLegalPages = async () => {
   let doc = await LegalPageCMS.findOne();
@@ -29,18 +30,54 @@ const mapDocToApi = (doc) => ({
   updatedAt: doc.updatedAt,
 });
 
-const normalizePage = (page) => {
+const normalizePage = (page, pageLabel) => {
   if (!page || typeof page !== 'object') return undefined;
   const normalized = {};
-  if (page.title !== undefined) normalized.title = String(page.title).trim();
+  if (page.title !== undefined) {
+    normalized.title = assertAdminText(page.title, {
+      max: ADMIN_TEXT_LIMITS.legalPageTitle.max,
+      maxMessage: `Page title cannot exceed ${ADMIN_TEXT_LIMITS.legalPageTitle.max} characters.`,
+    });
+  }
   if (page.lastUpdated !== undefined) normalized.lastUpdated = String(page.lastUpdated).trim();
   if (Array.isArray(page.sections)) {
-    normalized.sections = page.sections
-      .map((s) => ({
-        heading: typeof s?.heading === 'string' ? s.heading.trim() : '',
-        body: typeof s?.body === 'string' ? s.body.trim() : '',
-      }))
-      .filter((s) => s.heading || s.body);
+    const incompleteIndex = page.sections.findIndex((section) => {
+      const heading = typeof section?.heading === 'string' ? section.heading.trim() : '';
+      const body = typeof section?.body === 'string' ? section.body.trim() : '';
+      return !heading || !body;
+    });
+
+    if (incompleteIndex !== -1) {
+      const error = new Error(
+        `${pageLabel}: section ${incompleteIndex + 1} requires both heading and body before saving.`
+      );
+      error.statusCode = 400;
+      throw error;
+    }
+
+    normalized.sections = page.sections.map((section, index) => {
+      try {
+        return {
+          heading: assertAdminText(section?.heading, {
+            required: true,
+            max: ADMIN_TEXT_LIMITS.legalSectionHeading.max,
+            requiredMessage: 'Section heading is required.',
+            maxMessage: `Section heading cannot exceed ${ADMIN_TEXT_LIMITS.legalSectionHeading.max} characters.`,
+          }),
+          body: assertAdminText(section?.body, {
+            required: true,
+            max: ADMIN_TEXT_LIMITS.legalSectionBody.max,
+            requiredMessage: 'Section content is required.',
+            maxMessage: `Section content cannot exceed ${ADMIN_TEXT_LIMITS.legalSectionBody.max} characters.`,
+            collapse: false,
+          }),
+        };
+      } catch (err) {
+        const error = new Error(`${pageLabel}: section ${index + 1} - ${err.message}`);
+        error.statusCode = err.statusCode || 400;
+        throw error;
+      }
+    });
   }
   return normalized;
 };
@@ -52,8 +89,8 @@ export const getLegalPages = async () => {
 
 export const updateLegalPages = async (body = {}) => {
   const update = {};
-  const terms = normalizePage(body.terms);
-  const privacy = normalizePage(body.privacy);
+  const terms = normalizePage(body.terms, 'Terms & Conditions');
+  const privacy = normalizePage(body.privacy, 'Privacy Policy');
   if (terms) update.terms = terms;
   if (privacy) update.privacy = privacy;
 

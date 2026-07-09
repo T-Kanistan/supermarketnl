@@ -1,6 +1,13 @@
 import mongoose from 'mongoose';
 import FoodCornerCategory from '../models/FoodCornerCategory.js';
 import Product from '../models/Product.js';
+import { buildMultiFieldSearchFilter } from '../utils/adminSearchQuery.js';
+import { handleBase64Upload } from '../middlewares/uploadMiddleware.js';
+import {
+  assertFoodCornerCategoryIcon,
+  isFoodCornerCategoryIconUrl,
+  resolveFoodCornerCategoryIcon,
+} from '../utils/foodCornerCategoryIconValidation.js';
 
 export const slugify = (value) =>
   String(value || '')
@@ -73,13 +80,13 @@ const parsePagination = (query) => {
 export const buildCategoryQuery = (query = {}) => {
   const filter = {};
 
-  if (query.search) {
-    const search = escapeRegex(String(query.search).trim());
-    filter.$or = [
-      { categoryName: { $regex: search, $options: 'i' } },
-      { slug: { $regex: search, $options: 'i' } },
-      { description: { $regex: search, $options: 'i' } },
-    ];
+  const searchFilter = buildMultiFieldSearchFilter(query.search, [
+    'categoryName',
+    'slug',
+    'description',
+  ]);
+  if (searchFilter) {
+    Object.assign(filter, searchFilter);
   }
 
   const status = parseStatusFilter(query.status);
@@ -96,7 +103,7 @@ export const listCategories = async (query = {}) => {
 
   const [categories, total] = await Promise.all([
     FoodCornerCategory.find(filter)
-      .sort({ displayOrder: 1, categoryName: 1 })
+      .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit),
     FoodCornerCategory.countDocuments(filter),
@@ -193,7 +200,7 @@ export const createCategory = async (payload) => {
   const category = await FoodCornerCategory.create({
     categoryName,
     slug,
-    icon: payload.icon || '',
+    icon: await resolveFoodCornerCategoryIcon(payload.icon, { required: true }, handleBase64Upload),
     description: payload.description || '',
     displayOrder: Number(payload.displayOrder) || 0,
     status: payload.status !== undefined ? Boolean(payload.status) : true,
@@ -251,7 +258,17 @@ export const updateCategory = async (id, payload) => {
     }
   }
 
-  if (payload.icon !== undefined) category.icon = payload.icon;
+  if (payload.icon !== undefined) {
+    category.icon = await resolveFoodCornerCategoryIcon(
+      payload.icon,
+      { required: true, existingIcon: category.icon },
+      handleBase64Upload
+    );
+  } else if (!isFoodCornerCategoryIconUrl(category.icon)) {
+    const error = new Error('Please upload a category icon.');
+    error.statusCode = 400;
+    throw error;
+  }
   if (payload.description !== undefined) category.description = payload.description;
   if (payload.displayOrder !== undefined) {
     category.displayOrder = Number(payload.displayOrder) || 0;

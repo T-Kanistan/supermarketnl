@@ -9,9 +9,58 @@ import { getBannerOverlayStyle } from '../../../utils/bannerOverlay';
 import { invalidateDashboardStats } from '../../../utils/dashboardStatsRefresh';
 import { invalidatePageBannerCache } from '../../../utils/pageBannerCache';
 import { CMS_IMAGE_ACCEPT, rejectInvalidCmsImageFile } from '../../../utils/imageUploadValidation';
+import useAdminSearch from '../../../hooks/useAdminSearch';
+import { ADMIN_NO_MATCH_MESSAGE } from '../../../utils/adminSearch';
+import AdminValidatedField from '../../../components/admin/AdminValidatedField';
+import AdminFieldLabel from '../../../components/admin/AdminFieldLabel';
+import { ADMIN_TEXT_LIMITS, validateAdminText } from '../../../utils/adminTextValidation';
 import './AdminBanners.css';
 
 const PAGE_FILTER_OPTIONS = [{ value: 'all', label: 'All Pages' }, ...BANNER_PAGE_OPTIONS];
+
+const STATUS_FILTER_OPTIONS = [
+  { value: 'all', label: 'All' },
+  { value: 'active', label: 'Active' },
+  { value: 'inactive', label: 'Inactive' },
+];
+
+const EMPTY_BANNER_SUMMARY = { total: 0, active: 0, inactive: 0 };
+
+const BANNER_TEXT_FIELDS = ['badgeText', 'title', 'highlightedTitle', 'description'];
+
+const emptyFieldErrors = () =>
+  Object.fromEntries(BANNER_TEXT_FIELDS.map((field) => [field, '']));
+
+const validateBannerField = (name, value) => {
+  const { bannerBadge, bannerTitle, bannerHighlightedTitle, bannerDescription } = ADMIN_TEXT_LIMITS;
+
+  switch (name) {
+    case 'badgeText':
+      return validateAdminText(value, {
+        max: bannerBadge.max,
+        maxMessage: `Badge text cannot exceed ${bannerBadge.max} characters.`,
+      });
+    case 'title':
+      return validateAdminText(value, {
+        required: true,
+        max: bannerTitle.max,
+        requiredMessage: 'Title is required',
+        maxMessage: `Title cannot exceed ${bannerTitle.max} characters.`,
+      });
+    case 'highlightedTitle':
+      return validateAdminText(value, {
+        max: bannerHighlightedTitle.max,
+        maxMessage: `Highlighted title cannot exceed ${bannerHighlightedTitle.max} characters.`,
+      });
+    case 'description':
+      return validateAdminText(value, {
+        max: bannerDescription.max,
+        maxMessage: `Description cannot exceed ${bannerDescription.max} characters.`,
+      });
+    default:
+      return '';
+  }
+};
 
 const emptyForm = () => ({
   pageType: 'home',
@@ -19,8 +68,6 @@ const emptyForm = () => ({
   title: '',
   highlightedTitle: '',
   description: '',
-  buttonText: '',
-  buttonUrl: '',
   backgroundImage: '',
   sideCardTitle: '',
   sideCardDescription: '',
@@ -51,10 +98,12 @@ export const AdminBanners = () => {
   const [editingBanner, setEditingBanner] = useState(null);
   const [viewingBanner, setViewingBanner] = useState(null);
   const [pageFilter, setPageFilter] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchInput, setSearchInput] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [bannerSummary, setBannerSummary] = useState(EMPTY_BANNER_SUMMARY);
   const [imageFile, setImageFile] = useState(null);
   const [formData, setFormData] = useState(emptyForm());
+  const [fieldErrors, setFieldErrors] = useState(emptyFieldErrors);
+  const { searchInput, searchQuery, onSearchChange, applySearchNow, hasActiveSearch } = useAdminSearch();
 
   const { addToast } = useToast();
   const { isAdmin } = useAuth();
@@ -64,23 +113,29 @@ export const AdminBanners = () => {
     try {
       const result = await bannerService.listBanners({
         pageType: pageFilter,
+        status: statusFilter,
         q: searchQuery || undefined,
         page: pagination.page,
         limit: pagination.limit,
       });
       setBanners(result.data);
       setPagination((prev) => ({ ...prev, ...result.pagination }));
+      setBannerSummary(result.summary || EMPTY_BANNER_SUMMARY);
     } catch (err) {
       console.error('Failed to load banners', err);
       addToast(err.response?.data?.message || 'Failed to load banners', 'error');
     } finally {
       setLoading(false);
     }
-  }, [addToast, pageFilter, searchQuery, pagination.page, pagination.limit]);
+  }, [addToast, pageFilter, statusFilter, searchQuery, pagination.page, pagination.limit]);
 
   useEffect(() => {
     fetchBanners();
   }, [fetchBanners]);
+
+  useEffect(() => {
+    setPagination((prev) => (prev.page === 1 ? prev : { ...prev, page: 1 }));
+  }, [searchQuery, statusFilter]);
 
   useEffect(() => {
     if (isModalOpen || isViewOpen) {
@@ -102,6 +157,7 @@ export const AdminBanners = () => {
     setEditingBanner(null);
     setImageFile(null);
     setFormData(emptyForm());
+    setFieldErrors(emptyFieldErrors());
     setIsModalOpen(true);
   };
 
@@ -114,8 +170,6 @@ export const AdminBanners = () => {
       title: banner.title || banner.mainHeading || '',
       highlightedTitle: banner.highlightedTitle || banner.highlightText || '',
       description: banner.description || '',
-      buttonText: banner.buttonText || banner.button1Text || '',
-      buttonUrl: banner.buttonUrl || banner.button1Url || '',
       backgroundImage: banner.backgroundImage || banner.image || '',
       sideCardTitle: banner.sideCardTitle || '',
       sideCardDescription: banner.sideCardDescription || '',
@@ -125,6 +179,7 @@ export const AdminBanners = () => {
       displayOrder: banner.displayOrder ?? 0,
       isActive: banner.isActive !== false,
     });
+    setFieldErrors(emptyFieldErrors());
     setIsModalOpen(true);
   };
 
@@ -139,6 +194,16 @@ export const AdminBanners = () => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
     }));
+  };
+
+  const handleValidatedChange = (name, value) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFieldErrors((prev) => ({ ...prev, [name]: '' }));
+  };
+
+  const handleValidatedBlur = (name, value) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFieldErrors((prev) => ({ ...prev, [name]: validateBannerField(name, value) }));
   };
 
   const handleImageUpload = async (e) => {
@@ -169,12 +234,15 @@ export const AdminBanners = () => {
   };
 
   const validateForm = () => {
+    const errors = Object.fromEntries(
+      BANNER_TEXT_FIELDS.map((field) => [field, validateBannerField(field, formData[field])])
+    );
+    setFieldErrors(errors);
+
+    if (Object.values(errors).some(Boolean)) return false;
+
     if (!formData.pageType) {
       addToast('Page type is required', 'error');
-      return false;
-    }
-    if (!formData.title?.trim()) {
-      addToast('Title is required', 'error');
       return false;
     }
     if (!formData.backgroundImage || formData.backgroundImage.startsWith('blob:')) {
@@ -192,6 +260,7 @@ export const AdminBanners = () => {
     try {
       const payload = {
         ...formData,
+        isActive: formData.isActive !== false,
         overlayOpacity: Number(formData.overlayOpacity),
         displayOrder: Number(formData.displayOrder) || 0,
       };
@@ -243,26 +312,44 @@ export const AdminBanners = () => {
     }
   };
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    setPagination((prev) => ({ ...prev, page: 1 }));
-    setSearchQuery(searchInput.trim());
-  };
-
   const handleToggleStatus = async (banner) => {
     const bannerId = getBannerId(banner);
     if (!bannerId) {
       addToast('Unable to update banner: missing ID', 'error');
       return;
     }
+
+    const nextActive = !banner.isActive;
+    const previousBanners = banners;
+    const previousSummary = bannerSummary;
+
+    setBanners((prev) => {
+      const updated = prev.map((item) =>
+        getBannerId(item) === bannerId ? { ...item, isActive: nextActive } : item
+      );
+      if (statusFilter === 'active' && !nextActive) {
+        return updated.filter((item) => getBannerId(item) !== bannerId);
+      }
+      if (statusFilter === 'inactive' && nextActive) {
+        return updated.filter((item) => getBannerId(item) !== bannerId);
+      }
+      return updated;
+    });
+    setBannerSummary((prev) => ({
+      ...prev,
+      active: Math.max(0, prev.active + (nextActive ? 1 : -1)),
+      inactive: Math.max(0, prev.inactive + (nextActive ? -1 : 1)),
+    }));
+
     try {
-      await bannerService.updateBannerStatus(bannerId, !banner.isActive);
-      addToast(`Banner ${banner.isActive ? 'deactivated' : 'activated'} successfully`, 'success');
+      await bannerService.updateBannerStatus(bannerId, nextActive);
+      addToast(`Banner ${nextActive ? 'activated' : 'deactivated'} successfully`, 'success');
       invalidateDashboardStats();
       invalidatePageBannerCache(banner.pageType || banner.pageName);
-      fetchBanners();
     } catch (err) {
       console.error('Failed to update banner status', err);
+      setBanners(previousBanners);
+      setBannerSummary(previousSummary);
       addToast(err.response?.data?.message || 'Failed to update banner status', 'error');
     }
   };
@@ -283,12 +370,27 @@ export const AdminBanners = () => {
         </button>
       </div>
 
+      <div className="admin-banner-summary">
+        <div className="admin-banner-summary-card">
+          <span className="admin-banner-summary-value">{bannerSummary.total}</span>
+          <span className="admin-banner-summary-label">Total Banners</span>
+        </div>
+        <div className="admin-banner-summary-card active">
+          <span className="admin-banner-summary-value">{bannerSummary.active}</span>
+          <span className="admin-banner-summary-label">Active</span>
+        </div>
+        <div className="admin-banner-summary-card inactive">
+          <span className="admin-banner-summary-value">{bannerSummary.inactive}</span>
+          <span className="admin-banner-summary-label">Inactive</span>
+        </div>
+      </div>
+
       <div className="admin-banners-toolbar">
-        <form onSubmit={handleSearch} className="admin-banners-search">
+        <form onSubmit={applySearchNow} className="admin-banners-search">
           <input
             type="text"
             value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
+            onChange={onSearchChange}
             placeholder="Search banners..."
           />
           <button type="submit" className="action-btn-secondary">
@@ -297,6 +399,7 @@ export const AdminBanners = () => {
         </form>
 
         <div className="admin-banners-filters">
+          <span className="admin-banners-filter-label">Page:</span>
           {PAGE_FILTER_OPTIONS.map((option) => (
             <button
               key={option.value}
@@ -304,6 +407,23 @@ export const AdminBanners = () => {
               className={pageFilter === option.value ? 'action-btn-primary' : 'action-btn-secondary'}
               onClick={() => {
                 setPageFilter(option.value);
+                setPagination((prev) => ({ ...prev, page: 1 }));
+              }}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="admin-banners-filters">
+          <span className="admin-banners-filter-label">Status:</span>
+          {STATUS_FILTER_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              className={statusFilter === option.value ? 'action-btn-primary' : 'action-btn-secondary'}
+              onClick={() => {
+                setStatusFilter(option.value);
                 setPagination((prev) => ({ ...prev, page: 1 }));
               }}
             >
@@ -356,14 +476,22 @@ export const AdminBanners = () => {
                     {banner.highlightedTitle || banner.highlightText || banner.badgeText || '—'}
                   </td>
                   <td data-label="Status">
-                    <button
-                      type="button"
-                      className={`status-pill ${banner.isActive ? 'active' : 'inactive'}`}
-                      onClick={() => handleToggleStatus(banner)}
-                      title={banner.isActive ? 'Click to deactivate' : 'Click to activate'}
-                    >
-                      {banner.isActive ? 'Active' : 'Inactive'}
-                    </button>
+                    <div className="admin-banner-status-cell">
+                      <span className={`admin-banner-status-text ${banner.isActive ? 'active' : 'inactive'}`}>
+                        {banner.isActive ? '🟢 Active' : '🔴 Inactive'}
+                      </span>
+                      <label
+                        className="toggle-switch-admin"
+                        title={banner.isActive ? 'Click to deactivate' : 'Click to activate'}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={banner.isActive !== false}
+                          onChange={() => handleToggleStatus(banner)}
+                        />
+                        <span className="toggle-slider-admin" />
+                      </label>
+                    </div>
                   </td>
                   <td data-label="Last Updated">{formatDate(banner.updatedAt)}</td>
                   <td data-label="Actions">
@@ -427,10 +555,16 @@ export const AdminBanners = () => {
         </div>
       ) : (
         <div className="dashboard-panel" style={{ padding: '32px', textAlign: 'center' }}>
-          <p>No banners found. Create your first banner to get started.</p>
-          <button type="button" className="action-btn-primary" style={{ marginTop: '12px' }} onClick={openAddModal}>
-            <FaPlus /> Add New Banner
-          </button>
+          <p>
+            {hasActiveSearch
+              ? ADMIN_NO_MATCH_MESSAGE
+              : 'No banners found. Create your first banner to get started.'}
+          </p>
+          {!hasActiveSearch ? (
+            <button type="button" className="action-btn-primary" style={{ marginTop: '12px' }} onClick={openAddModal}>
+              <FaPlus /> Add New Banner
+            </button>
+          ) : null}
         </div>
       )}
 
@@ -452,8 +586,8 @@ export const AdminBanners = () => {
               <div className="modal-body admin-banner-modal-grid">
                 <div>
                   <div className="admin-form-group">
-                    <label>Page Type</label>
-                    <select name="pageType" value={formData.pageType} onChange={handleChange} required>
+                    <AdminFieldLabel htmlFor="banner-page-type" required>Page Type</AdminFieldLabel>
+                    <select id="banner-page-type" name="pageType" value={formData.pageType} onChange={handleChange} required>
                       {BANNER_PAGE_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value}>
                           {option.label}
@@ -463,7 +597,7 @@ export const AdminBanners = () => {
                   </div>
 
                   <div className="admin-form-group">
-                    <label>Banner Image Upload</label>
+                    <AdminFieldLabel htmlFor="banner-image-file" required>Banner Image Upload</AdminFieldLabel>
                     <div className="image-upload-zone" style={{ padding: '8px' }}>
                       <input
                         type="file"
@@ -481,68 +615,68 @@ export const AdminBanners = () => {
                     </div>
                   </div>
 
-                  <div className="admin-form-group row-split">
-                    <div>
-                      <label>Small Badge Text</label>
-                      <input type="text" name="badgeText" value={formData.badgeText} onChange={handleChange} maxLength={120} />
-                    </div>
-                    <div>
-                      <label>Display Order</label>
-                      <input type="number" name="displayOrder" value={formData.displayOrder} onChange={handleChange} min="0" />
-                    </div>
-                  </div>
+                  <AdminValidatedField
+                    label="Small Badge Text"
+                    name="badgeText"
+                    optional
+                    value={formData.badgeText}
+                    onChange={handleValidatedChange}
+                    onBlur={handleValidatedBlur}
+                    error={fieldErrors.badgeText}
+                    maxLength={ADMIN_TEXT_LIMITS.bannerBadge.max}
+                    placeholder="e.g. Fresh Daily"
+                  />
 
                   <div className="admin-form-group row-split">
-                    <div>
-                      <label>Title</label>
-                      <input type="text" name="title" value={formData.title} onChange={handleChange} required maxLength={200} />
-                    </div>
-                    <div>
-                      <label>Highlighted Title</label>
-                      <input type="text" name="highlightedTitle" value={formData.highlightedTitle} onChange={handleChange} maxLength={200} />
-                    </div>
+                    <AdminValidatedField
+                      label="Title"
+                      name="title"
+                      value={formData.title}
+                      onChange={handleValidatedChange}
+                      onBlur={handleValidatedBlur}
+                      error={fieldErrors.title}
+                      maxLength={ADMIN_TEXT_LIMITS.bannerTitle.max}
+                      required
+                      placeholder="Main banner title"
+                    />
+                    <AdminValidatedField
+                      label="Highlighted Title"
+                      name="highlightedTitle"
+                      optional
+                      value={formData.highlightedTitle}
+                      onChange={handleValidatedChange}
+                      onBlur={handleValidatedBlur}
+                      error={fieldErrors.highlightedTitle}
+                      maxLength={ADMIN_TEXT_LIMITS.bannerHighlightedTitle.max}
+                      placeholder="Accent text"
+                    />
                   </div>
 
-                  <div className="admin-form-group">
-                    <label>Description</label>
-                    <textarea name="description" value={formData.description} onChange={handleChange} rows={3} maxLength={600} />
-                  </div>
-
-                  <div className="admin-form-group row-split">
-                    <div>
-                      <label>Button Text</label>
-                      <input type="text" name="buttonText" value={formData.buttonText} onChange={handleChange} maxLength={80} />
-                    </div>
-                    <div>
-                      <label>Button URL</label>
-                      <input type="text" name="buttonUrl" value={formData.buttonUrl} onChange={handleChange} />
-                    </div>
-                  </div>
-
-                  <div className="admin-form-group row-split">
-                    <div>
-                      <label>Side Card Title</label>
-                      <input type="text" name="sideCardTitle" value={formData.sideCardTitle} onChange={handleChange} maxLength={120} placeholder="e.g. Open Time (home page)" />
-                    </div>
-                    <div>
-                      <label>Side Card Icon</label>
-                      <input type="text" name="sideCardIcon" value={formData.sideCardIcon} onChange={handleChange} maxLength={80} placeholder="e.g. clock" />
-                    </div>
-                  </div>
-
-                  <div className="admin-form-group">
-                    <label>Side Card Description</label>
-                    <input type="text" name="sideCardDescription" value={formData.sideCardDescription} onChange={handleChange} maxLength={300} />
-                  </div>
+                  <AdminValidatedField
+                    label="Description"
+                    name="description"
+                    optional
+                    value={formData.description}
+                    onChange={handleValidatedChange}
+                    onBlur={handleValidatedBlur}
+                    error={fieldErrors.description}
+                    maxLength={ADMIN_TEXT_LIMITS.bannerDescription.max}
+                    as="textarea"
+                    rows={3}
+                    placeholder="Short banner description"
+                  />
 
                   <div className="admin-form-group row-split">
                     <div>
-                      <label>Overlay Color</label>
-                      <input type="color" name="overlayColor" value={formData.overlayColor} onChange={handleChange} />
+                      <AdminFieldLabel htmlFor="banner-overlay-color" optional>Overlay Color</AdminFieldLabel>
+                      <input id="banner-overlay-color" type="color" name="overlayColor" value={formData.overlayColor} onChange={handleChange} />
                     </div>
                     <div>
-                      <label>Overlay Opacity ({formData.overlayOpacity})</label>
+                      <AdminFieldLabel htmlFor="banner-overlay-opacity" optional>
+                        Overlay Opacity ({formData.overlayOpacity})
+                      </AdminFieldLabel>
                       <input
+                        id="banner-overlay-opacity"
                         type="range"
                         name="overlayOpacity"
                         min="0"
@@ -555,10 +689,21 @@ export const AdminBanners = () => {
                   </div>
 
                   <div className="admin-form-group">
-                    <label className="admin-checkbox-label">
-                      <input type="checkbox" name="isActive" checked={formData.isActive} onChange={handleChange} />
-                      Active Status
-                    </label>
+                    <AdminFieldLabel>Status</AdminFieldLabel>
+                    <div className="admin-banner-status-field">
+                      <label className="toggle-switch-admin" title={formData.isActive !== false ? 'Active' : 'Inactive'}>
+                        <input
+                          type="checkbox"
+                          name="isActive"
+                          checked={formData.isActive !== false}
+                          onChange={handleChange}
+                        />
+                        <span className="toggle-slider-admin" />
+                      </label>
+                      <span className={`admin-banner-status-text ${formData.isActive !== false ? 'active' : 'inactive'}`}>
+                        {formData.isActive !== false ? '🟢 Active' : '🔴 Inactive'}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -588,11 +733,6 @@ export const AdminBanners = () => {
                       {formData.description ? (
                         <p className="admin-banner-live-desc">{formData.description}</p>
                       ) : null}
-                      <div className="admin-banner-live-buttons">
-                        {formData.buttonText ? (
-                          <span className="admin-banner-live-btn">{formData.buttonText}</span>
-                        ) : null}
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -634,8 +774,7 @@ export const AdminBanners = () => {
               <p><strong>Highlighted Title:</strong> {viewingBanner.highlightedTitle || viewingBanner.highlightText || '—'}</p>
               <p><strong>Badge:</strong> {viewingBanner.badgeText || '—'}</p>
               <p><strong>Description:</strong> {viewingBanner.description || '—'}</p>
-              <p><strong>Button:</strong> {viewingBanner.buttonText || viewingBanner.button1Text || '—'}</p>
-              <p><strong>Status:</strong> {viewingBanner.isActive ? 'Active' : 'Inactive'}</p>
+              <p><strong>Status:</strong> {viewingBanner.isActive ? '🟢 Active' : '🔴 Inactive'}</p>
               <p><strong>Last Updated:</strong> {formatDate(viewingBanner.updatedAt)}</p>
             </div>
             <div className="modal-footer">

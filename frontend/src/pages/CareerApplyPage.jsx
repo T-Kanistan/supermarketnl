@@ -4,6 +4,11 @@ import { FiUpload, FiChevronLeft } from 'react-icons/fi';
 import vacancyService from '../services/vacancyService';
 import jobApplicationService from '../services/jobApplicationService';
 import { ALL_VACANCIES } from '../constants/vacancyDefaults';
+import {
+  DUPLICATE_APPLICATION_MESSAGE,
+  DUPLICATE_APPLICATION_TITLE,
+  isDuplicateApplicationError,
+} from '../utils/jobApplicationDuplicate';
 import './CareerApplyPage.css';
 
 const MAX_CV_BYTES = 2 * 1024 * 1024;
@@ -36,6 +41,7 @@ const CareerApplyPage = () => {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [isDragActive, setIsDragActive] = useState(false);
 
   useEffect(() => {
@@ -132,25 +138,37 @@ const CareerApplyPage = () => {
     e.preventDefault();
     if (!vacancy || !validate()) return;
 
+    const applicationFields = {
+      vacancyId: vacancy.id,
+      vacancyTitle: vacancy.title,
+      department: vacancy.departmentLabel || vacancy.department || '',
+      employmentType: vacancy.employmentType || '',
+      location: vacancy.location || '',
+      firstName: form.firstName.trim(),
+      lastName: form.lastName.trim(),
+      email: form.email.trim(),
+      phoneNumber: form.phoneNumber.trim(),
+      address: form.address.trim(),
+    };
+
     setIsSubmitting(true);
     try {
+      const duplicate = await jobApplicationService.checkDuplicateApplication(applicationFields);
+      if (duplicate) {
+        setShowDuplicateModal(true);
+        return;
+      }
+
       await jobApplicationService.submitApplication({
-        fields: {
-          vacancyId: vacancy.id,
-          vacancyTitle: vacancy.title,
-          department: vacancy.departmentLabel || vacancy.department || '',
-          employmentType: vacancy.employmentType || '',
-          location: vacancy.location || '',
-          firstName: form.firstName.trim(),
-          lastName: form.lastName.trim(),
-          email: form.email.trim(),
-          phoneNumber: form.phoneNumber.trim(),
-          address: form.address.trim(),
-        },
+        fields: applicationFields,
         cvFile,
       });
       setSubmitted(true);
     } catch (err) {
+      if (isDuplicateApplicationError(err)) {
+        setShowDuplicateModal(true);
+        return;
+      }
       const message =
         err.response?.data?.message || 'Failed to submit application. Please try again.';
       setErrors((prev) => ({ ...prev, form: message }));
@@ -411,6 +429,32 @@ const CareerApplyPage = () => {
           </div>
         </div>
       </section>
+
+      {showDuplicateModal ? (
+        <div
+          className="career-apply-modal-overlay"
+          role="presentation"
+          onClick={() => setShowDuplicateModal(false)}
+        >
+          <div
+            className="career-apply-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="duplicate-application-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="duplicate-application-title">{DUPLICATE_APPLICATION_TITLE}</h2>
+            <p>{DUPLICATE_APPLICATION_MESSAGE}</p>
+            <button
+              type="button"
+              className="career-apply-btn career-apply-btn--primary"
+              onClick={() => setShowDuplicateModal(false)}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };

@@ -1,6 +1,7 @@
 import Announcement from '../models/Announcement.js';
 import { handleBase64Upload } from '../middlewares/uploadMiddleware.js';
 import { logManagerActivity } from './activityLogService.js';
+import { buildMultiFieldSearchFilter } from '../utils/adminSearchQuery.js';
 
 const startOfDay = (date) => {
   const d = new Date(date);
@@ -85,16 +86,14 @@ export const buildAnnouncementFilter = (query = {}, { includeDeleted = false } =
     }
   }
 
-  const searchTerm = query.search || query.q;
-  if (searchTerm) {
-    const regex = new RegExp(
-      String(searchTerm).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
-      'i'
-    );
+  const searchFilter = buildMultiFieldSearchFilter(query.search || query.q, [
+    'title',
+    'description',
+    'status',
+  ]);
+  if (searchFilter) {
     filter.$and = filter.$and || [];
-    filter.$and.push({
-      $or: [{ title: regex }, { description: regex }],
-    });
+    filter.$and.push(searchFilter);
   }
 
   if (query.date) {

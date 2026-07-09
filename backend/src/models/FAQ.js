@@ -13,15 +13,13 @@ const faqSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Question is required'],
       trim: true,
-      minlength: 5,
-      maxlength: 300,
+      maxlength: 150,
     },
     answer: {
       type: String,
       required: [true, 'Answer is required'],
       trim: true,
-      minlength: 10,
-      maxlength: 5000,
+      maxlength: 1000,
     },
     status: {
       type: String,

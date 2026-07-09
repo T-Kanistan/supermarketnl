@@ -30,9 +30,15 @@ export const defaultContactPage = {
     'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2436.4673891781285!2d4.8951679!3d52.3702157!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x47c609c0c20c4333%3A0x8bb8f01c23f2f0!2sAmsterdam%2C%20Netherlands!5e0!3m2!1sen!2sus!4v1700000000000!5m2!1sen!2sus',
 };
 
-export const mergeContactPage = (data) => ({
-  ...defaultContactPage,
-  ...data,
-});
+export const mergeContactPage = (data = {}) => {
+  const definedEntries = Object.entries(data).filter(
+    ([, value]) => value !== undefined && value !== null
+  );
+
+  return {
+    ...defaultContactPage,
+    ...Object.fromEntries(definedEntries),
+  };
+};
 
 export const emptyContactPageForm = () => ({ ...defaultContactPage });

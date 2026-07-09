@@ -4,15 +4,15 @@ export const createFaqRules = [
   body('question')
     .trim()
     .notEmpty()
-    .withMessage('Question is required')
-    .isLength({ min: 5, max: 300 })
-    .withMessage('Question must be between 5 and 300 characters'),
+    .withMessage('Please enter a FAQ question.')
+    .isLength({ max: 150 })
+    .withMessage('Question cannot exceed 150 characters.'),
   body('answer')
     .trim()
     .notEmpty()
-    .withMessage('Answer is required')
-    .isLength({ min: 10, max: 5000 })
-    .withMessage('Answer must be between 10 and 5000 characters'),
+    .withMessage('Please enter a FAQ answer.')
+    .isLength({ max: 1000 })
+    .withMessage('Answer cannot exceed 1000 characters.'),
   body('status')
     .notEmpty()
     .withMessage('Status is required')
@@ -27,13 +27,13 @@ export const updateFaqRules = [
   body('question')
     .optional()
     .trim()
-    .isLength({ min: 5, max: 300 })
-    .withMessage('Question must be between 5 and 300 characters'),
+    .isLength({ max: 150 })
+    .withMessage('Question cannot exceed 150 characters.'),
   body('answer')
     .optional()
     .trim()
-    .isLength({ min: 10, max: 5000 })
-    .withMessage('Answer must be between 10 and 5000 characters'),
+    .isLength({ max: 1000 })
+    .withMessage('Answer cannot exceed 1000 characters.'),
   body('status')
     .optional()
     .isIn(['active', 'inactive'])

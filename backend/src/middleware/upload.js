@@ -4,6 +4,7 @@ import multer from 'multer';
 import { deleteStoredFile, getLocalPublicUrl, persistUploadedFile } from '../services/uploadService.js';
 import { UPLOAD_ROOT } from '../config/paths.js';
 import { cmsImageMulterFilter } from '../constants/cmsImageUpload.js';
+import { aboutImageMulterFilter } from '../constants/aboutImageUpload.js';
 
 const ensureDir = (dir) => {
   if (!fs.existsSync(dir)) {
@@ -37,8 +38,8 @@ const createStorage = (subdir) =>
 
 export const aboutImageUpload = multer({
   storage: createStorage('about'),
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: aboutImageMimeFilter,
+  limits: { fileSize: 2 * 1024 * 1024 },
+  fileFilter: aboutImageMulterFilter,
 });
 
 export const genericImageUpload = multer({

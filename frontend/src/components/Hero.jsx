@@ -7,6 +7,8 @@ import { useCMS } from '../context/CMSContext';
 import bannerService from '../services/bannerService';
 import { getImageUrl } from '../services/api';
 import BusinessHoursDisplay from './BusinessHoursDisplay';
+import { CMS_SETTINGS_EVENT } from '../utils/cmsRefresh';
+import siteSettingsService from '../services/siteSettingsService';
 import './Hero.css';
 
 const Hero = () => {
@@ -14,6 +16,33 @@ const Hero = () => {
   const { cmsData, loading: cmsLoading } = useCMS();
   const [banner, setBanner] = useState(() => mergePageBanner('home', null));
   const [loading, setLoading] = useState(true);
+  const [openingHours, setOpeningHours] = useState({
+    supermarket: cmsData?.supermarketTimings ?? '',
+    foodCorner: cmsData?.foodCornerTimings ?? '',
+  });
+
+  useEffect(() => {
+    const loadOpeningHours = async () => {
+      try {
+        const settings = await siteSettingsService.getSiteSettings({ bustCache: true });
+        setOpeningHours({
+          supermarket: settings.supermarketOpeningHours ?? '',
+          foodCorner: settings.foodCornerOpeningHours ?? '',
+        });
+      } catch (err) {
+        console.error('Failed to load opening hours', err);
+        setOpeningHours({
+          supermarket: cmsData?.supermarketTimings ?? '',
+          foodCorner: cmsData?.foodCornerTimings ?? '',
+        });
+      }
+    };
+
+    loadOpeningHours();
+
+    window.addEventListener(CMS_SETTINGS_EVENT, loadOpeningHours);
+    return () => window.removeEventListener(CMS_SETTINGS_EVENT, loadOpeningHours);
+  }, [cmsData?.supermarketTimings, cmsData?.foodCornerTimings]);
 
   useEffect(() => {
     const fetchBanner = async () => {
@@ -62,8 +91,8 @@ const Hero = () => {
   const primaryLink = bannerData.buttonUrl || bannerData.button1Url;
   const secondaryLabel = bannerData.button2Text;
   const secondaryLink = bannerData.button2Url;
-  const supermarketHours = cmsData?.supermarketTimings ?? '';
-  const foodCornerHours = cmsData?.foodCornerTimings ?? '';
+  const supermarketHours = openingHours.supermarket;
+  const foodCornerHours = openingHours.foodCorner;
   const hoursLoading = cmsLoading;
 
   return (

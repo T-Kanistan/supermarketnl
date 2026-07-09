@@ -1,5 +1,8 @@
 import { body, param } from 'express-validator';
 import { OFFER_DISCOUNT_TYPES, OFFER_DEPARTMENT_TYPES } from '../models/Offer.js';
+import { ADMIN_TEXT_LIMITS, expressTextValidator } from '../utils/adminTextValidation.js';
+
+const { offerTitle, offerDescription, offerBadge } = ADMIN_TEXT_LIMITS;
 
 const isValidImageUrl = (value) => {
   if (value === undefined || value === null || value === '') return true;
@@ -60,7 +63,16 @@ const booleanRule = (field, label) =>
     });
 
 export const createOfferRules = [
-  body('title').trim().notEmpty().withMessage('Offer title is required').isLength({ max: 150 }),
+  body('title')
+    .trim()
+    .custom(
+      expressTextValidator({
+        required: true,
+        max: offerTitle.max,
+        requiredMessage: 'Offer title is required',
+        maxMessage: `Offer title cannot exceed ${offerTitle.max} characters.`,
+      })
+    ),
   body('category').trim().notEmpty().withMessage('Offer category is required'),
   body('offerDepartment')
     .optional({ values: 'falsy' })
@@ -71,7 +83,14 @@ export const createOfferRules = [
     .isIn(OFFER_DEPARTMENT_TYPES)
     .withMessage(`Offer department must be one of: ${OFFER_DEPARTMENT_TYPES.join(', ')}`),
   body('subtitle').optional({ values: 'null' }).isLength({ max: 200 }),
-  body('description').optional({ values: 'null' }).isLength({ max: 1000 }),
+  body('description')
+    .optional({ values: 'null' })
+    .custom(
+      expressTextValidator({
+        max: offerDescription.max,
+        maxMessage: `Description cannot exceed ${offerDescription.max} characters.`,
+      })
+    ),
   body('discountType')
     .optional({ values: 'falsy' })
     .isIn(OFFER_DISCOUNT_TYPES)
@@ -79,7 +98,14 @@ export const createOfferRules = [
   optionalNumberRule('discountValue', 'Discount value'),
   optionalNumberRule('originalPrice', 'Original price'),
   optionalNumberRule('offerPrice', 'Offer price'),
-  body('offerBadge').optional({ values: 'null' }).isLength({ max: 60 }),
+  body('offerBadge')
+    .optional({ values: 'null' })
+    .custom(
+      expressTextValidator({
+        max: offerBadge.max,
+        maxMessage: `Offer badge cannot exceed ${offerBadge.max} characters.`,
+      })
+    ),
   imageRule(true),
   optionalDateRule('startDate'),
   optionalDateRule('endDate'),
@@ -92,7 +118,17 @@ export const createOfferRules = [
 
 export const updateOfferRules = [
   param('id').isMongoId().withMessage('Invalid offer id'),
-  body('title').optional({ values: 'falsy' }).trim().notEmpty().withMessage('Offer title cannot be empty').isLength({ max: 150 }),
+  body('title')
+    .optional({ values: 'falsy' })
+    .trim()
+    .custom(
+      expressTextValidator({
+        required: true,
+        max: offerTitle.max,
+        requiredMessage: 'Offer title cannot be empty',
+        maxMessage: `Offer title cannot exceed ${offerTitle.max} characters.`,
+      })
+    ),
   body('category').optional({ values: 'falsy' }).trim().notEmpty().withMessage('Offer category cannot be empty'),
   body('offerDepartment')
     .optional({ values: 'falsy' })
@@ -103,7 +139,14 @@ export const updateOfferRules = [
     .isIn(OFFER_DEPARTMENT_TYPES)
     .withMessage(`Offer department must be one of: ${OFFER_DEPARTMENT_TYPES.join(', ')}`),
   body('subtitle').optional({ values: 'null' }).isLength({ max: 200 }),
-  body('description').optional({ values: 'null' }).isLength({ max: 1000 }),
+  body('description')
+    .optional({ values: 'null' })
+    .custom(
+      expressTextValidator({
+        max: offerDescription.max,
+        maxMessage: `Description cannot exceed ${offerDescription.max} characters.`,
+      })
+    ),
   body('discountType')
     .optional({ values: 'falsy' })
     .isIn(OFFER_DISCOUNT_TYPES)
@@ -111,7 +154,14 @@ export const updateOfferRules = [
   optionalNumberRule('discountValue', 'Discount value'),
   optionalNumberRule('originalPrice', 'Original price'),
   optionalNumberRule('offerPrice', 'Offer price'),
-  body('offerBadge').optional({ values: 'null' }).isLength({ max: 60 }),
+  body('offerBadge')
+    .optional({ values: 'null' })
+    .custom(
+      expressTextValidator({
+        max: offerBadge.max,
+        maxMessage: `Offer badge cannot exceed ${offerBadge.max} characters.`,
+      })
+    ),
   imageRule(false),
   optionalDateRule('startDate'),
   optionalDateRule('endDate'),

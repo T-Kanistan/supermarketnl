@@ -59,6 +59,10 @@ app.use(
 const defaultCorsOrigins = [
   'http://localhost:5173',
   'http://127.0.0.1:5173',
+  'http://localhost:5174',
+  'http://127.0.0.1:5174',
+  'http://localhost:5175',
+  'http://127.0.0.1:5175',
   'http://localhost:3000',
 ];
 
@@ -69,10 +73,17 @@ const corsOrigins = new Set(
     .filter(Boolean)
 );
 
+const isLocalViteOrigin = (origin) =>
+  /^https?:\/\/(localhost|127\.0\.0\.1):(517\d|3000)$/i.test(origin || '');
+
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || corsOrigins.has(origin)) {
+      if (
+        !origin ||
+        corsOrigins.has(origin) ||
+        (process.env.NODE_ENV !== 'production' && isLocalViteOrigin(origin))
+      ) {
         callback(null, true);
         return;
       }

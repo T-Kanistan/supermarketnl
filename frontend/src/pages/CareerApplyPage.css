@@ -417,3 +417,43 @@
     width: 100%;
   }
 }
+
+.career-apply-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+}
+
+.career-apply-modal {
+  width: min(480px, 100%);
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.18);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  padding: 28px 24px 24px;
+  text-align: center;
+}
+
+.career-apply-modal h2 {
+  margin: 0 0 12px;
+  color: #0f172a;
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+.career-apply-modal p {
+  margin: 0 0 24px;
+  color: #475569;
+  line-height: 1.6;
+  font-size: 0.95rem;
+}
+
+.career-apply-modal .career-apply-btn {
+  min-width: 120px;
+}

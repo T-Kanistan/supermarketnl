@@ -12,7 +12,6 @@ const AdminBanners = lazy(() => import('../pages/admin/views/AdminBanners'));
 const AdminCategories = lazy(() => import('../pages/admin/views/AdminCategories'));
 const AdminFoodCornerCategories = lazy(() => import('../pages/admin/views/AdminFoodCornerCategories'));
 const AdminProducts = lazy(() => import('../pages/admin/views/AdminProducts'));
-const AdminOffers = lazy(() => import('../pages/admin/views/AdminOffers'));
 const AdminOffersManager = lazy(() => import('../pages/admin/views/AdminOffersManager'));
 const AdminFaqs = lazy(() => import('../pages/admin/views/AdminFaqs'));
 const AdminTestimonials = lazy(() => import('../pages/admin/views/AdminTestimonials'));
@@ -51,8 +50,8 @@ export const dashboardChildRoutes = (
     />
     <Route path="food-corner" element={<AdminProducts />} />
     <Route path="products" element={<AdminProducts />} />
-    <Route path="offers" element={<AdminOffers />} />
-    <Route path="offers-manager" element={<AdminOffersManager />} />
+    <Route path="offers" element={<AdminOffersManager />} />
+    <Route path="offers-manager" element={<DashboardRedirect suffix="/offers" />} />
     <Route path="faqs" element={<AdminFaqs />} />
     <Route path="testimonials" element={<AdminTestimonials />} />
     <Route path="announcements" element={<AdminAnnouncements />} />

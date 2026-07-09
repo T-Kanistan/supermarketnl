@@ -4,13 +4,14 @@ const mapApiToForm = (data) => ({
   storeName: data.storeName || '',
   storeLogo: data.storeLogo || '',
   physicalAddress: data.physicalAddress || '',
-  supermarketOpeningHours: data.supermarketOpeningHours || '',
-  foodCornerOpeningHours: data.foodCornerOpeningHours || '',
+  supermarketOpeningHours: data.supermarketOpeningHours ?? '',
+  foodCornerOpeningHours: data.foodCornerOpeningHours ?? '',
 });
 
 export const siteSettingsService = {
-  getSiteSettings: async () => {
-    const data = await apiRequest(() => api.get('/settings'));
+  getSiteSettings: async ({ bustCache = false } = {}) => {
+    const url = bustCache ? `/settings?_=${Date.now()}` : '/settings';
+    const data = await apiRequest(() => api.get(url));
     return mapApiToForm(data);
   },
 

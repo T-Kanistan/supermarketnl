@@ -5,6 +5,8 @@ import { useToast } from '../../../context/ToastContext';
 import { useAuth } from '../../../context/AuthContext';
 import { ENQUIRY_STATUSES, getStatusClassName } from '../../../constants/enquiryMessages';
 import { invalidateDashboardStats } from '../../../utils/dashboardStatsRefresh';
+import useAdminSearch from '../../../hooks/useAdminSearch';
+import { ADMIN_NO_MATCH_MESSAGE } from '../../../utils/adminSearch';
 
 const STATUS_FILTERS = [
   { value: 'all', label: 'All Enquiries' },
@@ -55,7 +57,7 @@ export const AdminMessages = () => {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
-  const [search, setSearch] = useState('');
+  const { searchInput, searchQuery, onSearchChange, hasActiveSearch } = useAdminSearch();
   const [selectedEnquiry, setSelectedEnquiry] = useState(null);
   const [statusUpdatingId, setStatusUpdatingId] = useState(null);
 
@@ -82,7 +84,7 @@ export const AdminMessages = () => {
       const params = {};
       if (statusFilter !== 'all') params.status = statusFilter;
       if (typeFilter !== 'all') params.enquiryType = typeFilter;
-      if (search.trim()) params.search = search.trim();
+      if (searchQuery) params.search = searchQuery;
 
       const { data } = await enquiryService.getEnquiries(params);
       setEnquiries(
@@ -94,7 +96,7 @@ export const AdminMessages = () => {
     } finally {
       setLoading(false);
     }
-  }, [addToast, statusFilter, typeFilter, search]);
+  }, [addToast, statusFilter, typeFilter, searchQuery]);
 
   useEffect(() => {
     fetchEnquiries();
@@ -173,8 +175,8 @@ export const AdminMessages = () => {
             type="search"
             className="admin-filter-select"
             placeholder="Search enquiries..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={searchInput}
+            onChange={onSearchChange}
             style={{ minWidth: '180px' }}
           />
           <select
@@ -336,8 +338,10 @@ export const AdminMessages = () => {
       ) : (
         <div className="dashboard-panel admin-empty-state">
           <FaEnvelopeOpenText className="admin-empty-icon" />
-          <h3>No enquiries found</h3>
-          <p>Customer enquiries will appear here when submitted from the storefront.</p>
+          <h3>{hasActiveSearch ? ADMIN_NO_MATCH_MESSAGE : 'No enquiries found'}</h3>
+          {!hasActiveSearch ? (
+            <p>Customer enquiries will appear here when submitted from the storefront.</p>
+          ) : null}
         </div>
       )}
 

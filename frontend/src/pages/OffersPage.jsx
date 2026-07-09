@@ -129,9 +129,7 @@ const OfferCard = ({ offer, onEnquiry, onShare, isHighlighted = false }) => {
   return (
     <article
       id={`offer-${offer.id}`}
-      className={`offer-card ${offer.isExpired ? 'offer-card--expired-state' : ''} ${
-        isHighlighted ? 'offer-card--highlighted' : ''
-      }`}
+      className={`offer-card ${isHighlighted ? 'offer-card--highlighted' : ''}`}
     >
       <div className="offer-card-image-wrap">
         <img
@@ -150,7 +148,6 @@ const OfferCard = ({ offer, onEnquiry, onShare, isHighlighted = false }) => {
         {discountLabel && (
           <span className="offer-card-discount-badge">{discountLabel}</span>
         )}
-        {offer.isExpired && <span className="offer-card-expired">Expired</span>}
       </div>
 
       <div className="offer-card-body">

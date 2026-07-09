@@ -69,6 +69,12 @@ const jobApplicationSchema = new mongoose.Schema(
       trim: true,
       maxlength: 30,
     },
+    normalizedPhone: {
+      type: String,
+      trim: true,
+      default: '',
+      index: true,
+    },
     address: {
       type: String,
       required: [true, 'Address is required'],
@@ -110,6 +116,30 @@ const jobApplicationSchema = new mongoose.Schema(
 
 jobApplicationSchema.index({ createdAt: -1 });
 jobApplicationSchema.index({ status: 1, appliedDate: -1 });
+jobApplicationSchema.index(
+  { jobId: 1, email: 1 },
+  { unique: true, name: 'unique_job_application_email' }
+);
+jobApplicationSchema.index(
+  { jobId: 1, normalizedPhone: 1 },
+  {
+    unique: true,
+    name: 'unique_job_application_phone',
+    partialFilterExpression: {
+      normalizedPhone: { $type: 'string', $ne: '' },
+    },
+  }
+);
+
+jobApplicationSchema.pre('save', function normalizeApplicantFields(next) {
+  if (this.email) {
+    this.email = String(this.email).trim().toLowerCase();
+  }
+  if (this.phoneNumber) {
+    this.normalizedPhone = String(this.phoneNumber).replace(/\D/g, '');
+  }
+  next();
+});
 
 const JobApplication = mongoose.model('JobApplication', jobApplicationSchema);
 

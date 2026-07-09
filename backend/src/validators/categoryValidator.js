@@ -1,14 +1,55 @@
 import { body, param } from 'express-validator';
+import { ADMIN_TEXT_LIMITS, expressTextValidator } from '../utils/adminTextValidation.js';
+
+const { min, max } = ADMIN_TEXT_LIMITS.categoryName;
+
+const isValidCategoryImage = (value) => {
+  if (!value || String(value).trim() === '') return false;
+  const url = String(value).trim();
+  const imageTypeOk =
+    /\.(jpe?g|png|webp)$/i.test(url) ||
+    /^data:image\/(jpeg|jpg|png|webp);/i.test(url);
+  if (!imageTypeOk) return false;
+  return (
+    url.startsWith('/uploads/') ||
+    url.startsWith('http://') ||
+    url.startsWith('https://') ||
+    url.startsWith('data:image/')
+  );
+};
+
+const categoryImageRule = (required = false) =>
+  body('image').custom((value) => {
+    if (!value || String(value).trim() === '') {
+      if (required) throw new Error('Please upload a category image.');
+      return true;
+    }
+    if (!isValidCategoryImage(value)) {
+      throw new Error('Only JPG, JPEG, PNG, and WEBP images are allowed.');
+    }
+    return true;
+  });
+
+const categoryNameRule = (required = true) => {
+  let rule = body('name').trim();
+  if (!required) {
+    rule = rule.optional({ values: 'falsy' });
+  }
+  return rule.custom(
+    expressTextValidator({
+      required,
+      min,
+      max,
+      requiredMessage: 'Please enter a category name.',
+      rangeMessage: 'Category name must be between 2 and 50 characters.',
+      maxMessage: 'Category name must be between 2 and 50 characters.',
+    })
+  );
+};
 
 export const createCategoryRules = [
-  body('name')
-    .trim()
-    .notEmpty()
-    .withMessage('Category name is required'),
-  body('image')
-    .optional()
-    .isString()
-    .withMessage('Image must be a string'),
+  categoryNameRule(true),
+  categoryImageRule(true),
   body('status')
     .optional()
     .isIn(['active', 'inactive'])
@@ -16,15 +57,8 @@ export const createCategoryRules = [
 ];
 
 export const updateCategoryRules = [
-  body('name')
-    .optional()
-    .trim()
-    .notEmpty()
-    .withMessage('Category name cannot be empty'),
-  body('image')
-    .optional()
-    .isString()
-    .withMessage('Image must be a string'),
+  categoryNameRule(false),
+  categoryImageRule(false),
   body('status')
     .optional()
     .isIn(['active', 'inactive'])

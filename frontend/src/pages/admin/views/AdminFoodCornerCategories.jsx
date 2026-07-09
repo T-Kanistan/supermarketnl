@@ -4,6 +4,15 @@ import foodCornerCategoryService from '../../../services/foodCornerCategoryServi
 import { useToast } from '../../../context/ToastContext';
 import { useAuth } from '../../../context/AuthContext';
 import { formatCategoryName } from '../../../utils/formatCategoryName';
+import useAdminSearch from '../../../hooks/useAdminSearch';
+import { ADMIN_NO_MATCH_MESSAGE } from '../../../utils/adminSearch';
+import FoodCornerCategoryIcon from '../../../components/FoodCornerCategoryIcon';
+import AdminFieldLabel from '../../../components/admin/AdminFieldLabel';
+import {
+  FOOD_CORNER_CATEGORY_ICON_ACCEPT,
+  validateFoodCornerCategoryIcon,
+  validateFoodCornerCategoryIconFile,
+} from '../../../utils/foodCornerCategoryIconValidation';
 
 const slugify = (value) =>
   String(value || '')
@@ -14,7 +23,11 @@ const slugify = (value) =>
 
 const CategoryIconPreview = ({ category }) => (
   <span className="fc-admin-icon-preview" aria-hidden="true">
-    {category.icon || '🍽️'}
+    <FoodCornerCategoryIcon
+      icon={category.icon}
+      imgClassName="fc-admin-icon-preview-img"
+      fallback="🍽️"
+    />
   </span>
 );
 
@@ -25,9 +38,9 @@ export const AdminFoodCornerCategories = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
+  const { searchInput, searchQuery, onSearchChange, hasActiveSearch } = useAdminSearch();
 
   const { addToast } = useToast();
   const { isAdmin } = useAuth();
@@ -35,18 +48,23 @@ export const AdminFoodCornerCategories = () => {
   const [formData, setFormData] = useState({
     categoryName: '',
     slug: '',
-    icon: '🍜',
+    icon: '',
     description: '',
-    displayOrder: 0,
     status: true,
   });
+  const [fieldErrors, setFieldErrors] = useState({
+    categoryName: '',
+    slug: '',
+    icon: '',
+  });
 
-  const fetchCategories = useCallback(async () => {
+  const fetchCategories = useCallback(async (pageOverride) => {
+    const page = pageOverride ?? currentPage;
     setLoading(true);
     try {
       const result = await foodCornerCategoryService.getCategories({
         search: searchQuery || undefined,
-        page: currentPage,
+        page,
         limit: itemsPerPage,
       });
       setCategories(Array.isArray(result.data) ? result.data : []);
@@ -64,6 +82,10 @@ export const AdminFoodCornerCategories = () => {
   useEffect(() => {
     fetchCategories();
   }, [fetchCategories]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
 
   useEffect(() => {
     if (!isModalOpen) return undefined;
@@ -92,18 +114,21 @@ export const AdminFoodCornerCategories = () => {
   const closeModal = () => {
     setIsModalOpen(false);
     setEditingCategory(null);
+    setFieldErrors({ categoryName: '', slug: '', icon: '' });
   };
+
+  const resetFieldErrors = () => setFieldErrors({ categoryName: '', slug: '', icon: '' });
 
   const openAddModal = () => {
     setEditingCategory(null);
     setFormData({
       categoryName: '',
       slug: '',
-      icon: '🍜',
+      icon: '',
       description: '',
-      displayOrder: categories.length + 1,
       status: true,
     });
+    resetFieldErrors();
     setIsModalOpen(true);
   };
 
@@ -112,11 +137,11 @@ export const AdminFoodCornerCategories = () => {
     setFormData({
       categoryName: category.categoryName || category.name || '',
       slug: category.slug || category.id || '',
-      icon: category.icon || '🍜',
+      icon: category.icon || '',
       description: category.description || '',
-      displayOrder: category.displayOrder ?? 0,
       status: Boolean(category.status),
     });
+    resetFieldErrors();
     setIsModalOpen(true);
   };
 
@@ -129,6 +154,7 @@ export const AdminFoodCornerCategories = () => {
         categoryName: value,
         slug: slugify(value),
       }));
+      setFieldErrors((prev) => ({ ...prev, categoryName: '', slug: '' }));
       return;
     }
 
@@ -138,6 +164,63 @@ export const AdminFoodCornerCategories = () => {
     }
 
     setFormData((prev) => ({ ...prev, [name]: value }));
+    if (name === 'categoryName' || name === 'slug') {
+      setFieldErrors((prev) => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const handleIconUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const { valid, error } = validateFoodCornerCategoryIconFile(file);
+    if (!valid) {
+      setFieldErrors((prev) => ({ ...prev, icon: error }));
+      e.target.value = '';
+      return;
+    }
+
+    setFieldErrors((prev) => ({ ...prev, icon: '' }));
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFormData((prev) => ({ ...prev, icon: reader.result || '' }));
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleRemoveIcon = () => {
+    setFormData((prev) => ({ ...prev, icon: '' }));
+    setFieldErrors((prev) => ({ ...prev, icon: '' }));
+  };
+
+  const validateForm = () => {
+    const errors = {};
+
+    if (!formData.categoryName.trim()) {
+      errors.categoryName = 'Please enter a category name.';
+    }
+
+    if (!formData.slug.trim()) {
+      errors.slug = 'Please enter a category slug.';
+    }
+
+    const iconError = validateFoodCornerCategoryIcon(formData.icon, {
+      isEdit: Boolean(editingCategory),
+      existingIcon: editingCategory?.icon || '',
+    });
+    if (iconError) {
+      errors.icon = iconError;
+    }
+
+    setFieldErrors({
+      categoryName: errors.categoryName || '',
+      slug: errors.slug || '',
+      icon: errors.icon || '',
+    });
+
+    return errors;
   };
 
   const handleToggleStatus = async (category) => {
@@ -168,8 +251,11 @@ export const AdminFoodCornerCategories = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.categoryName.trim()) {
-      addToast('Category name is required', 'error');
+
+    const errors = validateForm();
+    const errorMessages = Object.values(errors).filter(Boolean);
+    if (errorMessages.length > 0) {
+      addToast(errorMessages[0], 'error');
       return;
     }
 
@@ -177,8 +263,7 @@ export const AdminFoodCornerCategories = () => {
       categoryName: formData.categoryName.trim(),
       slug: slugify(formData.slug || formData.categoryName),
       icon: formData.icon,
-      description: formData.description,
-      displayOrder: Number(formData.displayOrder) || 0,
+      description: formData.description.trim(),
       status: Boolean(formData.status),
     };
 
@@ -187,12 +272,15 @@ export const AdminFoodCornerCategories = () => {
       if (editingCategory) {
         await foodCornerCategoryService.updateCategory(editingCategory.id, payload);
         addToast('Food Corner category updated successfully', 'success');
+        closeModal();
+        fetchCategories();
       } else {
         await foodCornerCategoryService.createCategory(payload);
         addToast('Food Corner category created successfully', 'success');
+        closeModal();
+        setCurrentPage(1);
+        fetchCategories(1);
       }
-      closeModal();
-      fetchCategories();
     } catch (err) {
       console.error('Failed to save Food Corner category', err);
       addToast(err.response?.data?.message || err.message || 'Failed to save Food Corner category', 'error');
@@ -222,11 +310,8 @@ export const AdminFoodCornerCategories = () => {
           <input
             type="text"
             placeholder="Search Food Corner categories..."
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setCurrentPage(1);
-            }}
+            value={searchInput}
+            onChange={onSearchChange}
           />
         </div>
       </div>
@@ -324,8 +409,10 @@ export const AdminFoodCornerCategories = () => {
       ) : (
         <div className="dashboard-panel admin-empty-state">
           <FaUtensils className="admin-empty-icon" />
-          <h3>No Food Corner categories found!</h3>
-          <p>Click &quot;Add Category&quot; above to create your first menu section.</p>
+          <h3>{hasActiveSearch ? ADMIN_NO_MATCH_MESSAGE : 'No Food Corner categories found!'}</h3>
+          {!hasActiveSearch ? (
+            <p>Click &quot;Add Category&quot; above to create your first menu section.</p>
+          ) : null}
         </div>
       )}
 
@@ -346,32 +433,49 @@ export const AdminFoodCornerCategories = () => {
             <form onSubmit={handleSubmit}>
               <div className="modal-body">
                 <div className="admin-form-group">
-                  <label>Category Name</label>
+                  <AdminFieldLabel htmlFor="fc-category-name" required>
+                    Category Name
+                  </AdminFieldLabel>
                   <input
+                    id="fc-category-name"
                     type="text"
                     name="categoryName"
                     value={formData.categoryName}
                     onChange={handleChange}
                     placeholder="e.g. Main Meals"
-                    required
+                    className={fieldErrors.categoryName ? 'admin-input-invalid' : ''}
+                    aria-invalid={fieldErrors.categoryName ? 'true' : undefined}
                   />
+                  {fieldErrors.categoryName ? (
+                    <p className="admin-field-error" role="alert">{fieldErrors.categoryName}</p>
+                  ) : null}
                 </div>
 
                 <div className="admin-form-group">
-                  <label>Category Slug</label>
+                  <AdminFieldLabel htmlFor="fc-category-slug" required>
+                    Category Slug
+                  </AdminFieldLabel>
                   <input
+                    id="fc-category-slug"
                     type="text"
                     name="slug"
                     value={formData.slug}
                     onChange={handleChange}
                     placeholder="e.g. main-meals"
-                    required
+                    className={fieldErrors.slug ? 'admin-input-invalid' : ''}
+                    aria-invalid={fieldErrors.slug ? 'true' : undefined}
                   />
+                  {fieldErrors.slug ? (
+                    <p className="admin-field-error" role="alert">{fieldErrors.slug}</p>
+                  ) : null}
                 </div>
 
                 <div className="admin-form-group">
-                  <label>Short Description</label>
+                  <AdminFieldLabel htmlFor="fc-category-description" optional>
+                    Short Description
+                  </AdminFieldLabel>
                   <textarea
+                    id="fc-category-description"
                     name="description"
                     value={formData.description}
                     onChange={handleChange}
@@ -380,46 +484,72 @@ export const AdminFoodCornerCategories = () => {
                   />
                 </div>
 
-                <div className="admin-form-group row-split">
-                  <div>
-                    <label>Display Order</label>
+                <div className="admin-form-group">
+                  <label className="admin-checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <input
-                      type="number"
-                      min="0"
-                      name="displayOrder"
-                      value={formData.displayOrder}
+                      type="checkbox"
+                      name="status"
+                      checked={formData.status}
                       onChange={handleChange}
                     />
-                  </div>
-                  <div>
-                    <label className="admin-checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '28px' }}>
-                      <input
-                        type="checkbox"
-                        name="status"
-                        checked={formData.status}
-                        onChange={handleChange}
-                      />
-                      Active category
-                    </label>
-                  </div>
+                    Active Category
+                  </label>
                 </div>
 
                 <div className="admin-form-group">
-                  <label>Category Icon (Emoji)</label>
-                  <input
-                    type="text"
-                    name="icon"
-                    value={formData.icon}
-                    onChange={handleChange}
-                    placeholder="e.g. 🍜"
-                    maxLength={4}
-                  />
+                  <AdminFieldLabel htmlFor="fc-category-icon-file" required>
+                    Category Icon Upload
+                  </AdminFieldLabel>
+                  <div className={`image-upload-zone${fieldErrors.icon ? ' admin-input-invalid' : ''}`} style={{ padding: '12px' }}>
+                    <input
+                      type="file"
+                      accept={FOOD_CORNER_CATEGORY_ICON_ACCEPT}
+                      id="fc-category-icon-file"
+                      onChange={handleIconUpload}
+                      style={{ display: 'none' }}
+                    />
+                    <label htmlFor="fc-category-icon-file" style={{ cursor: 'pointer', margin: 0 }}>
+                      <p style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--admin-sidebar-active)' }}>
+                        Browse Files
+                      </p>
+                      <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '4px 0 0' }}>
+                        PNG, JPG, JPEG, SVG, WEBP (max 2 MB)
+                      </p>
+                    </label>
+                  </div>
+                  {fieldErrors.icon ? (
+                    <p className="admin-field-error" role="alert">{fieldErrors.icon}</p>
+                  ) : null}
                 </div>
 
                 {formData.icon ? (
                   <div className="upload-preview-container">
                     <p style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>Preview:</p>
-                    <span className="fc-admin-icon-preview fc-admin-icon-preview--large">{formData.icon}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                      <span className="fc-admin-icon-preview fc-admin-icon-preview--large">
+                        <FoodCornerCategoryIcon
+                          icon={formData.icon}
+                          imgClassName="fc-admin-icon-preview-img"
+                        />
+                      </span>
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        <label
+                          htmlFor="fc-category-icon-file"
+                          className="action-btn-secondary"
+                          style={{ cursor: 'pointer', margin: 0, padding: '8px 12px', fontSize: '0.85rem' }}
+                        >
+                          Replace Image
+                        </label>
+                        <button
+                          type="button"
+                          className="action-btn-secondary"
+                          onClick={handleRemoveIcon}
+                          style={{ padding: '8px 12px', fontSize: '0.85rem' }}
+                        >
+                          Remove Image
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 ) : null}
               </div>

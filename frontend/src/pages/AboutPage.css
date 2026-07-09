@@ -14,12 +14,22 @@
   overflow-x: hidden;
 }
 
-.about-page-loading {
+.about-page-loading,
+.about-page-empty {
   min-height: 50vh;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--ab-muted);
+  text-align: center;
+  padding: 24px;
+}
+
+.about-story-description {
+  margin: 0 0 20px;
+  color: var(--ab-muted);
+  line-height: 1.7;
+  font-size: 1rem;
 }
 
 .about-page .container {

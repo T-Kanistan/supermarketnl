@@ -11,6 +11,7 @@ import {
 } from '../models/aboutModels.js';
 import { deleteLocalImage, persistUploadedFile } from '../middleware/upload.js';
 import { logManagerActivity } from './activityLogService.js';
+import { validateAboutSyncPayload } from '../utils/aboutSyncValidation.js';
 
 const sortByOrder = (items) =>
   [...items].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
@@ -232,6 +233,98 @@ const ensureSingleton = async (Model, defaults) => {
   return doc;
 };
 
+const introHasContent = (intro) => {
+  if (!intro) return false;
+  return Boolean(
+    intro.badge_text ||
+      intro.main_heading ||
+      intro.highlight_heading ||
+      intro.description_1 ||
+      intro.description_2 ||
+      intro.description_3 ||
+      intro.description_4 ||
+      intro.image
+  );
+};
+
+const ownerHasContent = (owner) => {
+  if (!owner) return false;
+  return Boolean(
+    owner.owner_name ||
+      owner.designation ||
+      owner.quote ||
+      owner.profile_photo ||
+      owner.phone
+  );
+};
+
+const getLegacyCms = async () => {
+  try {
+    return await AboutUsCMS.findOne().lean();
+  } catch {
+    return null;
+  }
+};
+
+const mapLegacyIntroduction = (hero = {}) => ({
+  badge_text: hero.eyebrowTag || '',
+  main_heading: hero.pageHeading || '',
+  highlight_heading: hero.highlightedWord || '',
+  description_1: hero.descriptionParagraphs?.[0] || hero.description || '',
+  description_2: hero.descriptionParagraphs?.[1] || '',
+  description_3: hero.descriptionParagraphs?.[2] || '',
+  description_4: hero.descriptionParagraphs?.[3] || '',
+  button1_text: hero.button1Text || '',
+  button1_url: hero.button1Url || '',
+  button2_text: hero.button2Text || '',
+  button2_url: hero.button2Url || '',
+  serving_badge_text: hero.imageBadgeText || '',
+  image: hero.heroImage || '',
+  display_order: hero.displayOrder ?? 1,
+  is_active: hero.isActive !== false,
+});
+
+const mapLegacyOwner = (owner = {}) => ({
+  owner_name: owner.ownerName || '',
+  designation: owner.designation || '',
+  quote: owner.ownerQuote || '',
+  phone: owner.phoneNumber || '',
+  address: owner.location || '',
+  since_year: owner.sinceYear || '',
+  experience_text: owner.experienceText || '',
+  badge_text: owner.badgeText || '',
+  profile_photo: owner.ownerPhoto || '',
+  is_active: owner.isActive !== false,
+});
+
+const resolveAdminIntroduction = (introductionDoc, legacy) => {
+  const mapped = mapDoc(introductionDoc);
+  if (introHasContent(mapped)) return mapped;
+  const hero = legacy?.heroSection;
+  if (!hero) return mapped;
+  const legacyIntro = mapLegacyIntroduction(hero);
+  return {
+    ...mapped,
+    ...legacyIntro,
+    id: mapped?.id,
+    is_active: legacyIntro.is_active,
+  };
+};
+
+const resolveAdminOwner = (ownerDoc, legacy) => {
+  const mapped = mapDoc(ownerDoc);
+  if (ownerHasContent(mapped)) return mapped;
+  const owner = legacy?.ownerDetails;
+  if (!owner) return mapped;
+  const legacyOwner = mapLegacyOwner(owner);
+  return {
+    ...mapped,
+    ...legacyOwner,
+    id: mapped?.id,
+    is_active: legacyOwner.is_active,
+  };
+};
+
 // ─── Aggregated ───
 export const getPublicPage = async () => {
   await migrateFromLegacyIfNeeded();
@@ -260,6 +353,7 @@ export const getPublicPage = async () => {
 export const getAdminPage = async () => {
   await migrateFromLegacyIfNeeded();
   const seed = seedDefaults();
+  const legacy = await getLegacyCms();
   const [introduction, story, owner] = await Promise.all([
     ensureSingleton(AboutIntroduction, seed.introduction),
     ensureSingleton(AboutStory, seed.story),
@@ -272,13 +366,13 @@ export const getAdminPage = async () => {
     AboutStatistics.find().sort({ display_order: 1 }),
   ]);
   return {
-    introduction: mapDoc(introduction),
+    introduction: resolveAdminIntroduction(introduction, legacy),
     story: mapDoc(story),
     storyTimeline: timeline.map(mapDoc),
     values: values.map(mapDoc),
     offers: offers.map(mapDoc),
     statistics: statistics.map(mapDoc),
-    owner: mapDoc(owner),
+    owner: resolveAdminOwner(owner, legacy),
   };
 };
 
@@ -291,10 +385,20 @@ export const getIntroduction = async (activeOnly = false) => {
   return mapDoc(doc);
 };
 
+const normalizeIsActive = (value) => {
+  if (value === true || value === 'true') return true;
+  if (value === false || value === 'false') return false;
+  return value;
+};
+
 export const updateIntroduction = async (body, user) => {
   const seed = seedDefaults();
   const doc = await ensureSingleton(AboutIntroduction, seed.introduction);
-  Object.assign(doc, body);
+  const payload = { ...body };
+  if (payload.is_active !== undefined) {
+    payload.is_active = normalizeIsActive(payload.is_active);
+  }
+  Object.assign(doc, payload);
   await doc.save();
   await logAbout(user, 'Updated About Introduction', 'ABOUT_INTRODUCTION');
   return mapDoc(doc);
@@ -555,7 +659,11 @@ export const getOwner = async (activeOnly = false) => {
 export const updateOwner = async (body, user) => {
   const seed = seedDefaults();
   const doc = await ensureSingleton(AboutOwner, seed.owner);
-  Object.assign(doc, body);
+  const payload = { ...body };
+  if (payload.is_active !== undefined) {
+    payload.is_active = normalizeIsActive(payload.is_active);
+  }
+  Object.assign(doc, payload);
   await doc.save();
   await logAbout(user, 'Updated Owner Information', 'ABOUT_OWNER');
   return mapDoc(doc);
@@ -606,6 +714,13 @@ const syncList = async (Model, items = [], user, moduleName) => {
 
 export const syncAdminPage = async (payload, user) => {
   await migrateFromLegacyIfNeeded();
+
+  const validationError = validateAboutSyncPayload(payload);
+  if (validationError) {
+    const error = new Error(validationError);
+    error.statusCode = 400;
+    throw error;
+  }
 
   if (payload.introduction) {
     await updateIntroduction(payload.introduction, user);

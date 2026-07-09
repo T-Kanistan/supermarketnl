@@ -8,6 +8,11 @@ import { validateOfferDates } from '../../../utils/offerDateValidation';
 import { useToast } from '../../../context/ToastContext';
 import { useAuth } from '../../../context/AuthContext';
 import { CMS_IMAGE_ACCEPT, rejectInvalidCmsImageFile } from '../../../utils/imageUploadValidation';
+import useAdminSearch from '../../../hooks/useAdminSearch';
+import { matchesAdminSearch, statusSearchLabel, ADMIN_NO_MATCH_MESSAGE } from '../../../utils/adminSearch';
+import AdminValidatedField from '../../../components/admin/AdminValidatedField';
+import AdminFieldLabel from '../../../components/admin/AdminFieldLabel';
+import { ADMIN_TEXT_LIMITS, validateAdminText } from '../../../utils/adminTextValidation';
 import '../../OffersPage.css';
 
 const PREDEFINED_CATEGORIES = [
@@ -27,6 +32,37 @@ const DISCOUNT_TYPE_OPTIONS = [
 
 const FALLBACK_IMAGE =
   'https://images.unsplash.com/photo-1556742502-ec7c0e9f34b1?auto=format&fit=crop&q=80&w=800';
+
+const OFFER_TEXT_FIELDS = ['title', 'description', 'offerBadge'];
+
+const emptyOfferFieldErrors = () =>
+  Object.fromEntries(OFFER_TEXT_FIELDS.map((field) => [field, '']));
+
+const validateOfferField = (name, value) => {
+  const { offerTitle, offerDescription, offerBadge } = ADMIN_TEXT_LIMITS;
+
+  switch (name) {
+    case 'title':
+      return validateAdminText(value, {
+        required: true,
+        max: offerTitle.max,
+        requiredMessage: 'Offer title is required',
+        maxMessage: `Offer title cannot exceed ${offerTitle.max} characters.`,
+      });
+    case 'description':
+      return validateAdminText(value, {
+        max: offerDescription.max,
+        maxMessage: `Description cannot exceed ${offerDescription.max} characters.`,
+      });
+    case 'offerBadge':
+      return validateAdminText(value, {
+        max: offerBadge.max,
+        maxMessage: `Offer badge cannot exceed ${offerBadge.max} characters.`,
+      });
+    default:
+      return '';
+  }
+};
 
 const emptyForm = {
   title: '',
@@ -85,6 +121,7 @@ export const AdminOffers = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingOffer, setEditingOffer] = useState(null);
   const [formData, setFormData] = useState(emptyForm);
+  const [fieldErrors, setFieldErrors] = useState(emptyOfferFieldErrors);
   const [offerDateTouched, setOfferDateTouched] = useState(false);
 
   const [previewOffer, setPreviewOffer] = useState(null);
@@ -93,11 +130,15 @@ export const AdminOffers = () => {
   const [bannerData, setBannerData] = useState(emptyBanner);
   const [isBannerSubmitting, setIsBannerSubmitting] = useState(false);
 
-  const [searchQuery, setSearchQuery] = useState('');
+  const { searchInput, searchQuery, onSearchChange } = useAdminSearch();
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, categoryFilter, statusFilter]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -148,6 +189,7 @@ export const AdminOffers = () => {
     setIsModalOpen(false);
     setEditingOffer(null);
     setOfferDateTouched(false);
+    setFieldErrors(emptyOfferFieldErrors());
   };
 
   const offerDateValidation = useMemo(
@@ -164,6 +206,7 @@ export const AdminOffers = () => {
     }
     setEditingOffer(null);
     setOfferDateTouched(false);
+    setFieldErrors(emptyOfferFieldErrors());
     setFormData({ ...emptyForm, sortOrder: offers.length });
     setIsModalOpen(true);
   };
@@ -171,6 +214,7 @@ export const AdminOffers = () => {
   const openEditModal = (offer) => {
     setEditingOffer(offer);
     setOfferDateTouched(false);
+    setFieldErrors(emptyOfferFieldErrors());
     setFormData({
       title: offer.title || '',
       subtitle: offer.subtitle || '',
@@ -199,6 +243,34 @@ export const AdminOffers = () => {
     setFormData((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
   };
 
+  const handleValidatedChange = (name, value) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFieldErrors((prev) => ({ ...prev, [name]: '' }));
+  };
+
+  const handleValidatedBlur = (name, value) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFieldErrors((prev) => ({ ...prev, [name]: validateOfferField(name, value) }));
+  };
+
+  const validateOfferForm = () => {
+    const errors = Object.fromEntries(
+      OFFER_TEXT_FIELDS.map((field) => [field, validateOfferField(field, formData[field])])
+    );
+    setFieldErrors(errors);
+
+    if (Object.values(errors).some(Boolean)) return false;
+    if (!formData.category.trim()) {
+      addToast('Offer category is required', 'error');
+      return false;
+    }
+    if (!formData.image?.trim() || formData.image.startsWith('blob:')) {
+      addToast('Please upload an offer image before saving', 'error');
+      return false;
+    }
+    return true;
+  };
+
   const handleImageUpload = async (field) => async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -223,18 +295,8 @@ export const AdminOffers = () => {
       addToast('Only administrators can add offers', 'error');
       return;
     }
-    if (!formData.title.trim()) {
-      addToast('Offer title is required', 'error');
-      return;
-    }
-    if (!formData.category.trim()) {
-      addToast('Offer category is required', 'error');
-      return;
-    }
-    if (!formData.image?.trim() || formData.image.startsWith('blob:')) {
-      addToast('Please upload an offer image before saving', 'error');
-      return;
-    }
+    if (!validateOfferForm()) return;
+
     setOfferDateTouched(true);
     if (!offerDateValidation.valid) {
       addToast(
@@ -389,9 +451,16 @@ export const AdminOffers = () => {
   const filteredOffers = useMemo(() => {
     return offers
       .filter((offer) => {
-        const matchesSearch = (offer.title || '').toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesCategory = categoryFilter === 'all' || offer.category === categoryFilter;
         const offerStatus = offer.status === 'inactive' ? 'inactive' : 'active';
+        const matchesSearch = matchesAdminSearch(searchQuery, [
+          offer.title,
+          offer.subtitle,
+          offer.productName,
+          offer.category,
+          statusSearchLabel(offerStatus),
+          offer.featured ? 'featured' : '',
+        ]);
+        const matchesCategory = categoryFilter === 'all' || offer.category === categoryFilter;
         const matchesStatus = statusFilter === 'all' || offerStatus === statusFilter;
         return matchesSearch && matchesCategory && matchesStatus;
       })
@@ -405,8 +474,15 @@ export const AdminOffers = () => {
 
   const totalPages = Math.ceil(filteredOffers.length / itemsPerPage) || 1;
 
-  const renderStatusBadge = (status) => {
-    const isActive = status !== 'inactive';
+  const renderStatusBadge = (offer) => {
+    if (offer.isScheduled) {
+      return (
+        <span className="product-status-badge inactive" style={{ background: '#fef3c7', color: '#b45309' }}>
+          🟡 Scheduled
+        </span>
+      );
+    }
+    const isActive = offer.status !== 'inactive';
     return (
       <span className={`product-status-badge ${isActive ? 'active' : 'inactive'}`}>
         {isActive ? '🟢 Active' : '🔴 Inactive'}
@@ -438,9 +514,9 @@ export const AdminOffers = () => {
           <FaSearch className="search-icon-admin" />
           <input
             type="text"
-            placeholder="Search by offer title..."
-            value={searchQuery}
-            onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+            placeholder="Search by title, product, category, status..."
+            value={searchInput}
+            onChange={onSearchChange}
           />
         </div>
 
@@ -536,7 +612,11 @@ export const AdminOffers = () => {
                     )}
                   </td>
                   <td data-label="Validity">
-                    {offer.isExpired ? (
+                    {offer.isScheduled ? (
+                      <span style={{ color: '#b45309', fontWeight: 600, fontSize: '0.8rem' }}>
+                        Starts {formatDateLabel(offer.startDate)}
+                      </span>
+                    ) : offer.isExpired ? (
                       <span style={{ color: '#b91c1c', fontWeight: 600, fontSize: '0.8rem' }}>Expired</span>
                     ) : (
                       <span style={{ fontSize: '0.8rem', color: '#475569' }}>
@@ -576,7 +656,7 @@ export const AdminOffers = () => {
                   </td>
                   <td data-label="Status">
                     <div className="product-status-cell">
-                      {renderStatusBadge(offer.status)}
+                      {renderStatusBadge(offer)}
                       <label className="toggle-switch-admin" title={offer.status === 'inactive' ? 'Activate' : 'Deactivate'}>
                         <input
                           type="checkbox"
@@ -626,8 +706,12 @@ export const AdminOffers = () => {
       ) : (
         <div className="dashboard-panel admin-empty-state">
           <FaTags className="admin-empty-icon" />
-          <h3>No offers found!</h3>
-          <p>Try refining your filters or click "Add Offer" to create your first promotional offer.</p>
+          <h3>{searchQuery ? ADMIN_NO_MATCH_MESSAGE : 'No offers found!'}</h3>
+          <p>
+            {searchQuery
+              ? 'Try a different search term or clear filters.'
+              : 'Try refining your filters or click "Add Offer" to create your first promotional offer.'}
+          </p>
         </div>
       )}
 
@@ -642,48 +726,71 @@ export const AdminOffers = () => {
 
             <form onSubmit={handleSubmit}>
               <div className="modal-body">
-                <div className="admin-form-group">
-                  <label>Offer Title *</label>
-                  <input type="text" name="title" value={formData.title} onChange={handleChange} placeholder="e.g. Mega Flash Sale" required />
-                </div>
+                <AdminValidatedField
+                  label="Offer Title"
+                  name="title"
+                  value={formData.title}
+                  onChange={handleValidatedChange}
+                  onBlur={handleValidatedBlur}
+                  error={fieldErrors.title}
+                  maxLength={ADMIN_TEXT_LIMITS.offerTitle.max}
+                  required
+                  placeholder="e.g. Mega Flash Sale"
+                />
 
                 <div className="admin-form-group">
-                  <label>Subtitle</label>
-                  <input type="text" name="subtitle" value={formData.subtitle} onChange={handleChange} placeholder="e.g. Save up to 50% this weekend" />
+                  <AdminFieldLabel htmlFor="offer-subtitle" optional>Subtitle</AdminFieldLabel>
+                  <input id="offer-subtitle" type="text" name="subtitle" value={formData.subtitle} onChange={handleChange} placeholder="e.g. Save up to 50% this weekend" />
                 </div>
 
-                <div className="admin-form-group">
-                  <label>Description</label>
-                  <textarea name="description" value={formData.description} onChange={handleChange} rows={3} placeholder="Short description for the offer card" />
-                </div>
+                <AdminValidatedField
+                  label="Description"
+                  name="description"
+                  optional
+                  value={formData.description}
+                  onChange={handleValidatedChange}
+                  onBlur={handleValidatedBlur}
+                  error={fieldErrors.description}
+                  maxLength={ADMIN_TEXT_LIMITS.offerDescription.max}
+                  as="textarea"
+                  rows={3}
+                  placeholder="Short description for the offer card"
+                />
 
                 <div className="admin-form-group row-split" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div>
-                    <label>Category *</label>
-                    <input type="text" name="category" value={formData.category} onChange={handleChange} list="offer-categories" placeholder="e.g. Flash Sale" required />
+                    <AdminFieldLabel htmlFor="offer-category" required>Category</AdminFieldLabel>
+                    <input id="offer-category" type="text" name="category" value={formData.category} onChange={handleChange} list="offer-categories" placeholder="e.g. Flash Sale" required />
                     <datalist id="offer-categories">
                       {categoryOptions.map((cat) => (
                         <option key={cat} value={cat} />
                       ))}
                     </datalist>
                   </div>
-                  <div>
-                    <label>Offer Badge</label>
-                    <input type="text" name="offerBadge" value={formData.offerBadge} onChange={handleChange} placeholder="e.g. 20% OFF" />
-                  </div>
+                  <AdminValidatedField
+                    label="Offer Badge"
+                    name="offerBadge"
+                    optional
+                    value={formData.offerBadge}
+                    onChange={handleValidatedChange}
+                    onBlur={handleValidatedBlur}
+                    error={fieldErrors.offerBadge}
+                    maxLength={ADMIN_TEXT_LIMITS.offerBadge.max}
+                    placeholder="e.g. 20% OFF"
+                  />
                 </div>
 
                 <div className="admin-form-group row-split" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div>
-                    <label>Offer Type</label>
-                    <select name="offerDepartment" value={formData.offerDepartment} onChange={handleChange}>
+                    <AdminFieldLabel htmlFor="offer-department" optional>Offer Type</AdminFieldLabel>
+                    <select id="offer-department" name="offerDepartment" value={formData.offerDepartment} onChange={handleChange}>
                       <option value="Supermarket">Supermarket</option>
                       <option value="Food Corner">Food Corner</option>
                     </select>
                   </div>
                   <div>
-                    <label>Discount Type</label>
-                    <select name="discountType" value={formData.discountType} onChange={handleChange}>
+                    <AdminFieldLabel htmlFor="offer-discount-type" optional>Discount Type</AdminFieldLabel>
+                    <select id="offer-discount-type" name="discountType" value={formData.discountType} onChange={handleChange}>
                       {DISCOUNT_TYPE_OPTIONS.map((opt) => (
                         <option key={opt.value} value={opt.value}>{opt.label}</option>
                       ))}
@@ -693,34 +800,35 @@ export const AdminOffers = () => {
 
                 <div className="admin-form-group row-split" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div>
-                    <label>Discount Value</label>
-                    <input type="number" step="0.01" name="discountValue" value={formData.discountValue} onChange={handleChange} placeholder="e.g. 20" />
+                    <AdminFieldLabel htmlFor="offer-discount-value" optional>Discount Value</AdminFieldLabel>
+                    <input id="offer-discount-value" type="number" step="0.01" name="discountValue" value={formData.discountValue} onChange={handleChange} placeholder="e.g. 20" />
                   </div>
                   <div />
                 </div>
 
                 <div className="admin-form-group row-split" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div>
-                    <label>Original Price (€)</label>
-                    <input type="number" step="0.01" name="originalPrice" value={formData.originalPrice} onChange={handleChange} placeholder="Optional" />
+                    <AdminFieldLabel htmlFor="offer-original-price" optional>Original Price (€)</AdminFieldLabel>
+                    <input id="offer-original-price" type="number" step="0.01" name="originalPrice" value={formData.originalPrice} onChange={handleChange} placeholder="Optional" />
                   </div>
                   <div>
-                    <label>Offer Price (€)</label>
-                    <input type="number" step="0.01" name="offerPrice" value={formData.offerPrice} onChange={handleChange} placeholder="Optional" />
+                    <AdminFieldLabel htmlFor="offer-price" optional>Offer Price (€)</AdminFieldLabel>
+                    <input id="offer-price" type="number" step="0.01" name="offerPrice" value={formData.offerPrice} onChange={handleChange} placeholder="Optional" />
                   </div>
                 </div>
 
                 <div className="admin-form-group row-split" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div>
-                    <label>Start Date *</label>
-                    <input type="date" name="startDate" value={formData.startDate} onChange={handleChange} required />
+                    <AdminFieldLabel htmlFor="offer-start-date" required>Start Date</AdminFieldLabel>
+                    <input id="offer-start-date" type="date" name="startDate" value={formData.startDate} onChange={handleChange} required />
                     {showOfferDateErrors && offerDateValidation.startDateError && (
                       <p className="offer-form-field-error" role="alert">{offerDateValidation.startDateError}</p>
                     )}
                   </div>
                   <div>
-                    <label>End Date (Expiry) *</label>
+                    <AdminFieldLabel htmlFor="offer-end-date" required>End Date (Expiry)</AdminFieldLabel>
                     <input
+                      id="offer-end-date"
                       type="date"
                       name="endDate"
                       value={formData.endDate}
@@ -735,9 +843,9 @@ export const AdminOffers = () => {
                 </div>
 
                 <div className="admin-form-group">
-                  <label>Offer Image *</label>
+                  <AdminFieldLabel htmlFor="offer-image" required>Offer Image</AdminFieldLabel>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '12px', alignItems: 'center' }}>
-                    <input type="text" name="image" value={formData.image} onChange={handleChange} placeholder="/uploads/offers/..." required />
+                    <input id="offer-image" type="text" name="image" value={formData.image} onChange={handleChange} placeholder="/uploads/offers/..." required />
                     <div className="image-upload-zone" style={{ padding: '8px' }}>
                       <input type="file" accept={CMS_IMAGE_ACCEPT} id="offer-img" onChange={handleImageUpload('image')} style={{ display: 'none' }} />
                       <label htmlFor="offer-img" style={{ cursor: 'pointer', margin: 0 }}>
@@ -759,12 +867,12 @@ export const AdminOffers = () => {
 
                 <div className="admin-form-group row-split" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div>
-                    <label>Sort Order</label>
-                    <input type="number" name="sortOrder" value={formData.sortOrder} onChange={handleChange} />
+                    <AdminFieldLabel htmlFor="offer-sort-order" optional>Sort Order</AdminFieldLabel>
+                    <input id="offer-sort-order" type="number" name="sortOrder" value={formData.sortOrder} onChange={handleChange} />
                   </div>
                   <div>
-                    <label>Status</label>
-                    <select name="status" value={formData.status} onChange={handleChange}>
+                    <AdminFieldLabel htmlFor="offer-status">Status</AdminFieldLabel>
+                    <select id="offer-status" name="status" value={formData.status} onChange={handleChange}>
                       <option value="active">Active</option>
                       <option value="inactive">Inactive</option>
                     </select>
@@ -774,7 +882,7 @@ export const AdminOffers = () => {
 
               <div className="modal-footer">
                 <button type="button" className="action-btn-secondary" onClick={closeModal}>Cancel</button>
-                <button type="submit" className="action-btn-primary" disabled={isSubmitting || !offerDateValidation.valid}>
+                <button type="submit" className="action-btn-primary" disabled={isSubmitting || !offerDateValidation.valid || Object.values(fieldErrors).some(Boolean)}>
                   {isSubmitting ? 'Saving...' : 'Save Offer'}
                 </button>
               </div>
@@ -796,9 +904,9 @@ export const AdminOffers = () => {
               <div className="modal-body">
                 <h4 style={{ color: '#1e3a8a', marginBottom: 12 }}>Hero Banner</h4>
                 <div className="admin-form-group">
-                  <label>Hero Background Image</label>
+                  <AdminFieldLabel htmlFor="offer-hero-image" optional>Hero Background Image</AdminFieldLabel>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '12px', alignItems: 'center' }}>
-                    <input type="text" name="heroImage" value={bannerData.heroImage} onChange={handleBannerChange} placeholder="/uploads/offers/..." />
+                    <input id="offer-hero-image" type="text" name="heroImage" value={bannerData.heroImage} onChange={handleBannerChange} placeholder="/uploads/offers/..." />
                     <div className="image-upload-zone" style={{ padding: '8px' }}>
                       <input type="file" accept={CMS_IMAGE_ACCEPT} id="hero-img" onChange={handleBannerImageUpload('heroImage')} style={{ display: 'none' }} />
                       <label htmlFor="hero-img" style={{ cursor: 'pointer', margin: 0 }}>
@@ -818,25 +926,25 @@ export const AdminOffers = () => {
                   )}
                 </div>
                 <div className="admin-form-group">
-                  <label>Hero Title</label>
-                  <input type="text" name="heroTitle" value={bannerData.heroTitle} onChange={handleBannerChange} />
+                  <AdminFieldLabel htmlFor="offer-hero-title" optional>Hero Title</AdminFieldLabel>
+                  <input id="offer-hero-title" type="text" name="heroTitle" value={bannerData.heroTitle} onChange={handleBannerChange} />
                 </div>
                 <div className="admin-form-group">
-                  <label>Hero Subtitle</label>
-                  <input type="text" name="heroSubtitle" value={bannerData.heroSubtitle} onChange={handleBannerChange} />
+                  <AdminFieldLabel htmlFor="offer-hero-subtitle" optional>Hero Subtitle</AdminFieldLabel>
+                  <input id="offer-hero-subtitle" type="text" name="heroSubtitle" value={bannerData.heroSubtitle} onChange={handleBannerChange} />
                 </div>
                 <div className="admin-form-group">
-                  <label>Hero Description</label>
-                  <textarea name="heroDescription" value={bannerData.heroDescription} onChange={handleBannerChange} rows={2} />
+                  <AdminFieldLabel htmlFor="offer-hero-description" optional>Hero Description</AdminFieldLabel>
+                  <textarea id="offer-hero-description" name="heroDescription" value={bannerData.heroDescription} onChange={handleBannerChange} rows={2} />
                 </div>
                 <div className="admin-form-group row-split" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div>
-                    <label>Hero Button Text</label>
-                    <input type="text" name="heroButtonText" value={bannerData.heroButtonText} onChange={handleBannerChange} />
+                    <AdminFieldLabel htmlFor="offer-hero-button-text" optional>Hero Button Text</AdminFieldLabel>
+                    <input id="offer-hero-button-text" type="text" name="heroButtonText" value={bannerData.heroButtonText} onChange={handleBannerChange} />
                   </div>
                   <div>
-                    <label>Hero Button Link</label>
-                    <input type="text" name="heroButtonLink" value={bannerData.heroButtonLink} onChange={handleBannerChange} />
+                    <AdminFieldLabel htmlFor="offer-hero-button-link" optional>Hero Button Link</AdminFieldLabel>
+                    <input id="offer-hero-button-link" type="text" name="heroButtonLink" value={bannerData.heroButtonLink} onChange={handleBannerChange} />
                   </div>
                 </div>
               </div>
