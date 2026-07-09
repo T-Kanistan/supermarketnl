@@ -32,20 +32,24 @@ const OfferSeoHead = ({ offer }) => {
     const pageTitle = meta.title ? `${meta.title} | Offers | ${SITE_NAME}` : `Offers | ${SITE_NAME}`;
 
     document.title = pageTitle;
-    upsertMeta('name', 'description', meta.description);
+    upsertMeta('name', 'description', meta.ogDescription);
     upsertLink('canonical', meta.url);
 
     upsertMeta('property', 'og:type', meta.type);
     upsertMeta('property', 'og:title', meta.title);
-    upsertMeta('property', 'og:description', meta.description);
+    upsertMeta('property', 'og:description', meta.ogDescription);
     upsertMeta('property', 'og:image', meta.image);
+    if (meta.image?.startsWith('https://')) {
+      upsertMeta('property', 'og:image:secure_url', meta.image);
+    }
+    upsertMeta('property', 'og:image:alt', meta.imageAlt || meta.title);
     upsertMeta('property', 'og:url', meta.url);
     upsertMeta('property', 'og:site_name', meta.siteName);
     upsertMeta('property', 'og:locale', 'en_NL');
 
     upsertMeta('name', 'twitter:card', meta.twitterCard);
     upsertMeta('name', 'twitter:title', meta.title);
-    upsertMeta('name', 'twitter:description', meta.description);
+    upsertMeta('name', 'twitter:description', meta.ogDescription);
     upsertMeta('name', 'twitter:image', meta.image);
 
     return undefined;

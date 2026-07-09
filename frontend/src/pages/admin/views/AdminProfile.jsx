@@ -216,8 +216,9 @@ export const AdminProfile = () => {
           <div style={{ padding: '24px 0', color: '#64748b' }}>Loading profile...</div>
         ) : (
           <form onSubmit={handleProfileSubmit} style={{ padding: '8px 0' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '24px' }}>
+            <div className="admin-profile-hero">
               <div
+                className="admin-profile-hero-avatar"
                 style={{
                   width: '64px',
                   height: '64px',
@@ -229,12 +230,13 @@ export const AdminProfile = () => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  flexShrink: 0,
                 }}
               >
                 {fullName.charAt(0).toUpperCase()}
               </div>
-              <div>
-                <h4 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a' }}>{fullName}</h4>
+              <div className="admin-profile-hero-text">
+                <h4 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>{fullName}</h4>
                 <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>
                   Role Access: {role}
                 </span>
@@ -286,7 +288,7 @@ export const AdminProfile = () => {
                 </span>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <div className="admin-form-actions-row">
                 <button
                   type="submit"
                   className={`action-btn-primary ${isUpdatingProfile ? 'disabled' : ''}`}
@@ -346,7 +348,7 @@ export const AdminProfile = () => {
             />
           </div>
 
-          <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+          <div className="admin-form-actions-row" style={{ marginTop: '24px' }}>
             <button
               type="button"
               className="action-btn-secondary"
@@ -369,64 +371,50 @@ export const AdminProfile = () => {
       </div>
 
       {showOtpModal && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(15, 23, 42, 0.65)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999,
-            backdropFilter: 'blur(4px)',
-          }}
-        >
-          <div
-            style={{
-              background: 'white',
-              padding: '32px',
-              borderRadius: '12px',
-              width: '100%',
-              maxWidth: '420px',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-            }}
-          >
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', marginBottom: '12px', marginTop: 0 }}>
-              Verify Your New Email
-            </h3>
-            <p style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '20px', lineHeight: 1.5 }}>
-              A 6-digit verification code has been sent to <strong>{pendingEmail}</strong>. Please enter it below to complete the change.
-            </p>
-
-
-
+        <div className="admin-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="otp-modal-title">
+          <div className="admin-modal-container" style={{ maxWidth: '420px' }}>
+            <div className="modal-header">
+              <h3 id="otp-modal-title">Verify Your New Email</h3>
+              <button
+                type="button"
+                className="modal-close-btn"
+                onClick={() => {
+                  setShowOtpModal(false);
+                  setOtpCode('');
+                  addToast('Email verification cancelled', 'info');
+                }}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
             <form onSubmit={handleOtpVerify}>
-              <div className="admin-form-group" style={{ marginBottom: '20px' }}>
-                <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '6px' }}>
-                  Verification Code (6-digits)
-                </label>
-                <input
-                  type="text"
-                  maxLength={6}
-                  placeholder="Enter 6-digit OTP"
-                  value={otpCode}
-                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                  style={{
-                    letterSpacing: '4px',
-                    textAlign: 'center',
-                    fontSize: '1.5rem',
-                    fontWeight: 700,
-                    padding: '8px',
-                    borderColor: '#cbd5e1',
-                  }}
-                  required
-                />
+              <div className="modal-body">
+                <p style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '20px', lineHeight: 1.5, marginTop: 0 }}>
+                  A 6-digit verification code has been sent to <strong>{pendingEmail}</strong>. Please enter it below to complete the change.
+                </p>
+                <div className="admin-form-group" style={{ marginBottom: 0 }}>
+                  <label htmlFor="profile-otp" style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '6px' }}>
+                    Verification Code (6-digits)
+                  </label>
+                  <input
+                    id="profile-otp"
+                    type="text"
+                    maxLength={6}
+                    placeholder="Enter 6-digit OTP"
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                    style={{
+                      letterSpacing: '4px',
+                      textAlign: 'center',
+                      fontSize: '1.5rem',
+                      fontWeight: 700,
+                    }}
+                    required
+                  />
+                </div>
               </div>
-
-              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <div className="modal-footer">
                 <button
                   type="button"
                   className="action-btn-secondary"

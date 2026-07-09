@@ -7,7 +7,7 @@ const getSiteUrl = () =>
   (process.env.SITE_URL || process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
 
 const getSiteName = () =>
-  process.env.SITE_OG_NAME || process.env.STORE_NAME || 'Wins Wereld Winkel Supermarket';
+  process.env.SITE_OG_NAME || process.env.STORE_NAME || 'Wins Wereld Winkel';
 
 const resolveOffersFallbackImage = async () => {
   try {

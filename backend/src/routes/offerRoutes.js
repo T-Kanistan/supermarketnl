@@ -19,6 +19,7 @@ import {
   updateOfferStatus,
   deleteOffer,
 } from '../controllers/offerController.js';
+import { getOfferShareMeta } from '../controllers/offerShareController.js';
 
 import { protect, restrictTo, adminOnly } from '../middlewares/authMiddleware.js';
 import { validateRequest } from '../middlewares/validationMiddleware.js';
@@ -56,6 +57,7 @@ router.get('/all', ...auth, getAllOffers);
 router.put('/banner', ...auth, updateOfferBannerRules, validateRequest, updateOfferBanner);
 
 // Public single (kept after static GET routes so they are not shadowed)
+router.get('/:id/share-meta', offerIdRules, validateRequest, getOfferShareMeta);
 router.get('/:id', offerIdRules, validateRequest, getOffer);
 
 // Writes

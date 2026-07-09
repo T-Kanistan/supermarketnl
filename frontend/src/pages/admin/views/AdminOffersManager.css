@@ -525,12 +525,15 @@
 
 @media (max-width: 768px) {
   .offm-toolbar { flex-direction: column; align-items: stretch; }
-  .offm-search { max-width: none; }
+  .offm-search { max-width: none; width: 100%; }
   .offm-toolbar-filters { flex-direction: column; align-items: stretch; }
   .offm-toolbar-filters .filter-select-admin,
-  .offm-add-btn { width: 100%; }
+  .offm-add-btn { width: 100%; min-height: 44px; }
   .offm-upload-grid { grid-template-columns: 1fr; }
   .offm-toggle-grid { grid-template-columns: 1fr; }
+  .offm-page .admin-form-group.row-split {
+    grid-template-columns: 1fr !important;
+  }
 }
 
 @media (max-width: 560px) {

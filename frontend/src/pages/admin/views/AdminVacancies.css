@@ -372,6 +372,12 @@
   .vacancy-modal-actions > * {
     width: 100%;
     justify-content: center;
+    min-height: 44px;
+  }
+
+  .vacancy-action-group {
+    flex-wrap: wrap;
+    gap: 8px;
   }
 }
 

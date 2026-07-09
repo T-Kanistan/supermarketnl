@@ -33,7 +33,7 @@ const ImageUploadField = ({ label, value, inputId, onUpload, disabled, isUploadi
         {label}
       </AdminFieldLabel>
       {hint ? <p className="admin-field-hint" style={{ marginBottom: '10px' }}>{hint}</p> : null}
-      <div style={{ display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
+      <div className="admin-image-upload-row">
         {value && (
           <img
             src={getImageUrl(value)}

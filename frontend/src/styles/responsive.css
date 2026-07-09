@@ -679,7 +679,8 @@ iframe {
   }
 
   /* Admin tables: smooth horizontal scroll (card mode needs data-label on td) */
-  .table-responsive-wrapper {
+  .table-responsive-wrapper,
+  .table-responsive {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     border-radius: 12px;
@@ -726,6 +727,8 @@ iframe {
     padding: 8px 0;
     border: none;
     text-align: left;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   .admin-table:has(td[data-label]) {
@@ -733,8 +736,30 @@ iframe {
     border: none;
   }
 
-  .table-responsive-wrapper:has(.admin-table td[data-label]) {
+  .table-responsive-wrapper:has(.admin-table td[data-label]),
+  .table-responsive:has(.admin-table td[data-label]) {
     overflow: visible;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+  }
+
+  .admin-table:has(td[data-label]) td[data-label="Actions"],
+  .admin-table:has(td[data-label]) .admin-actions-cell {
+    padding-top: 10px;
+    margin-top: 4px;
+    border-top: 1px solid var(--admin-border, #e2e8f0);
+  }
+
+  .admin-table:has(td[data-label]) .cell-actions,
+  .admin-table:has(td[data-label]) .admin-actions-cell {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .admin-table:has(td[data-label]) .toggle-switch-admin {
+    margin-top: 4px;
   }
 }
 
@@ -750,7 +775,6 @@ iframe {
 /* â”€â”€â”€ FAQ, Offers, Terms â”€â”€â”€ */
 @media (max-width: 767px) {
   .faq-page,
-  .offers-page,
   .terms-page {
     padding-top: 72px;
   }
@@ -794,30 +818,26 @@ iframe {
 /* ─── Admin Dashboard Extra Mobile Polish ─── */
 
 /* Stack the view-header (title + action button) vertically on small screens */
-@media (max-width: 600px) {
+@media (max-width: 767px) {
   .view-header {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
+    align-items: stretch;
+    gap: 12px;
   }
 
   .view-header > button,
-  .view-header > a {
+  .view-header > a,
+  .view-header .action-btn-primary,
+  .view-header .action-btn-secondary {
     width: 100%;
     justify-content: center;
+    min-height: 44px;
   }
 
   /* Admin title & subtext */
   .view-title-wrap h2 {
-    font-size: 1.35rem;
-  }
-
-  /* Vacancy/Job Applications wrapper — use same card approach */
-  .table-responsive {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    border-radius: 12px;
-    max-width: 100%;
+    font-size: 1.25rem;
+    line-height: 1.25;
   }
 
   /* Vacancy filter bar: stack vertically */
@@ -835,14 +855,14 @@ iframe {
   /* Action button groups wrap */
   .vacancy-action-group {
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 8px;
   }
 
   /* Make cell action buttons touch-friendly */
   .btn-action-cell,
   .vacancy-icon-btn {
-    min-width: 36px;
-    min-height: 36px;
+    min-width: 40px;
+    min-height: 40px;
   }
 
   /* Stat cards on mobile */

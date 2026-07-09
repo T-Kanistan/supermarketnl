@@ -8,7 +8,7 @@ import offerService from '../services/offerService';
 import { getImageUrl } from '../services/api';
 import { useEnquiry } from '../context/EnquiryContext';
 import OfferSeoHead from '../components/OfferSeoHead';
-import { buildOfferShareUrl } from '../utils/offerShareMeta';
+import { shareOffer } from '../utils/offerShareMeta';
 import './OffersPage.css';
 
 const FALLBACK_IMAGE =
@@ -238,6 +238,7 @@ const OffersPage = () => {
   const [sortOption, setSortOption] = useState('newest');
   const [loadingOffers, setLoadingOffers] = useState(true);
   const [loadingCategories, setLoadingCategories] = useState(true);
+  const [routeOffer, setRouteOffer] = useState(null);
   const [error, setError] = useState('');
   const bannerLoaded = useRef(false);
 
@@ -308,6 +309,26 @@ const OffersPage = () => {
     fetchOffers(activeDepartment, activeCategory, debouncedSearch);
   }, [activeDepartment, activeCategory, debouncedSearch, fetchOffers]);
 
+  useEffect(() => {
+    if (!routeOfferId) {
+      setRouteOffer(null);
+      return undefined;
+    }
+
+    let active = true;
+    (async () => {
+      try {
+        const data = await offerService.getOfferById(routeOfferId);
+        if (active) setRouteOffer(data || null);
+      } catch (err) {
+        console.error('Failed to load offer for share preview', err);
+        if (active) setRouteOffer(null);
+      }
+    })();
+
+    return () => { active = false; };
+  }, [routeOfferId]);
+
   const showFeatured = activeDepartment === 'all' && !activeCategory && !debouncedSearch;
 
   const sortedOffers = useMemo(
@@ -321,8 +342,8 @@ const OffersPage = () => {
   );
 
   const sharedOffer = useMemo(
-    () => (routeOfferId ? offers.find((offer) => offer.id === routeOfferId) || null : null),
-    [routeOfferId, offers]
+    () => (routeOfferId ? routeOffer || offers.find((offer) => offer.id === routeOfferId) || null : null),
+    [routeOfferId, routeOffer, offers]
   );
 
   useEffect(() => {
@@ -342,12 +363,7 @@ const OffersPage = () => {
   };
 
   const handleShareFacebook = (offer) => {
-    const shareUrl = buildOfferShareUrl(offer.id);
-    window.open(
-      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`,
-      '_blank',
-      'noopener,noreferrer'
-    );
+    void shareOffer(offer);
   };
 
   const handleDepartmentChange = (departmentId) => {

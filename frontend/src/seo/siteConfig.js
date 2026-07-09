@@ -1,7 +1,7 @@
 export const SITE_NAME = 'Wins Wereld Winkel';
 
 export const SITE_OG_NAME =
-  import.meta.env.VITE_SITE_OG_NAME || 'Wins Wereld Winkel Supermarket';
+  import.meta.env.VITE_SITE_OG_NAME || 'Wins Wereld Winkel';
 
 export const SITE_URL =
   (import.meta.env.VITE_SITE_URL || 'http://localhost:5173').replace(/\/$/, '');
