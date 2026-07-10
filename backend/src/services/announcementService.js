@@ -53,10 +53,17 @@ export const formatAnnouncement = (doc, now = new Date()) => {
 export const formatStorefrontAnnouncement = (doc, now = new Date()) => {
   const formatted = formatAnnouncement(doc, now);
   return {
+    id: formatted.id,
     title: formatted.title,
+    subtitle: formatted.subtitle || '',
     description: formatted.description,
+    badgeText: formatted.badgeText || '',
     discountPercentage: formatted.discountPercentage,
     bannerImage: formatted.bannerImage,
+    buttonText: formatted.buttonText || 'Shop Offers',
+    buttonLink: formatted.buttonLink || '/offers',
+    overlayColor: formatted.overlayColor || '#0f172a',
+    overlayOpacity: formatted.overlayOpacity ?? 0.35,
     startDate: formatted.startDate,
     endDate: formatted.endDate,
   };
@@ -195,6 +202,25 @@ const normalizePayload = async (body, { isUpdate = false, existing = null } = {}
   if (body.discountPercentage !== undefined || body.offerPercentage !== undefined || !isUpdate) {
     payload.discountPercentage = discountPercentage;
   }
+  if (body.subtitle !== undefined || !isUpdate) {
+    payload.subtitle = String(body.subtitle ?? existing?.subtitle ?? '').trim();
+  }
+  if (body.badgeText !== undefined || !isUpdate) {
+    payload.badgeText = String(body.badgeText ?? existing?.badgeText ?? '').trim();
+  }
+  if (body.buttonText !== undefined || !isUpdate) {
+    payload.buttonText = String(body.buttonText ?? existing?.buttonText ?? 'Shop Offers').trim();
+  }
+  if (body.buttonLink !== undefined || !isUpdate) {
+    payload.buttonLink = String(body.buttonLink ?? existing?.buttonLink ?? '/offers').trim();
+  }
+  if (body.overlayColor !== undefined || !isUpdate) {
+    payload.overlayColor = String(body.overlayColor ?? existing?.overlayColor ?? '#0f172a').trim();
+  }
+  if (body.overlayOpacity !== undefined || !isUpdate) {
+    const opacity = Number(body.overlayOpacity ?? existing?.overlayOpacity ?? 0.35);
+    payload.overlayOpacity = Number.isNaN(opacity) ? 0.35 : Math.min(1, Math.max(0, opacity));
+  }
   if (startDate) payload.startDate = startDate;
   if (endDate) payload.endDate = endDate;
 
@@ -255,6 +281,7 @@ export const searchAnnouncements = async (query) =>
   listAnnouncements({ q: query, limit: 100 });
 
 export const getStorefrontAnnouncements = async () => {
+  await expireAnnouncements();
   const now = new Date();
   const items = await Announcement.find({
     status: 'active',

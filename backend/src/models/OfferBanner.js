@@ -15,31 +15,53 @@ const offerBannerSchema = new mongoose.Schema(
     heroTitle: {
       type: String,
       trim: true,
-      default: 'Exclusive Offers & Deals',
+      default: '',
       maxlength: 150,
     },
     heroSubtitle: {
       type: String,
       trim: true,
-      default: 'Save big every day',
+      default: '',
       maxlength: 200,
     },
     heroDescription: {
       type: String,
       trim: true,
-      default: 'Discover handpicked discounts across the supermarket and food corner.',
+      default: '',
       maxlength: 600,
     },
     heroButtonText: {
       type: String,
       trim: true,
-      default: 'Shop Offers',
+      default: '',
       maxlength: 50,
     },
     heroButtonLink: {
       type: String,
       trim: true,
-      default: '#offers',
+      default: '',
+    },
+    heroButton2Text: {
+      type: String,
+      trim: true,
+      default: '',
+      maxlength: 50,
+    },
+    heroButton2Link: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    heroOverlayColor: {
+      type: String,
+      trim: true,
+      default: '#0f172a',
+    },
+    heroOverlayOpacity: {
+      type: Number,
+      default: 0.55,
+      min: 0,
+      max: 1,
     },
 
     // Promotion banner (mid/bottom of the offers page)
@@ -51,13 +73,13 @@ const offerBannerSchema = new mongoose.Schema(
     promoTitle: {
       type: String,
       trim: true,
-      default: 'Weekend Specials',
+      default: '',
       maxlength: 150,
     },
     promoSubtitle: {
       type: String,
       trim: true,
-      default: 'Limited time only',
+      default: '',
       maxlength: 200,
     },
     promoDescription: {
@@ -69,13 +91,24 @@ const offerBannerSchema = new mongoose.Schema(
     promoButtonText: {
       type: String,
       trim: true,
-      default: 'Explore Now',
+      default: '',
       maxlength: 50,
     },
     promoButtonLink: {
       type: String,
       trim: true,
-      default: '#offers',
+      default: '',
+    },
+    promoOverlayColor: {
+      type: String,
+      trim: true,
+      default: '#0f172a',
+    },
+    promoOverlayOpacity: {
+      type: Number,
+      default: 0.45,
+      min: 0,
+      max: 1,
     },
 
     updatedBy: {

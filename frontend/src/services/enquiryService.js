@@ -40,12 +40,12 @@ export const enquiryService = {
     })),
 
   getEnquiries: async (params = {}) => {
-    const response = await api.get('/admin/enquiries', { params });
-    const body = response.data;
-    if (body?.success && Array.isArray(body.data)) {
-      return { data: body.data, pagination: body.pagination || null };
-    }
-    return { data: body?.data ?? [], pagination: null };
+    const result = await apiRequest(() => api.get('/admin/enquiries', { params }));
+    const data = Array.isArray(result) ? result : Array.isArray(result?.data) ? result.data : [];
+    return {
+      data,
+      pagination: result?.pagination || null,
+    };
   },
 
   getEnquiryById: async (id) => apiRequest(() => api.get(`/admin/enquiries/${id}`)),

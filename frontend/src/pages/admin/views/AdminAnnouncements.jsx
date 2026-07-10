@@ -25,7 +25,13 @@ const FILTER_OPTIONS = [
 
 const emptyForm = () => ({
   title: '',
+  subtitle: '',
   description: '',
+  badgeText: '',
+  buttonText: 'Shop Offers',
+  buttonLink: '/offers',
+  overlayColor: '#0f172a',
+  overlayOpacity: 0.35,
   bannerImage: '',
   discountPercentage: 0,
   startDate: new Date().toISOString().split('T')[0],
@@ -87,7 +93,13 @@ export const AdminAnnouncements = () => {
     const storedStatus = announcement.status === 'expired' ? 'inactive' : announcement.status;
     setFormData({
       title: announcement.title || '',
+      subtitle: announcement.subtitle || '',
       description: announcement.description || '',
+      badgeText: announcement.badgeText || '',
+      buttonText: announcement.buttonText || 'Shop Offers',
+      buttonLink: announcement.buttonLink || '/offers',
+      overlayColor: announcement.overlayColor || '#0f172a',
+      overlayOpacity: announcement.overlayOpacity ?? 0.35,
       bannerImage: announcement.bannerImage || announcement.image || '',
       discountPercentage: announcement.discountPercentage ?? announcement.offerPercentage ?? 0,
       startDate: announcement.startDate || '',
@@ -103,8 +115,11 @@ export const AdminAnnouncements = () => {
   };
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const { name, value, type } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === 'range' && name === 'overlayOpacity' ? Number(value) : value,
+    }));
   };
 
   const handleImageUpload = async (e) => {
@@ -376,6 +391,19 @@ export const AdminAnnouncements = () => {
                 </div>
 
                 <div className="admin-form-group">
+                  <AdminFieldLabel htmlFor="ann-subtitle" optional>Subtitle</AdminFieldLabel>
+                  <input
+                    id="ann-subtitle"
+                    type="text"
+                    name="subtitle"
+                    value={formData.subtitle}
+                    onChange={handleChange}
+                    placeholder="Short supporting line"
+                    maxLength={200}
+                  />
+                </div>
+
+                <div className="admin-form-group">
                   <AdminFieldLabel htmlFor="ann-description" required>Description</AdminFieldLabel>
                   <textarea
                     id="ann-description"
@@ -393,7 +421,19 @@ export const AdminAnnouncements = () => {
 
                 <div className="admin-form-group row-split">
                   <div>
-                    <AdminFieldLabel htmlFor="ann-discount" required>Discount Percentage (%)</AdminFieldLabel>
+                    <AdminFieldLabel htmlFor="ann-badge" optional>Badge Text</AdminFieldLabel>
+                    <input
+                      id="ann-badge"
+                      type="text"
+                      name="badgeText"
+                      value={formData.badgeText}
+                      onChange={handleChange}
+                      placeholder="e.g. WEEKLY DEALS"
+                      maxLength={60}
+                    />
+                  </div>
+                  <div>
+                    <AdminFieldLabel htmlFor="ann-discount" optional>Discount Percentage (%)</AdminFieldLabel>
                     <input
                       id="ann-discount"
                       type="number"
@@ -405,6 +445,62 @@ export const AdminAnnouncements = () => {
                       placeholder="e.g. 25"
                     />
                   </div>
+                </div>
+
+                <div className="admin-form-group row-split">
+                  <div>
+                    <AdminFieldLabel htmlFor="ann-button-text" optional>Button Text</AdminFieldLabel>
+                    <input
+                      id="ann-button-text"
+                      type="text"
+                      name="buttonText"
+                      value={formData.buttonText}
+                      onChange={handleChange}
+                      maxLength={50}
+                    />
+                  </div>
+                  <div>
+                    <AdminFieldLabel htmlFor="ann-button-link" optional>Button URL</AdminFieldLabel>
+                    <input
+                      id="ann-button-link"
+                      type="text"
+                      name="buttonLink"
+                      value={formData.buttonLink}
+                      onChange={handleChange}
+                      placeholder="/offers"
+                    />
+                  </div>
+                </div>
+
+                <div className="admin-form-group row-split">
+                  <div>
+                    <AdminFieldLabel htmlFor="ann-overlay-color" optional>Overlay Color</AdminFieldLabel>
+                    <input
+                      id="ann-overlay-color"
+                      type="color"
+                      name="overlayColor"
+                      value={formData.overlayColor}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  <div>
+                    <AdminFieldLabel htmlFor="ann-overlay-opacity" optional>
+                      Overlay Opacity ({Math.round((formData.overlayOpacity ?? 0.35) * 100)}%)
+                    </AdminFieldLabel>
+                    <input
+                      id="ann-overlay-opacity"
+                      type="range"
+                      name="overlayOpacity"
+                      min="0"
+                      max="1"
+                      step="0.05"
+                      value={formData.overlayOpacity ?? 0.35}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
+
+                <div className="admin-form-group row-split">
                   <div>
                     <AdminFieldLabel htmlFor="ann-status" required>Status</AdminFieldLabel>
                     <select id="ann-status" name="status" value={formData.status} onChange={handleChange} required>
@@ -413,6 +509,7 @@ export const AdminAnnouncements = () => {
                       ))}
                     </select>
                   </div>
+                  <div />
                 </div>
 
                 <div className="admin-form-group row-split">

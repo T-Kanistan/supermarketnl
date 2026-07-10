@@ -1,5 +1,6 @@
 import Offer, { OFFER_DISCOUNT_TYPES, OFFER_DEPARTMENT_TYPES } from '../models/Offer.js';
 import OfferBanner from '../models/OfferBanner.js';
+import OffersHeroBanner from '../models/OffersHeroBanner.js';
 import OfferCategory from '../models/OfferCategory.js';
 import { handleBase64Upload } from '../middlewares/uploadMiddleware.js';
 import { logManagerActivity } from './activityLogService.js';
@@ -689,17 +690,30 @@ export const updateOfferBanner = async (body, user) => {
     'heroDescription',
     'heroButtonText',
     'heroButtonLink',
+    'heroButton2Text',
+    'heroButton2Link',
+    'heroOverlayColor',
     'promoTitle',
     'promoSubtitle',
     'promoDescription',
     'promoButtonText',
     'promoButtonLink',
+    'promoOverlayColor',
   ];
 
   for (const field of fields) {
     if (body[field] !== undefined) {
       banner[field] = String(body[field] ?? '').trim();
     }
+  }
+
+  if (body.heroOverlayOpacity !== undefined) {
+    const opacity = Number(body.heroOverlayOpacity);
+    banner.heroOverlayOpacity = Number.isNaN(opacity) ? 0.55 : Math.min(1, Math.max(0, opacity));
+  }
+  if (body.promoOverlayOpacity !== undefined) {
+    const opacity = Number(body.promoOverlayOpacity);
+    banner.promoOverlayOpacity = Number.isNaN(opacity) ? 0.45 : Math.min(1, Math.max(0, opacity));
   }
 
   if (body.heroImage !== undefined) {
@@ -720,4 +734,335 @@ export const updateOfferBanner = async (body, user) => {
   });
 
   return formatOfferBanner(banner);
+};
+
+// ----- Offers Hero Banners (multi-document) -----
+
+const heroBannerStartOfDay = (date) => {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+
+const heroBannerEndOfDay = (date) => {
+  const d = new Date(date);
+  d.setHours(23, 59, 59, 999);
+  return d;
+};
+
+export const resolveOffersHeroBannerStatus = (banner, now = new Date()) => {
+  const storedStatus = banner.status;
+  if (storedStatus === 'deleted') return 'deleted';
+  if (storedStatus === 'inactive') return 'inactive';
+  if (storedStatus === 'draft') return 'draft';
+  if (storedStatus === 'expired') return 'expired';
+
+  const start = heroBannerStartOfDay(banner.startDate);
+  const end = heroBannerEndOfDay(banner.endDate);
+
+  if (now > end) return 'expired';
+  if (now < start) return storedStatus === 'active' ? 'scheduled' : storedStatus || 'draft';
+
+  return storedStatus || 'draft';
+};
+
+export const formatOffersHeroBanner = (doc, now = new Date()) => {
+  if (!doc) return null;
+  const plain = doc.toObject ? doc.toObject() : { ...doc };
+  const image = plain.bannerImage || plain.backgroundImage || '';
+  const effectiveStatus = resolveOffersHeroBannerStatus(plain, now);
+
+  return {
+    ...plain,
+    id: plain._id?.toString?.() ?? plain.id,
+    bannerImage: image,
+    backgroundImage: image,
+    badgeText: plain.badgeText || '',
+    title: plain.title || '',
+    highlightedTitle: plain.highlightedTitle || '',
+    description: plain.description || '',
+    buttonText: plain.buttonText || '',
+    buttonUrl: plain.buttonUrl || '',
+    button2Text: plain.button2Text || '',
+    button2Url: plain.button2Url || '',
+    overlayColor: plain.overlayColor || '#0f172a',
+    overlayOpacity: plain.overlayOpacity ?? 0.55,
+    offerType: plain.offerType || 'Supermarket',
+    offerCategory: plain.offerCategory || '',
+    discountType: plain.discountType || 'percentage',
+    discountValue: plain.discountValue ?? null,
+    offerBadge: plain.offerBadge || '',
+    status: plain.status || 'draft',
+    effectiveStatus,
+    sortOrder: Number.isFinite(plain.sortOrder) ? plain.sortOrder : 0,
+    startDate: plain.startDate ? new Date(plain.startDate).toISOString().split('T')[0] : null,
+    endDate: plain.endDate ? new Date(plain.endDate).toISOString().split('T')[0] : null,
+  };
+};
+
+const migrateSingletonHeroToCollection = async () => {
+  const existingCount = await OffersHeroBanner.countDocuments({ status: { $ne: 'deleted' } });
+  if (existingCount > 0) return;
+
+  const legacy = await OfferBanner.findOne().sort({ updatedAt: -1 });
+  if (!legacy) return;
+
+  const plain = legacy.toObject ? legacy.toObject() : legacy;
+  const hasHeroContent = Boolean(
+    plain.heroImage
+      || plain.heroTitle?.trim()
+      || plain.heroSubtitle?.trim()
+      || plain.heroDescription?.trim()
+  );
+  if (!hasHeroContent) return;
+
+  const now = new Date();
+  const startDate = heroBannerStartOfDay(now);
+  const endDate = heroBannerEndOfDay(new Date(now.getFullYear() + 1, now.getMonth(), now.getDate()));
+
+  await OffersHeroBanner.create({
+    bannerImage: plain.heroImage || '',
+    backgroundImage: plain.heroImage || '',
+    badgeText: plain.heroSubtitle || '',
+    title: plain.heroTitle?.trim() || 'Offers',
+    highlightedTitle: '',
+    description: plain.heroDescription || '',
+    buttonText: plain.heroButtonText || '',
+    buttonUrl: plain.heroButtonLink || '',
+    button2Text: plain.heroButton2Text || '',
+    button2Url: plain.heroButton2Link || '',
+    overlayColor: plain.heroOverlayColor || '#0f172a',
+    overlayOpacity: plain.heroOverlayOpacity ?? 0.55,
+    status: 'active',
+    startDate,
+    endDate,
+    sortOrder: 0,
+  });
+};
+
+export const expireOffersHeroBanners = async () => {
+  const now = new Date();
+  const result = await OffersHeroBanner.updateMany(
+    {
+      status: { $in: ['active', 'draft'] },
+      endDate: { $lt: heroBannerStartOfDay(now) },
+    },
+    { $set: { status: 'expired' } }
+  );
+  return result.modifiedCount || 0;
+};
+
+export const getStorefrontOffersHeroBanners = async () => {
+  await migrateSingletonHeroToCollection();
+  await expireOffersHeroBanners();
+
+  const now = new Date();
+  const items = await OffersHeroBanner.find({
+    status: 'active',
+    startDate: { $lte: heroBannerEndOfDay(now) },
+    endDate: { $gte: heroBannerStartOfDay(now) },
+  }).sort({ sortOrder: 1, createdAt: -1 });
+
+  return items
+    .map((item) => formatOffersHeroBanner(item, now))
+    .filter((item) => item.effectiveStatus === 'active');
+};
+
+export const listOffersHeroBannersAdmin = async (query = {}) => {
+  await expireOffersHeroBanners();
+  const filter = { status: { $ne: 'deleted' } };
+
+  if (query.status && query.status !== 'all') {
+    if (query.status === 'expired') {
+      const now = new Date();
+      filter.$or = [
+        { status: 'expired' },
+        { status: 'active', endDate: { $lt: heroBannerStartOfDay(now) } },
+      ];
+    } else {
+      filter.status = query.status;
+    }
+  }
+
+  const items = await OffersHeroBanner.find(filter).sort({ sortOrder: 1, createdAt: -1 });
+  return items.map((item) => formatOffersHeroBanner(item));
+};
+
+export const getOffersHeroBannerById = async (id) => {
+  const banner = await OffersHeroBanner.findOne({ _id: id, status: { $ne: 'deleted' } });
+  if (!banner) {
+    const error = new Error('Hero banner not found');
+    error.statusCode = 404;
+    throw error;
+  }
+  return formatOffersHeroBanner(banner);
+};
+
+const normalizeOffersHeroBannerPayload = async (body, { isCreate = false, existing = null } = {}) => {
+  const title = (body.title ?? existing?.title ?? '').trim();
+  if (!title) {
+    const error = new Error('Title is required');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const startDate = body.startDate !== undefined
+    ? normalizeOfferStartDate(body.startDate)
+    : existing?.startDate || null;
+  const endDate = body.endDate !== undefined
+    ? normalizeOfferEndDate(body.endDate)
+    : existing?.endDate || null;
+  if (!startDate || !endDate) {
+    const error = new Error('Start date and end date are required');
+    error.statusCode = 400;
+    throw error;
+  }
+  if (endDate < startDate) {
+    const error = new Error('End date must be after the start date');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const imageInput = body.bannerImage ?? body.backgroundImage ?? body.heroImage;
+  let bannerImage = '';
+  if (imageInput !== undefined) {
+    bannerImage = imageInput ? await resolveImage(imageInput) : '';
+  } else if (isCreate) {
+    bannerImage = '';
+  }
+
+  const payload = {
+    title,
+    highlightedTitle: (body.highlightedTitle || '').trim(),
+    badgeText: (body.badgeText ?? body.heroSubtitle ?? '').trim(),
+    description: (body.description ?? body.heroDescription ?? '').trim(),
+    buttonText: (body.buttonText ?? body.heroButtonText ?? '').trim(),
+    buttonUrl: (body.buttonUrl ?? body.buttonLink ?? body.heroButtonLink ?? '').trim(),
+    button2Text: (body.button2Text ?? body.heroButton2Text ?? '').trim(),
+    button2Url: (body.button2Url ?? body.heroButton2Link ?? '').trim(),
+    overlayColor: (body.overlayColor ?? body.heroOverlayColor ?? '#0f172a').trim(),
+    offerType: normalizeOfferDepartment(body.offerType ?? body.offerDepartment),
+    offerCategory: (body.offerCategory ?? body.category ?? '').trim(),
+    discountType: normalizeDiscountType(body.discountType),
+    discountValue: parseNumber(body.discountValue),
+    offerBadge: (body.offerBadge ?? body.badge ?? '').trim(),
+    startDate,
+    endDate,
+    sortOrder: parseNumber(body.sortOrder) ?? 0,
+  };
+
+  if (imageInput !== undefined || isCreate) {
+    payload.bannerImage = bannerImage;
+    payload.backgroundImage = bannerImage;
+  }
+
+  if (body.overlayOpacity !== undefined || body.heroOverlayOpacity !== undefined) {
+    const opacity = Number(body.overlayOpacity ?? body.heroOverlayOpacity);
+    payload.overlayOpacity = Number.isNaN(opacity) ? 0.55 : Math.min(1, Math.max(0, opacity));
+  }
+
+  if (body.status !== undefined) {
+    const status = String(body.status).trim().toLowerCase();
+    if (!['active', 'inactive', 'draft'].includes(status)) {
+      const error = new Error('Status must be active, inactive, or draft');
+      error.statusCode = 400;
+      throw error;
+    }
+    payload.status = status;
+  } else if (isCreate) {
+    payload.status = 'draft';
+  }
+
+  return payload;
+};
+
+export const createOffersHeroBanner = async (body, user) => {
+  const payload = await normalizeOffersHeroBannerPayload(body, { isCreate: true });
+  payload.createdBy = user?._id || null;
+  payload.updatedBy = user?._id || null;
+
+  const banner = await OffersHeroBanner.create(payload);
+
+  await logManagerActivity({
+    user,
+    action: 'CREATE',
+    module: 'OFFERS_HERO_BANNER',
+    description: `Created offers hero banner "${banner.title}"`,
+  });
+
+  return formatOffersHeroBanner(banner);
+};
+
+export const updateOffersHeroBanner = async (id, body, user) => {
+  const banner = await OffersHeroBanner.findOne({ _id: id, status: { $ne: 'deleted' } });
+  if (!banner) {
+    const error = new Error('Hero banner not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const payload = await normalizeOffersHeroBannerPayload(body, { existing: banner });
+  Object.assign(banner, payload);
+  banner.updatedBy = user?._id || null;
+  await banner.save();
+
+  await logManagerActivity({
+    user,
+    action: 'UPDATE',
+    module: 'OFFERS_HERO_BANNER',
+    description: `Updated offers hero banner "${banner.title}"`,
+  });
+
+  return formatOffersHeroBanner(banner);
+};
+
+export const updateOffersHeroBannerStatus = async (id, status, user) => {
+  const normalized = String(status || '').trim().toLowerCase();
+  if (!['active', 'inactive', 'draft'].includes(normalized)) {
+    const error = new Error('Status must be active, inactive, or draft');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const banner = await OffersHeroBanner.findOne({ _id: id, status: { $ne: 'deleted' } });
+  if (!banner) {
+    const error = new Error('Hero banner not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  banner.status = normalized;
+  banner.updatedBy = user?._id || null;
+  await banner.save();
+
+  await logManagerActivity({
+    user,
+    action: 'UPDATE_STATUS',
+    module: 'OFFERS_HERO_BANNER',
+    description: `Set offers hero banner "${banner.title}" status to ${normalized}`,
+  });
+
+  return formatOffersHeroBanner(banner);
+};
+
+export const deleteOffersHeroBanner = async (id, user) => {
+  const banner = await OffersHeroBanner.findOne({ _id: id, status: { $ne: 'deleted' } });
+  if (!banner) {
+    const error = new Error('Hero banner not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  banner.status = 'deleted';
+  banner.updatedBy = user?._id || null;
+  await banner.save();
+
+  await logManagerActivity({
+    user,
+    action: 'DELETE',
+    module: 'OFFERS_HERO_BANNER',
+    description: `Deleted offers hero banner "${banner.title}"`,
+  });
+
+  return { success: true };
 };

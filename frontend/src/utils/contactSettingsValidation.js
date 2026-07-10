@@ -65,12 +65,6 @@ export const PRIVACY_NOTE_MAX_LENGTH = 'Privacy note cannot exceed 200 character
 const MIN_STORE_NAME_LENGTH = 3;
 
 export const CONTACT_PAGE_FIELDS = new Set([
-  'heroBadge',
-  'heroTitle',
-  'heroSubtitle',
-  'heroFeature1',
-  'heroFeature2',
-  'heroFeature3',
   'infoCardTitle',
   'infoCardSubtitle',
   'formTitle',
@@ -94,12 +88,6 @@ export const CONTACT_SETTINGS_FIELD_ORDER = [
   'contactEmail',
   'storeName',
   'address',
-  'heroBadge',
-  'heroTitle',
-  'heroSubtitle',
-  'heroFeature1',
-  'heroFeature2',
-  'heroFeature3',
   'infoCardTitle',
   'infoCardSubtitle',
   'formTitle',
@@ -127,12 +115,6 @@ export const CONTACT_SETTINGS_FIELD_IDS = {
   contactEmail: 'contact-settings-email',
   storeName: 'contact-settings-store-name',
   address: 'contact-settings-store-address',
-  heroBadge: 'contact-settings-hero-badge',
-  heroTitle: 'contact-settings-hero-title',
-  heroSubtitle: 'contact-settings-hero-subtitle',
-  heroFeature1: 'contact-settings-hero-feature-1',
-  heroFeature2: 'contact-settings-hero-feature-2',
-  heroFeature3: 'contact-settings-hero-feature-3',
   infoCardTitle: 'contact-settings-info-card-title',
   infoCardSubtitle: 'contact-settings-info-card-subtitle',
   formTitle: 'contact-settings-form-title',
@@ -192,49 +174,6 @@ const FIELD_VALIDATORS = {
   storeName: validateStoreName,
   address: (value) => validateAddress(value),
   footerDescription: validateFooterDescription,
-  heroBadge: (value) =>
-    requiredMaxText(
-      value,
-      HERO_BADGE_REQUIRED,
-      ADMIN_TEXT_LIMITS.contactHeroBadge.max,
-      HERO_BADGE_MAX_LENGTH
-    ),
-  heroTitle: (value) =>
-    requiredMaxText(
-      value,
-      HERO_TITLE_REQUIRED,
-      ADMIN_TEXT_LIMITS.contactHeroTitle.max,
-      HERO_TITLE_MAX_LENGTH
-    ),
-  heroSubtitle: (value) =>
-    requiredMaxText(
-      value,
-      HERO_SUBTITLE_REQUIRED,
-      ADMIN_TEXT_LIMITS.contactHeroSubtitle.max,
-      HERO_SUBTITLE_MAX_LENGTH,
-      { collapse: false }
-    ),
-  heroFeature1: (value) =>
-    requiredMaxText(
-      value,
-      HERO_FEATURE_1_REQUIRED,
-      ADMIN_TEXT_LIMITS.contactHeroFeature.max,
-      HERO_FEATURE_MAX_LENGTH
-    ),
-  heroFeature2: (value) =>
-    requiredMaxText(
-      value,
-      HERO_FEATURE_2_REQUIRED,
-      ADMIN_TEXT_LIMITS.contactHeroFeature.max,
-      HERO_FEATURE_MAX_LENGTH
-    ),
-  heroFeature3: (value) =>
-    requiredMaxText(
-      value,
-      HERO_FEATURE_3_REQUIRED,
-      ADMIN_TEXT_LIMITS.contactHeroFeature.max,
-      HERO_FEATURE_MAX_LENGTH
-    ),
   infoCardTitle: (value) => requiredText(value, INFO_CARD_TITLE_REQUIRED),
   infoCardSubtitle: (value) => requiredText(value, INFO_CARD_SUBTITLE_REQUIRED),
   formTitle: (value) => requiredText(value, FORM_TITLE_REQUIRED),

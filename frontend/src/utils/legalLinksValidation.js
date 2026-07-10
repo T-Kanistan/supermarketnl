@@ -11,6 +11,9 @@ export const PATH_INVALID = 'Please enter a valid Path/URL.';
 export const PATH_DUPLICATE =
   'This Path/URL already exists. Please enter a unique Path/URL.';
 
+export const PARTIAL_LABEL_REQUIRED = 'Please enter a label for this footer link.';
+export const PARTIAL_PATH_REQUIRED = 'Please enter a URL for this footer link.';
+
 const collapseSpaces = (value) =>
   String(value ?? '')
     .replace(/\s+/g, ' ')
@@ -25,6 +28,17 @@ export const sanitizeLegalLinkLabel = (value) => collapseSpaces(value);
 export const sanitizeLegalLinkPath = (value) => String(value ?? '').trim();
 
 export const getLegalLinkPath = (link) => link?.path ?? link?.url ?? '';
+
+export const isLegalLinkRowEmpty = (link) => {
+  const label = sanitizeLegalLinkLabel(link?.label);
+  const path = sanitizeLegalLinkPath(getLegalLinkPath(link));
+  return !label && !path;
+};
+
+export const filterEmptyLegalLinks = (links = []) =>
+  links.filter((link) => !isLegalLinkRowEmpty(link));
+
+export const getCompleteLegalLinks = (links = []) => filterEmptyLegalLinks(links);
 
 export const isValidLegalLinkPath = (value) => {
   const trimmed = sanitizeLegalLinkPath(value);
@@ -65,19 +79,49 @@ export const validateLegalLinkRow = (link, links, index) => ({
   path: validateLegalLinkPath(getLegalLinkPath(link), { links, excludeIndex: index }),
 });
 
+export const validateLegalLinkPartialRow = (link, allLinks, index) => {
+  const label = sanitizeLegalLinkLabel(link.label);
+  const path = sanitizeLegalLinkPath(getLegalLinkPath(link));
+
+  if (!label && !path) {
+    return { label: '', path: '' };
+  }
+
+  if (label && !path) {
+    return { label: '', path: PARTIAL_PATH_REQUIRED };
+  }
+
+  if (!label && path) {
+    return { label: PARTIAL_LABEL_REQUIRED, path: '' };
+  }
+
+  const completeLinks = filterEmptyLegalLinks(allLinks);
+  const completeIndex = completeLinks.findIndex(
+    (candidate) => candidate.id === link.id || candidate === link
+  );
+
+  return validateLegalLinkRow(link, completeLinks, completeIndex >= 0 ? completeIndex : index);
+};
+
 export const validateLegalLinksForm = (links = []) => {
   const rowErrors = {};
   let isValid = true;
 
   links.forEach((link, index) => {
-    const errors = validateLegalLinkRow(link, links, index);
+    if (isLegalLinkRowEmpty(link)) return;
+
+    const errors = validateLegalLinkPartialRow(link, links, index);
     if (errors.label || errors.path) {
       rowErrors[link.id || String(index)] = errors;
       isValid = false;
     }
   });
 
-  return { isValid, rowErrors };
+  return {
+    isValid,
+    rowErrors,
+    completeLinks: filterEmptyLegalLinks(links),
+  };
 };
 
 export const focusFirstLegalLinkError = (rowErrors) => {

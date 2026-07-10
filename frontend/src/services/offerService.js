@@ -47,7 +47,7 @@ const offerService = {
   getOffers: async (params = {}) => {
     const { admin, ...query } = params;
     const endpoint = admin ? '/offers/all' : '/offers';
-    const response = await api.get(endpoint, { params: query });
+    const response = await api.get(endpoint, { params: { ...query, _t: Date.now() } });
     return unwrap(response);
   },
 
@@ -114,8 +114,54 @@ const offerService = {
   },
 
   getBanner: async () => {
-    const response = await api.get('/offers/banner');
+    const response = await api.get('/offers/banner', { params: { _t: Date.now() } });
     return unwrap(response);
+  },
+
+  getHeroBanners: async () => {
+    const response = await api.get('/offers/hero-banners', { params: { _t: Date.now() } });
+    return unwrap(response);
+  },
+
+  getHeroBannersAdmin: async (params = {}) => {
+    const response = await api.get('/offers/hero-banners/manage', { params: { ...params, _t: Date.now() } });
+    return unwrap(response);
+  },
+
+  createHeroBanner: async (bannerData) => {
+    try {
+      const response = await api.post('/offers/hero-banners', bannerData);
+      return unwrap(response);
+    } catch (error) {
+      throw new Error(extractApiError(error, 'Failed to create hero banner'));
+    }
+  },
+
+  updateHeroBanner: async (id, bannerData) => {
+    try {
+      const response = await api.put(`/offers/hero-banners/${id}`, bannerData);
+      return unwrap(response);
+    } catch (error) {
+      throw new Error(extractApiError(error, 'Failed to update hero banner'));
+    }
+  },
+
+  updateHeroBannerStatus: async (id, status) => {
+    try {
+      const response = await api.patch(`/offers/hero-banners/${id}/status`, { status });
+      return unwrap(response);
+    } catch (error) {
+      throw new Error(extractApiError(error, 'Failed to update hero banner status'));
+    }
+  },
+
+  deleteHeroBanner: async (id) => {
+    try {
+      const response = await api.delete(`/offers/hero-banners/${id}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(extractApiError(error, 'Failed to delete hero banner'));
+    }
   },
 
   updateBanner: async (bannerData) => {

@@ -1,102 +1,178 @@
 import { useState, useEffect } from 'react';
-import { FiChevronRight, FiShoppingBag } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
-import { useCMS } from '../context/CMSContext';
+import { FiChevronRight, FiShoppingBag } from 'react-icons/fi';
 import announcementService from '../services/announcementService';
 import { getImageUrl } from '../services/api';
 import { buildPromoAlt } from '../utils/seoImageAlt';
 import './Promotions.css';
 
-const Promotions = () => {
-  const { cmsData } = useCMS();
-  const [weeklyDeal, setWeeklyDeal] = useState(null);
+const CARD_THEMES = [
+  {
+    cardClass: 'green-promo-card',
+    btnClass: 'btn-green',
+    badgeIcon: '🛒',
+    ButtonIcon: FiShoppingBag,
+  },
+  {
+    cardClass: 'orange-promo-card',
+    btnClass: 'btn-orange',
+    badgeIcon: '👨‍🍳',
+    ButtonIcon: FiChevronRight,
+  },
+];
 
-  useEffect(() => {
-    const fetchAnnouncements = async () => {
-      try {
-        const list = await announcementService.getStorefrontAnnouncements();
-        const active = list.find((a) => a.title?.toUpperCase().includes('WEEKLY'));
-        const fallback = list[0];
-        setWeeklyDeal(active || fallback);
-      } catch (err) {
-        console.error('Failed to load campaigns', err);
-      }
-    };
-    fetchAnnouncements();
-  }, []);
+const getAnnouncementBadge = (announcement) => {
+  if (announcement?.badgeText?.trim()) return announcement.badgeText.trim();
+  if (Number(announcement?.discountPercentage) > 0) {
+    return `${announcement.discountPercentage}% OFF`;
+  }
+  return '';
+};
 
-  const promo = cmsData?.foodCornerPromo || {};
-  const promoTitle = weeklyDeal?.title || 'WEEKLY DEALS';
-  const promoDesc = weeklyDeal?.description || 'Stock up on your daily essentials with our exclusive supermarket deals. Freshness guaranteed!';
-  const promoImage = getImageUrl(weeklyDeal?.bannerImage || weeklyDeal?.image) || 'https://images.unsplash.com/photo-1518843875459-f738682238a6?auto=format&fit=crop&w=800&q=80';
-  const titleParts = promoTitle.split(' ');
+const isInternalLink = (link) =>
+  link && !/^https?:\/\//i.test(link) && !link.startsWith('mailto:') && !link.startsWith('tel:');
+
+const PromoButton = ({ link, className, children }) => {
+  const target = link || '/offers';
+  if (isInternalLink(target)) {
+    return (
+      <Link to={target} className={className}>
+        {children}
+      </Link>
+    );
+  }
+  return (
+    <a href={target} className={className} target="_blank" rel="noreferrer">
+      {children}
+    </a>
+  );
+};
+
+const splitPromoTitle = (title) => {
+  const parts = String(title || '').trim().split(/\s+/).filter(Boolean);
+  if (parts.length <= 2) {
+    return { lead: parts.join(' '), highlight: '' };
+  }
+  return {
+    lead: parts.slice(0, 2).join(' '),
+    highlight: parts.slice(2).join(' '),
+  };
+};
+
+const PromoCard = ({ announcement, theme }) => {
+  const badgeText = getAnnouncementBadge(announcement);
+  const promoImage = announcement.bannerImage || announcement.image
+    ? getImageUrl(announcement.bannerImage || announcement.image)
+    : '';
+  const { lead, highlight } = splitPromoTitle(announcement.title);
+  const subtitle = announcement.subtitle?.trim() || '';
+  const ButtonIcon = theme.ButtonIcon;
 
   return (
-    <section className="promotions pt-10 pb-20" id="offers">
+    <div className={`modern-promo-card ${theme.cardClass}`}>
+      <div className="modern-promo-content">
+        <div className="modern-promo-badge-slot">
+          {badgeText ? (
+            <div className="modern-pill-badge">
+              <span className="badge-icon" aria-hidden="true">{theme.badgeIcon}</span>
+              <span>{badgeText}</span>
+            </div>
+          ) : null}
+        </div>
+        <div className="modern-promo-copy">
+          <div className="modern-promo-subtitle-slot">
+            {subtitle ? <p className="modern-promo-subtitle">{subtitle}</p> : null}
+          </div>
+          <h2 className="modern-promo-title">
+            {lead}
+            {highlight ? (
+              <>
+                <br />
+                <span className="highlight-text">{highlight}</span>
+              </>
+            ) : null}
+          </h2>
+          {announcement.description ? (
+            <p className="modern-promo-desc">{announcement.description}</p>
+          ) : null}
+        </div>
+        <div className="modern-promo-actions">
+          {announcement.buttonText ? (
+            <PromoButton
+              link={announcement.buttonLink || '/offers'}
+              className={`modern-promo-btn ${theme.btnClass}`}
+            >
+              <span>{announcement.buttonText}</span>
+              <ButtonIcon className="btn-icon" aria-hidden="true" />
+            </PromoButton>
+          ) : null}
+        </div>
+      </div>
+      {promoImage ? (
+        <div className="modern-promo-image-wrapper">
+          <img
+            src={promoImage}
+            alt={buildPromoAlt(announcement.title || 'Store announcement')}
+            className="modern-promo-img"
+            loading="lazy"
+            decoding="async"
+            width="360"
+            height="240"
+          />
+        </div>
+      ) : (
+        <div className="modern-promo-image-wrapper modern-promo-image-wrapper--empty" aria-hidden="true" />
+      )}
+    </div>
+  );
+};
+
+const Promotions = () => {
+  const [announcements, setAnnouncements] = useState([]);
+
+  const loadAnnouncements = async () => {
+    try {
+      const list = await announcementService.getStorefrontAnnouncements();
+      setAnnouncements(Array.isArray(list) ? list : []);
+    } catch (err) {
+      console.error('Failed to load store announcements', err);
+      setAnnouncements([]);
+    }
+  };
+
+  useEffect(() => {
+    loadAnnouncements();
+  }, []);
+
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState === 'visible') {
+        loadAnnouncements();
+      }
+    };
+    document.addEventListener('visibilitychange', refresh);
+    return () => document.removeEventListener('visibilitychange', refresh);
+  }, []);
+
+  if (!announcements.length) {
+    return null;
+  }
+
+  const gridClass = announcements.length === 1
+    ? 'promotions-grid promotions-grid--single'
+    : 'promotions-grid';
+
+  return (
+    <section className="promotions" id="offers">
       <div className="container">
-        <div className="promotions-grid">
-          
-          {/* LEFT CARD: Special Offers (Dynamic CMS Campaign) */}
-          <div className="modern-promo-card green-promo-card">
-            <div className="modern-promo-content">
-              <div className="modern-pill-badge">
-                <span className="badge-icon">🛒</span> WEEKLY DEALS
-              </div>
-              <h2 className="modern-promo-title">
-                {titleParts.slice(0, 2).join(' ')}<br/>
-                <span className="highlight-text">{titleParts.slice(2).join(' ') || 'THIS WEEK'}</span>
-              </h2>
-              <p className="modern-promo-desc">
-                {promoDesc}
-              </p>
-              <Link to="/offers" className="modern-promo-btn btn-green">
-                <FiShoppingBag className="btn-icon" /> Shop Offers
-              </Link>
-            </div>
-            <div className="modern-promo-image-wrapper">
-              <img
-                src={promoImage}
-                alt={buildPromoAlt('Weekly grocery deals')}
-                className="modern-promo-img"
-                loading="lazy"
-                decoding="async"
-                width="400"
-                height="300"
-                onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1518843875459-f738682238a6?auto=format&fit=crop&w=800&q=80'; }}
-              />
-            </div>
-          </div>
-
-          {/* RIGHT CARD: Food Corner (Kitchen section link) */}
-          <div className="modern-promo-card orange-promo-card">
-            <div className="modern-promo-content">
-              <div className="modern-pill-badge">
-                <span className="badge-icon">👨‍🍳</span> {promo.badge || 'RESTAURANT'}
-              </div>
-              <h2 className="modern-promo-title">
-                {promo.title || 'DELICIOUS FOOD'}<br/>
-                <span className="highlight-text">{promo.highlight || 'MADE FRESH'}</span>
-              </h2>
-              <p className="modern-promo-desc" style={{ whiteSpace: 'pre-line' }}>
-                {promo.description || ''}
-              </p>
-              <Link to={promo.buttonLink || '/food-corner'} className="modern-promo-btn btn-orange">
-                {promo.buttonText || 'Order Now'} <FiChevronRight className="btn-icon" />
-              </Link>
-            </div>
-            <div className="modern-promo-image-wrapper">
-              <img
-                src={getImageUrl(promo.image)}
-                alt={buildPromoAlt('Food Corner takeaway meals')}
-                className="modern-promo-img"
-                loading="lazy"
-                decoding="async"
-                width="400"
-                height="300"
-              />
-            </div>
-          </div>
-
+        <div className={gridClass}>
+          {announcements.map((announcement, index) => (
+            <PromoCard
+              key={announcement.id || `${announcement.title}-${index}`}
+              announcement={announcement}
+              theme={CARD_THEMES[index % CARD_THEMES.length]}
+            />
+          ))}
         </div>
       </div>
     </section>

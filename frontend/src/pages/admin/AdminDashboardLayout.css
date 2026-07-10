@@ -1178,6 +1178,62 @@ body.admin-drawer-open {
   cursor: wait;
 }
 
+.enquiry-status-badge {
+  display: inline-flex;
+  align-items: center;
+  min-width: 96px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.enquiry-status-badge.enquiry-status-new {
+  color: #b91c1c;
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.enquiry-status-badge.enquiry-status-read {
+  color: #1d4ed8;
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.enquiry-status-badge.enquiry-status-replied {
+  color: #15803d;
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+}
+
+.enquiry-status-badge.enquiry-status-closed {
+  color: #475569;
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.enquiry-view-status-panel {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--admin-border);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.enquiry-view-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.enquiry-view-status-row .enquiry-status-select {
+  min-width: 140px;
+}
+
 @media (max-width: 900px) {
   .enquiry-stats-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2001,6 +2057,11 @@ body.modal-open {
   border: 1px solid var(--admin-border);
   border-radius: 10px;
   background: #f8fafc;
+}
+
+.footer-link-row--invalid {
+  border-color: #fca5a5;
+  background: #fef2f2;
 }
 
 .footer-social-link-row select {

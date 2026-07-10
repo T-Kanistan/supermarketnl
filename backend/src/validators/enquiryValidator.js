@@ -198,6 +198,7 @@ export const enquiryListQueryRules = [
   query('page').optional().isInt({ min: 1 }),
   query('limit').optional().isInt({ min: 1, max: 100 }),
   query('date').optional().isISO8601(),
+  query('search').optional().trim().isLength({ max: 200 }).withMessage('Search query is too long'),
 ];
 
 export const enquiryStatusRules = [

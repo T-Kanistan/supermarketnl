@@ -62,41 +62,41 @@
   }
 
   .home-page .promotions {
-    padding-top: 28px;
-    padding-bottom: 28px;
+    padding-top: 24px;
+    padding-bottom: 24px;
   }
 
   .home-page .promotions-grid {
-    gap: 24px;
+    gap: 16px;
   }
 
   .home-page .modern-promo-content {
-    padding: 24px 18px;
+    padding: 18px 16px;
   }
 
   .home-page .modern-promo-title {
-    font-size: clamp(1.35rem, 5.5vw, 1.75rem);
-    line-height: 1.2;
-    margin-bottom: 12px;
+    font-size: clamp(1.2rem, 5vw, 1.5rem);
+    line-height: 1.15;
+    margin-bottom: 0;
   }
 
   .home-page .modern-promo-desc {
-    font-size: 0.9375rem;
-    line-height: 1.6;
+    font-size: 0.8125rem;
+    line-height: 1.45;
     max-width: 100%;
-    margin-bottom: 20px;
+    margin-bottom: 0;
   }
 
   .home-page .modern-pill-badge {
-    font-size: 0.7rem;
-    padding: 5px 12px;
-    margin-bottom: 14px;
+    font-size: 0.68rem;
+    padding: 4px 10px;
+    margin-bottom: 0;
   }
 
   .home-page .modern-promo-btn {
-    min-height: 44px;
-    font-size: 0.875rem;
-    padding: 10px 22px;
+    min-height: 40px;
+    font-size: 0.8125rem;
+    padding: 8px 18px;
   }
 
   .home-page .about.section-padding {

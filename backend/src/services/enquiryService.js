@@ -13,6 +13,7 @@ import {
   CONTACT_FORM_MESSAGE_REQUIRED,
   CONTACT_FORM_EMAIL_INVALID,
 } from '../utils/contactFormValidation.js';
+import { buildMultiFieldSearchFilter } from '../utils/adminSearchQuery.js';
 
 const startOfDay = (date) => {
   const d = new Date(date);

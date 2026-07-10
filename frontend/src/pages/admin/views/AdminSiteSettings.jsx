@@ -53,10 +53,13 @@ import {
   LEGAL_LINK_PATH_MAX,
   LABEL_DUPLICATE,
   PATH_DUPLICATE,
+  PARTIAL_LABEL_REQUIRED,
+  PARTIAL_PATH_REQUIRED,
   validateLegalLinksForm,
   focusFirstLegalLinkError,
   sanitizeLegalLinkLabel,
   sanitizeLegalLinkPath,
+  filterEmptyLegalLinks,
 } from '../../../utils/legalLinksValidation';
 
 const OPENING_HOURS_PLACEHOLDERS = {
@@ -335,16 +338,12 @@ const CMS_FIELD_LIMITS = {
   footerDescription: ADMIN_TEXT_LIMITS.footerDescription.max,
   quickLinkLabel: ADMIN_TEXT_LIMITS.quickLinkLabel.max,
   categoryLabel: ADMIN_TEXT_LIMITS.categoryLabel.max,
-  heroBadge: ADMIN_TEXT_LIMITS.contactHeroBadge.max,
-  heroTitle: ADMIN_TEXT_LIMITS.contactHeroTitle.max,
-  heroSubtitle: ADMIN_TEXT_LIMITS.contactHeroSubtitle.max,
-  heroFeature: ADMIN_TEXT_LIMITS.contactHeroFeature.max,
   formLabel: ADMIN_TEXT_LIMITS.contactFormLabel.max,
   placeholder: ADMIN_TEXT_LIMITS.contactPlaceholder.max,
   privacyNote: ADMIN_TEXT_LIMITS.contactPrivacyNote.max,
 };
 
-const MULTILINE_CMS_FIELDS = new Set(['heroSubtitle', 'formSubtitle', 'privacyNote', 'address', 'footerDescription']);
+const MULTILINE_CMS_FIELDS = new Set(['formSubtitle', 'privacyNote', 'address', 'footerDescription']);
 
 const FooterLinkRow = ({ link, onChange, onRemove, showEnabled = true, labelMaxLength }) => (
   <div className="footer-link-row">
@@ -395,11 +394,20 @@ const LegalFooterLinkRow = ({
   onBlur,
   onRemove,
 }) => {
-  const showLabelError = errors.label && (touched.label || errors.label === LABEL_DUPLICATE);
-  const showPathError = errors.path && (touched.path || errors.path === PATH_DUPLICATE);
+  const showLabelError =
+    errors.label &&
+    (touched.label ||
+      errors.label === LABEL_DUPLICATE ||
+      errors.label === PARTIAL_LABEL_REQUIRED);
+  const showPathError =
+    errors.path &&
+    (touched.path ||
+      errors.path === PATH_DUPLICATE ||
+      errors.path === PARTIAL_PATH_REQUIRED);
+  const hasRowError = showLabelError || showPathError;
 
   return (
-    <div className="footer-link-row">
+    <div className={`footer-link-row${hasRowError ? ' footer-link-row--invalid' : ''}`}>
       <div className="admin-form-group" style={{ marginBottom: 0 }}>
         <AdminFieldLabel htmlFor={`legal-link-${link.id}-label`} required>
           Label
@@ -974,13 +982,29 @@ export const AdminSiteSettings = () => {
     links.forEach((link) => {
       const errors = rowErrors[link.id] || {};
       const rowTouched = touched[link.id] || {};
+      const rowHasTouch = rowTouched.label || rowTouched.path;
       const isDuplicateLabel = errors.label === LABEL_DUPLICATE;
       const isDuplicatePath = errors.path === PATH_DUPLICATE;
+      const isPartialLabel = errors.label === PARTIAL_LABEL_REQUIRED;
+      const isPartialPath = errors.path === PARTIAL_PATH_REQUIRED;
 
       nextErrors[link.id] = {
         label:
-          errors.label && (forceAll || rowTouched.label || isDuplicateLabel) ? errors.label : '',
-        path: errors.path && (forceAll || rowTouched.path || isDuplicatePath) ? errors.path : '',
+          errors.label &&
+          (forceAll ||
+            rowTouched.label ||
+            isDuplicateLabel ||
+            (isPartialLabel && rowHasTouch))
+            ? errors.label
+            : '',
+        path:
+          errors.path &&
+          (forceAll ||
+            rowTouched.path ||
+            isDuplicatePath ||
+            (isPartialPath && rowHasTouch))
+            ? errors.path
+            : '',
       };
     });
 
@@ -1048,7 +1072,6 @@ export const AdminSiteSettings = () => {
       setLegalLinkTouched(allTouched);
       setLegalLinkErrors(buildLegalLinkErrors(links, allTouched, { forceAll: true }));
       focusFirstLegalLinkError(validation.rowErrors);
-      addToast('Please fix the legal link errors before saving.', 'error');
       return false;
     }
 
@@ -1137,15 +1160,18 @@ export const AdminSiteSettings = () => {
         resetValidationState();
         addToast('Contact settings updated successfully!', 'success');
       } else if (activeTab === 'footer') {
+        const completeLegalLinks = filterEmptyLegalLinks(formData.footerPage.legalLinks).map(
+          (link) => ({
+            ...link,
+            label: sanitizeLegalLinkLabel(link.label),
+            path: sanitizeLegalLinkPath(link.path),
+          })
+        );
         const sanitizedFormData = {
           ...formData,
           footerPage: {
             ...formData.footerPage,
-            legalLinks: formData.footerPage.legalLinks.map((link) => ({
-              ...link,
-              label: sanitizeLegalLinkLabel(link.label),
-              path: sanitizeLegalLinkPath(link.path),
-            })),
+            legalLinks: completeLegalLinks,
           },
         };
         const updated = await updateFooterData(sanitizedFormData);
@@ -1160,7 +1186,7 @@ export const AdminSiteSettings = () => {
           }),
         }));
         resetValidationState();
-        addToast('Footer settings updated successfully!', 'success');
+        addToast('Footer settings updated successfully.', 'success');
       } else if (activeTab === 'general') {
         await siteSettingsService.updateSiteSettings(formData);
         applyOpeningHoursToStorefront({
@@ -1181,7 +1207,27 @@ export const AdminSiteSettings = () => {
       }
     } catch (err) {
       console.error('Failed to update settings', err);
-      addToast(err.message || 'Failed to update settings', 'error');
+      if (activeTab === 'footer') {
+        const hasLegalLinkErrors = !validateLegalLinksBeforeSave();
+        if (!hasLegalLinkErrors) {
+          const apiMessage = err.response?.data?.message;
+          const message =
+            (apiMessage && apiMessage !== 'Validation failed' ? apiMessage : null) ||
+            'Failed to update footer settings.';
+          addToast(message, 'error');
+        }
+        return;
+      }
+
+      const apiErrors = err.response?.data?.errors;
+      const firstFieldError = Array.isArray(apiErrors) ? apiErrors[0]?.message : null;
+      const apiMessage = err.response?.data?.message;
+      const friendlyMessage =
+        firstFieldError ||
+        (apiMessage && apiMessage !== 'Validation failed' ? apiMessage : null) ||
+        (err.message?.includes('status code') ? 'Failed to update settings' : err.message) ||
+        'Failed to update settings';
+      addToast(friendlyMessage, 'error');
     } finally {
       setIsSaving(false);
     }
@@ -1381,86 +1427,7 @@ export const AdminSiteSettings = () => {
               </div>
 
               <div className="settings-subsection">
-                <h4>2. Page Hero</h4>
-                <div className="admin-form-group row-split">
-                  <ContactValidatedField
-                    field="heroBadge"
-                    label="Hero Badge"
-                    required
-                    value={formData.contactPage.heroBadge}
-                    maxLength={CMS_FIELD_LIMITS.heroBadge}
-                    error={contactSettingsErrors.heroBadge}
-                    touched={contactSettingsTouched.heroBadge}
-                    onChange={handleContactSettingsChange}
-                    onBlur={handleContactSettingsBlur}
-                  />
-                  <ContactValidatedField
-                    field="heroTitle"
-                    label="Hero Title"
-                    required
-                    value={formData.contactPage.heroTitle}
-                    maxLength={CMS_FIELD_LIMITS.heroTitle}
-                    error={contactSettingsErrors.heroTitle}
-                    touched={contactSettingsTouched.heroTitle}
-                    onChange={handleContactSettingsChange}
-                    onBlur={handleContactSettingsBlur}
-                  />
-                </div>
-                <div className="admin-form-group">
-                  <ContactValidatedField
-                    field="heroSubtitle"
-                    label="Hero Subtitle"
-                    required
-                    value={formData.contactPage.heroSubtitle}
-                    maxLength={CMS_FIELD_LIMITS.heroSubtitle}
-                    multiline
-                    rows={2}
-                    collapseOnBlur={false}
-                    error={contactSettingsErrors.heroSubtitle}
-                  touched={contactSettingsTouched.heroSubtitle}
-                  onChange={handleContactSettingsChange}
-                  onBlur={handleContactSettingsBlur}
-                  />
-                </div>
-                <div className="admin-form-group row-split">
-                  <ContactValidatedField
-                    field="heroFeature1"
-                    label="Hero Feature 1"
-                    required
-                    value={formData.contactPage.heroFeature1}
-                    maxLength={CMS_FIELD_LIMITS.heroFeature}
-                    error={contactSettingsErrors.heroFeature1}
-                    touched={contactSettingsTouched.heroFeature1}
-                    onChange={handleContactSettingsChange}
-                    onBlur={handleContactSettingsBlur}
-                  />
-                  <ContactValidatedField
-                    field="heroFeature2"
-                    label="Hero Feature 2"
-                    required
-                    value={formData.contactPage.heroFeature2}
-                    maxLength={CMS_FIELD_LIMITS.heroFeature}
-                    error={contactSettingsErrors.heroFeature2}
-                    touched={contactSettingsTouched.heroFeature2}
-                    onChange={handleContactSettingsChange}
-                    onBlur={handleContactSettingsBlur}
-                  />
-                  <ContactValidatedField
-                    field="heroFeature3"
-                    label="Hero Feature 3"
-                    required
-                    value={formData.contactPage.heroFeature3}
-                    maxLength={CMS_FIELD_LIMITS.heroFeature}
-                    error={contactSettingsErrors.heroFeature3}
-                    touched={contactSettingsTouched.heroFeature3}
-                    onChange={handleContactSettingsChange}
-                    onBlur={handleContactSettingsBlur}
-                  />
-                </div>
-              </div>
-
-              <div className="settings-subsection">
-                <h4>3. Contact Information Card</h4>
+                <h4>2. Contact Information Card</h4>
                 <div className="admin-form-group row-split">
                   <ContactValidatedField
                     field="infoCardTitle"
@@ -1488,7 +1455,7 @@ export const AdminSiteSettings = () => {
               </div>
 
               <div className="settings-subsection">
-                <h4>4. Send Us a Message Form</h4>
+                <h4>3. Send Us a Message Form</h4>
                 <div className="admin-form-group row-split">
                   <ContactValidatedField
                     field="formTitle"

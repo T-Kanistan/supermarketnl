@@ -19,7 +19,8 @@ import AdminFieldLabel from '../../../components/admin/AdminFieldLabel';
  * Offers Management studio — fully wired to the live backend:
  *  - Offers      -> /api/offers (+ /api/offers/all for admin reads)
  *  - Categories  -> /api/offers/categories(/manage)
- *  - Banners     -> /api/offers/banner
+ *  - Hero Banners -> /api/offers/hero-banners
+ *  - Promo Banner  -> /api/offers/banner
  *  - Image upload-> /api/upload/offer-image
  * No placeholder data or local-only state remains.
  */
@@ -74,10 +75,13 @@ const mapApiOffer = (offer) => ({
   originalPrice: offer.originalPrice ?? null,
   offerPrice: offer.offerPrice ?? null,
   badge: offer.offerBadge || '',
+  buttonText: offer.buttonText || 'Enquiry',
+  buttonLink: offer.buttonLink || '',
   startDate: toDateInput(offer.startDate),
   endDate: toDateInput(offer.endDate),
   image: offer.image || '',
   active: offer.status ? offer.status === 'active' : Boolean(offer.active),
+  featured: Boolean(offer.featured),
   sortOrder: offer.sortOrder ?? 0,
   createdAt: offer.createdAt || new Date().toISOString(),
 });
@@ -86,8 +90,70 @@ const emptyOfferForm = {
   title: '', subtitle: '', description: '', category: '',
   discountType: 'percentage', offerDepartment: 'Supermarket',
   discountValue: '', originalPrice: '', offerPrice: '',
-  badge: '', startDate: '', endDate: '', image: '',
-  active: true, sortOrder: 0,
+  badge: '', buttonText: 'Enquiry', buttonLink: '',
+  startDate: '', endDate: '', image: '',
+  active: true, featured: false, sortOrder: 0,
+};
+
+const emptyHeroBannerForm = {
+  bannerImage: '',
+  badgeText: '',
+  title: '',
+  highlightedTitle: '',
+  description: '',
+  buttonText: '',
+  buttonUrl: '',
+  button2Text: '',
+  button2Url: '',
+  overlayColor: '#0f172a',
+  overlay: 55,
+  offerType: 'Supermarket',
+  offerCategory: '',
+  discountType: 'percentage',
+  discountValue: '',
+  offerBadge: '',
+  status: 'draft',
+  startDate: '',
+  endDate: '',
+  sortOrder: 0,
+};
+
+const mapApiHeroBanner = (banner) => ({
+  id: banner.id,
+  bannerImage: banner.bannerImage || banner.backgroundImage || '',
+  badgeText: banner.badgeText || '',
+  title: banner.title || '',
+  highlightedTitle: banner.highlightedTitle || '',
+  description: banner.description || '',
+  buttonText: banner.buttonText || '',
+  buttonUrl: banner.buttonUrl || '',
+  button2Text: banner.button2Text || '',
+  button2Url: banner.button2Url || '',
+  overlayColor: banner.overlayColor || '#0f172a',
+  overlay: banner.overlayOpacity != null
+    ? Math.round(Number(banner.overlayOpacity) * 100)
+    : 55,
+  offerType: banner.offerType || 'Supermarket',
+  offerCategory: banner.offerCategory || '',
+  discountType: banner.discountType || 'percentage',
+  discountValue: banner.discountValue ?? '',
+  offerBadge: banner.offerBadge || '',
+  status: banner.status || banner.effectiveStatus || 'draft',
+  effectiveStatus: banner.effectiveStatus || banner.status || 'draft',
+  startDate: toDateInput(banner.startDate),
+  endDate: toDateInput(banner.endDate),
+  sortOrder: banner.sortOrder ?? 0,
+});
+
+const emptyPromoForm = {
+  promoImage: '',
+  promoTitle: '',
+  promoSubtitle: '',
+  promoDescription: '',
+  promoButtonText: '',
+  promoButtonLink: '',
+  promoOverlay: 45,
+  promoOverlayColor: '#0f172a',
 };
 
 const ITEMS_PER_PAGE = 5;
@@ -192,43 +258,60 @@ export const AdminOffersManager = () => {
     loadOffers();
   }, [loadCategories, loadOffers]);
 
-  // Hero banner state
-  const [heroForm, setHeroForm] = useState({
-    image: '', title: 'Exclusive Offers & Deals', subtitle: 'Save big every day',
-    description: 'Discover handpicked discounts across the supermarket and food corner.',
-    primaryText: 'Shop Offers', primaryUrl: '/offers',
-    secondaryText: 'View Products', secondaryUrl: '/products',
-    overlay: 55, textPosition: 'left', active: true,
-  });
+  // Hero banners + promo banner state
+  const [heroBanners, setHeroBanners] = useState([]);
+  const [heroBannersLoading, setHeroBannersLoading] = useState(false);
+  const [isHeroModalOpen, setIsHeroModalOpen] = useState(false);
+  const [editingHeroBanner, setEditingHeroBanner] = useState(null);
+  const [heroBannerForm, setHeroBannerForm] = useState(emptyHeroBannerForm);
+  const [heroBannerSaving, setHeroBannerSaving] = useState(false);
+  const [deleteHeroTarget, setDeleteHeroTarget] = useState(null);
 
-  const [heroSaving, setHeroSaving] = useState(false);
+  const [promoForm, setPromoForm] = useState(emptyPromoForm);
+  const [promoSaving, setPromoSaving] = useState(false);
 
-  // Load the saved Offers page banner (hero + promo) from the backend.
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      try {
-        const banner = await offerService.getBanner();
-        if (!active || !banner) return;
-        setHeroForm((prev) => ({
-          ...prev,
-          image: banner.heroImage || '',
-          title: banner.heroTitle ?? prev.title,
-          subtitle: banner.heroSubtitle ?? prev.subtitle,
-          description: banner.heroDescription ?? prev.description,
-          primaryText: banner.heroButtonText ?? prev.primaryText,
-          primaryUrl: banner.heroButtonLink ?? prev.primaryUrl,
-        }));
-      } catch (err) {
-        console.error('Failed to load offers banner', err);
-      }
-    })();
-    return () => {
-      active = false;
-    };
+  const loadHeroBanners = useCallback(async () => {
+    setHeroBannersLoading(true);
+    try {
+      const data = await offerService.getHeroBannersAdmin();
+      setHeroBanners(Array.isArray(data) ? data.map(mapApiHeroBanner) : []);
+    } catch (err) {
+      console.error('Failed to load hero banners', err);
+      addToast(err.message || 'Failed to load hero banners', 'error');
+    } finally {
+      setHeroBannersLoading(false);
+    }
+  }, [addToast]);
+
+  const loadPromoBanner = useCallback(async () => {
+    try {
+      const banner = await offerService.getBanner();
+      if (!banner) return;
+      setPromoForm({
+        promoImage: banner.promoImage || '',
+        promoTitle: banner.promoTitle ?? '',
+        promoSubtitle: banner.promoSubtitle ?? '',
+        promoDescription: banner.promoDescription ?? '',
+        promoButtonText: banner.promoButtonText ?? '',
+        promoButtonLink: banner.promoButtonLink ?? '',
+        promoOverlayColor: banner.promoOverlayColor || '#0f172a',
+        promoOverlay: banner.promoOverlayOpacity != null
+          ? Math.round(Number(banner.promoOverlayOpacity) * 100)
+          : 45,
+      });
+    } catch (err) {
+      console.error('Failed to load promo banner', err);
+    }
   }, []);
 
-  const anyModalOpen = isOfferModalOpen || isCategoryModalOpen || previewOffer || deleteTarget || deleteCategoryTarget;
+  useEffect(() => {
+    if (activeTab === 'hero') {
+      loadHeroBanners();
+      loadPromoBanner();
+    }
+  }, [activeTab, loadHeroBanners, loadPromoBanner]);
+
+  const anyModalOpen = isOfferModalOpen || isCategoryModalOpen || isHeroModalOpen || previewOffer || deleteTarget || deleteCategoryTarget || deleteHeroTarget;
 
   useEffect(() => {
     if (!anyModalOpen) return undefined;
@@ -372,7 +455,9 @@ export const AdminOffersManager = () => {
     image: offerForm.image,
     startDate: offerForm.startDate || null,
     endDate: offerForm.endDate || null,
-    buttonText: 'Enquiry',
+    buttonText: offerForm.buttonText?.trim() || 'Enquiry',
+    buttonLink: offerForm.buttonLink?.trim() || '',
+    featured: Boolean(offerForm.featured),
     status: offerForm.active ? 'active' : 'inactive',
     sortOrder: offerForm.sortOrder,
   });
@@ -454,7 +539,9 @@ export const AdminOffersManager = () => {
         image: offer.image,
         startDate: offer.startDate || null,
         endDate: offer.endDate || null,
-        buttonText: 'Enquiry',
+        buttonText: offer.buttonText || 'Enquiry',
+        buttonLink: offer.buttonLink || '',
+        featured: Boolean(offer.featured),
         status: offer.active ? 'active' : 'inactive',
         sortOrder: offer.sortOrder,
       });
@@ -543,52 +630,193 @@ export const AdminOffersManager = () => {
     }
   };
 
-  // --- Banner handlers (wired to backend) ---
-  const handleHeroChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setHeroForm((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+  const renderHeroStatusBadge = (banner) => {
+    const status = banner.effectiveStatus || banner.status;
+    if (status === 'expired') {
+      return <span className="product-status-badge inactive" style={{ background: '#fee2e2', color: '#b91c1c' }}>Expired</span>;
+    }
+    if (status === 'draft') {
+      return <span className="product-status-badge inactive" style={{ background: '#e2e8f0', color: '#475569' }}>Draft</span>;
+    }
+    if (status === 'inactive') {
+      return <span className="product-status-badge inactive">Inactive</span>;
+    }
+    if (status === 'scheduled') {
+      return <span className="product-status-badge inactive" style={{ background: '#fef3c7', color: '#b45309' }}>Scheduled</span>;
+    }
+    return <span className="product-status-badge active">Active</span>;
   };
-  const handleHeroImage = async (e) => {
+
+  const openCreateHeroBanner = () => {
+    const today = new Date();
+    const nextYear = new Date(today);
+    nextYear.setFullYear(nextYear.getFullYear() + 1);
+    setEditingHeroBanner(null);
+    setHeroBannerForm({
+      ...emptyHeroBannerForm,
+      startDate: today.toISOString().slice(0, 10),
+      endDate: nextYear.toISOString().slice(0, 10),
+    });
+    setIsHeroModalOpen(true);
+  };
+
+  const openEditHeroBanner = (banner) => {
+    setEditingHeroBanner(banner);
+    setHeroBannerForm({ ...banner });
+    setIsHeroModalOpen(true);
+  };
+
+  const closeHeroModal = () => {
+    setIsHeroModalOpen(false);
+    setEditingHeroBanner(null);
+    setHeroBannerForm(emptyHeroBannerForm);
+  };
+
+  const handleHeroBannerChange = (e) => {
+    const { name, value } = e.target;
+    setHeroBannerForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleHeroBannerImage = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (rejectInvalidCmsImageFile(file, (msg) => addToast(msg, 'error'), e.target)) return;
 
     const preview = URL.createObjectURL(file);
-    setHeroForm((prev) => ({ ...prev, image: preview }));
+    setHeroBannerForm((prev) => ({ ...prev, bannerImage: preview }));
     try {
       const uploadedUrl = await offerService.uploadOfferImage(file);
-      setHeroForm((prev) => ({ ...prev, image: uploadedUrl }));
-      addToast('Hero image uploaded', 'success');
+      setHeroBannerForm((prev) => ({ ...prev, bannerImage: uploadedUrl }));
+      addToast('Banner image uploaded', 'success');
     } catch (err) {
-      console.error('Hero image upload failed', err);
-      addToast(err.message || 'Failed to upload hero image', 'error');
-      setHeroForm((prev) => ({ ...prev, image: '' }));
+      console.error('Hero banner image upload failed', err);
+      addToast(err.message || 'Failed to upload banner image', 'error');
+      setHeroBannerForm((prev) => ({ ...prev, bannerImage: '' }));
     }
   };
 
-  const handleHeroSubmit = async (e) => {
+  const buildHeroBannerPayload = () => ({
+    bannerImage: heroBannerForm.bannerImage || '',
+    badgeText: heroBannerForm.badgeText,
+    title: heroBannerForm.title,
+    highlightedTitle: heroBannerForm.highlightedTitle,
+    description: heroBannerForm.description,
+    buttonText: heroBannerForm.buttonText,
+    buttonUrl: heroBannerForm.buttonUrl,
+    button2Text: heroBannerForm.button2Text,
+    button2Url: heroBannerForm.button2Url,
+    overlayColor: heroBannerForm.overlayColor,
+    overlayOpacity: Number(heroBannerForm.overlay) / 100,
+    offerType: heroBannerForm.offerType,
+    offerCategory: heroBannerForm.offerCategory,
+    discountType: heroBannerForm.discountType,
+    discountValue: heroBannerForm.discountValue === '' || heroBannerForm.discountValue == null
+      ? null
+      : Number(heroBannerForm.discountValue),
+    offerBadge: heroBannerForm.offerBadge,
+    status: heroBannerForm.status,
+    startDate: heroBannerForm.startDate,
+    endDate: heroBannerForm.endDate,
+    sortOrder: Number(heroBannerForm.sortOrder) || 0,
+  });
+
+  const handleSaveHeroBanner = async (e) => {
     e.preventDefault();
-    if (!isAdmin) { addToast('Only administrators can update banners', 'error'); return; }
-    if (heroForm.image?.startsWith('blob:')) {
+    if (!isAdmin) {
+      addToast('Only administrators can manage hero banners', 'error');
+      return;
+    }
+    if (!heroBannerForm.title.trim()) {
+      addToast('Title is required', 'error');
+      return;
+    }
+    if (!heroBannerForm.startDate || !heroBannerForm.endDate) {
+      addToast('Start and end dates are required', 'error');
+      return;
+    }
+    if (heroBannerForm.bannerImage?.startsWith('blob:')) {
       addToast('Please wait for the image to finish uploading', 'error');
       return;
     }
-    setHeroSaving(true);
+
+    setHeroBannerSaving(true);
     try {
-      await offerService.updateBanner({
-        heroImage: heroForm.image || '',
-        heroTitle: heroForm.title,
-        heroSubtitle: heroForm.subtitle,
-        heroDescription: heroForm.description,
-        heroButtonText: heroForm.primaryText,
-        heroButtonLink: heroForm.primaryUrl,
-      });
-      addToast('Hero banner saved', 'success');
+      const payload = buildHeroBannerPayload();
+      if (editingHeroBanner) {
+        await offerService.updateHeroBanner(editingHeroBanner.id, payload);
+        addToast('Hero banner updated', 'success');
+      } else {
+        await offerService.createHeroBanner(payload);
+        addToast('Hero banner created', 'success');
+      }
+      closeHeroModal();
+      await loadHeroBanners();
     } catch (err) {
       console.error('Failed to save hero banner', err);
       addToast(err.message || 'Failed to save hero banner', 'error');
     } finally {
-      setHeroSaving(false);
+      setHeroBannerSaving(false);
+    }
+  };
+
+  const toggleHeroBannerStatus = async (banner) => {
+    const nextStatus = banner.status === 'active' ? 'inactive' : 'active';
+    try {
+      await offerService.updateHeroBannerStatus(banner.id, nextStatus);
+      addToast(`Hero banner "${banner.title}" is now ${nextStatus}`, 'success');
+      await loadHeroBanners();
+    } catch (err) {
+      console.error('Failed to update hero banner status', err);
+      addToast(err.message || 'Failed to update hero banner status', 'error');
+    }
+  };
+
+  const confirmDeleteHeroBanner = async () => {
+    const target = deleteHeroTarget;
+    setDeleteHeroTarget(null);
+    try {
+      await offerService.deleteHeroBanner(target.id);
+      addToast('Hero banner deleted', 'success');
+      await loadHeroBanners();
+    } catch (err) {
+      console.error('Failed to delete hero banner', err);
+      addToast(err.message || 'Failed to delete hero banner', 'error');
+    }
+  };
+
+  const handlePromoChange = (e) => {
+    const { name, value } = e.target;
+    setPromoForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handlePromoSubmit = async (e) => {
+    e.preventDefault();
+    if (!isAdmin) {
+      addToast('Only administrators can update banners', 'error');
+      return;
+    }
+    if (promoForm.promoImage?.startsWith('blob:')) {
+      addToast('Please wait for the image to finish uploading', 'error');
+      return;
+    }
+    setPromoSaving(true);
+    try {
+      await offerService.updateBanner({
+        promoImage: promoForm.promoImage || '',
+        promoTitle: promoForm.promoTitle,
+        promoSubtitle: promoForm.promoSubtitle,
+        promoDescription: promoForm.promoDescription,
+        promoButtonText: promoForm.promoButtonText,
+        promoButtonLink: promoForm.promoButtonLink,
+        promoOverlayColor: promoForm.promoOverlayColor,
+        promoOverlayOpacity: Number(promoForm.promoOverlay) / 100,
+      });
+      addToast('Promotion banner saved', 'success');
+    } catch (err) {
+      console.error('Failed to save promo banner', err);
+      addToast(err.message || 'Failed to save promotion banner', 'error');
+    } finally {
+      setPromoSaving(false);
     }
   };
 
@@ -834,72 +1062,270 @@ export const AdminOffersManager = () => {
       )}
 
       {activeTab === 'hero' && (
-        <div className="offm-banner-layout">
-          <form className="offm-banner-form" onSubmit={handleHeroSubmit}>
-            <h3>Hero Banner Management</h3>
-            <div className="admin-form-group">
-              <AdminFieldLabel htmlFor="offm-hero-image" optional>Banner Image</AdminFieldLabel>
-              <div className="image-upload-zone">
-                <input type="file" accept={CMS_IMAGE_ACCEPT} id="hero-upload" onChange={handleHeroImage} style={{ display: 'none' }} />
-                <label htmlFor="hero-upload" style={{ cursor: 'pointer', margin: 0, color: 'var(--admin-sidebar-active)', fontWeight: 600 }}>
-                  <FaImage /> Upload Hero Image
-                </label>
-              </div>
+        <>
+          <div className="offm-subhead">
+            <div>
+              <h3>Hero Banner Management</h3>
+              <p>Create and schedule hero banners shown at the top of the Offers page.</p>
             </div>
-            <div className="admin-form-group"><AdminFieldLabel htmlFor="offm-hero-title" optional>Main Title</AdminFieldLabel><input id="offm-hero-title" type="text" name="title" value={heroForm.title} onChange={handleHeroChange} /></div>
-            <div className="admin-form-group"><AdminFieldLabel htmlFor="offm-hero-subtitle" optional>Subtitle</AdminFieldLabel><input id="offm-hero-subtitle" type="text" name="subtitle" value={heroForm.subtitle} onChange={handleHeroChange} /></div>
-            <div className="admin-form-group"><AdminFieldLabel htmlFor="offm-hero-description" optional>Description</AdminFieldLabel><textarea id="offm-hero-description" name="description" rows={2} value={heroForm.description} onChange={handleHeroChange} /></div>
-            <div className="admin-form-group row-split" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-              <div><AdminFieldLabel htmlFor="offm-hero-primary-text" optional>Primary Button Text</AdminFieldLabel><input id="offm-hero-primary-text" type="text" name="primaryText" value={heroForm.primaryText} onChange={handleHeroChange} /></div>
-              <div><AdminFieldLabel htmlFor="offm-hero-primary-url" optional>Primary Button URL</AdminFieldLabel><input id="offm-hero-primary-url" type="text" name="primaryUrl" value={heroForm.primaryUrl} onChange={handleHeroChange} /></div>
-            </div>
-            <div className="admin-form-group row-split" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-              <div><AdminFieldLabel htmlFor="offm-hero-secondary-text" optional>Secondary Button Text</AdminFieldLabel><input id="offm-hero-secondary-text" type="text" name="secondaryText" value={heroForm.secondaryText} onChange={handleHeroChange} /></div>
-              <div><AdminFieldLabel htmlFor="offm-hero-secondary-url" optional>Secondary Button URL</AdminFieldLabel><input id="offm-hero-secondary-url" type="text" name="secondaryUrl" value={heroForm.secondaryUrl} onChange={handleHeroChange} /></div>
-            </div>
-            <div className="admin-form-group">
-              <AdminFieldLabel htmlFor="offm-hero-overlay" optional>Overlay Opacity: {heroForm.overlay}%</AdminFieldLabel>
-              <input type="range" min="0" max="90" name="overlay" value={heroForm.overlay} onChange={handleHeroChange} className="offm-range" />
-            </div>
-            <div className="admin-form-group row-split" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'end' }}>
-              <div>
-                <AdminFieldLabel htmlFor="offm-hero-text-position" optional>Text Position</AdminFieldLabel>
-                <select id="offm-hero-text-position" name="textPosition" value={heroForm.textPosition} onChange={handleHeroChange}>
-                  <option value="left">Left</option>
-                  <option value="center">Center</option>
-                  <option value="right">Right</option>
-                </select>
-              </div>
-              <label className="offm-switch-row">
-                <span>Enabled</span>
-                <span className="toggle-switch-admin">
-                  <input type="checkbox" name="active" checked={heroForm.active} onChange={handleHeroChange} />
-                  <span className="toggle-slider-admin" />
-                </span>
-              </label>
-            </div>
-            <button type="submit" className="action-btn-primary" style={{ marginTop: 8 }} disabled={heroSaving}>
-              {heroSaving ? 'Saving…' : 'Save Hero Banner'}
+            <button type="button" className="action-btn-primary" onClick={openCreateHeroBanner}>
+              <FaPlus /> Add Hero Banner
             </button>
-          </form>
+          </div>
 
-          <div className="offm-banner-preview-wrap">
-            <span className="offm-preview-label">Live Preview</span>
-            <div
-              className={`offm-hero-preview pos-${heroForm.textPosition}`}
-              style={{ backgroundImage: `url(${heroForm.image ? getImageUrl(heroForm.image) : FALLBACK_IMAGE})` }}
-            >
-              <div className="offm-hero-overlay" style={{ opacity: heroForm.overlay / 100 }} />
-              <div className="offm-hero-content">
-                <span className="offm-hero-eyebrow">{heroForm.subtitle}</span>
-                <h2>{heroForm.title}</h2>
-                <p>{heroForm.description}</p>
-                <div className="offm-hero-btns">
-                  {heroForm.primaryText && <span className="offm-hero-btn primary">{heroForm.primaryText}</span>}
-                  {heroForm.secondaryText && <span className="offm-hero-btn secondary">{heroForm.secondaryText}</span>}
+          {heroBannersLoading ? (
+            <div className="offm-empty-state"><p>Loading hero banners…</p></div>
+          ) : heroBanners.length === 0 ? (
+            <div className="offm-empty-state">
+              <FaImage className="offm-empty-icon" aria-hidden="true" />
+              <h3>No hero banners yet</h3>
+              <p>Add an active hero banner to display it on the Offers page.</p>
+            </div>
+          ) : (
+            <div className="dashboard-panel" style={{ overflowX: 'auto' }}>
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Preview</th>
+                    <th>Title</th>
+                    <th>Schedule</th>
+                    <th>Status</th>
+                    <th>Order</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {heroBanners.map((banner) => (
+                    <tr key={banner.id}>
+                      <td data-label="Preview">
+                        {banner.bannerImage ? (
+                          <img
+                            src={getImageUrl(banner.bannerImage)}
+                            alt={banner.title}
+                            style={{ width: 72, height: 44, objectFit: 'cover', borderRadius: 8 }}
+                          />
+                        ) : (
+                          <span style={{ color: '#94a3b8', fontSize: '0.82rem' }}>No image</span>
+                        )}
+                      </td>
+                      <td data-label="Title">
+                        <strong>{banner.title}</strong>
+                        {banner.highlightedTitle ? (
+                          <div style={{ color: '#64748b', fontSize: '0.82rem' }}>{banner.highlightedTitle}</div>
+                        ) : null}
+                      </td>
+                      <td data-label="Schedule" style={{ fontSize: '0.82rem', color: '#64748b' }}>
+                        {formatDate(banner.startDate)} – {formatDate(banner.endDate)}
+                      </td>
+                      <td data-label="Status">{renderHeroStatusBadge(banner)}</td>
+                      <td data-label="Order">{banner.sortOrder ?? 0}</td>
+                      <td data-label="Actions" className="admin-actions-cell">
+                        <div className="cell-actions">
+                          <button className="btn-action-cell edit" onClick={() => openEditHeroBanner(banner)} title="Edit"><FaEdit /></button>
+                          <button
+                            className="btn-action-cell"
+                            onClick={() => toggleHeroBannerStatus(banner)}
+                            title={banner.status === 'active' ? 'Deactivate' : 'Activate'}
+                            style={{ color: banner.status === 'active' ? '#16a34a' : '#94a3b8' }}
+                          >
+                            {banner.status === 'active' ? <FaToggleOn /> : <FaToggleOff />}
+                          </button>
+                          {isAdmin && (
+                            <button className="btn-action-cell delete" onClick={() => setDeleteHeroTarget(banner)} title="Delete"><FaTrash /></button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          <div className="offm-banner-layout" style={{ marginTop: 28 }}>
+            <form className="offm-banner-form" onSubmit={handlePromoSubmit}>
+              <h3>Promotion Banner</h3>
+              <div className="admin-form-group">
+                <AdminFieldLabel htmlFor="offm-promo-title" optional>Promo Title</AdminFieldLabel>
+                <input id="offm-promo-title" type="text" name="promoTitle" value={promoForm.promoTitle} onChange={handlePromoChange} />
+              </div>
+              <div className="admin-form-group">
+                <AdminFieldLabel htmlFor="offm-promo-subtitle" optional>Promo Subtitle</AdminFieldLabel>
+                <input id="offm-promo-subtitle" type="text" name="promoSubtitle" value={promoForm.promoSubtitle} onChange={handlePromoChange} />
+              </div>
+              <div className="admin-form-group">
+                <AdminFieldLabel htmlFor="offm-promo-description" optional>Promo Description</AdminFieldLabel>
+                <textarea id="offm-promo-description" name="promoDescription" rows={2} value={promoForm.promoDescription} onChange={handlePromoChange} />
+              </div>
+              <div className="admin-form-group row-split" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <div>
+                  <AdminFieldLabel htmlFor="offm-promo-button-text" optional>Promo Button Text</AdminFieldLabel>
+                  <input id="offm-promo-button-text" type="text" name="promoButtonText" value={promoForm.promoButtonText} onChange={handlePromoChange} />
+                </div>
+                <div>
+                  <AdminFieldLabel htmlFor="offm-promo-button-link" optional>Promo Button URL</AdminFieldLabel>
+                  <input id="offm-promo-button-link" type="text" name="promoButtonLink" value={promoForm.promoButtonLink} onChange={handlePromoChange} />
                 </div>
               </div>
-              {!heroForm.active && <span className="offm-disabled-flag">Disabled</span>}
+              <div className="admin-form-group">
+                <AdminFieldLabel htmlFor="offm-promo-overlay" optional>Promo Overlay Opacity: {promoForm.promoOverlay}%</AdminFieldLabel>
+                <input type="range" min="0" max="90" name="promoOverlay" value={promoForm.promoOverlay} onChange={handlePromoChange} className="offm-range" />
+              </div>
+              <button type="submit" className="action-btn-primary" style={{ marginTop: 8 }} disabled={promoSaving}>
+                {promoSaving ? 'Saving…' : 'Save Promotion Banner'}
+              </button>
+            </form>
+          </div>
+        </>
+      )}
+
+      {isHeroModalOpen && (
+        <div className="admin-modal-overlay" onClick={closeHeroModal} role="presentation">
+          <div className="admin-modal-container" style={{ maxWidth: 760 }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>{editingHeroBanner ? 'Edit Hero Banner' : 'Add Hero Banner'}</h3>
+              <button type="button" className="modal-close-btn" onClick={closeHeroModal} aria-label="Close">&times;</button>
+            </div>
+            <form onSubmit={handleSaveHeroBanner}>
+              <div className="modal-body">
+                <div className="admin-form-group">
+                  <AdminFieldLabel htmlFor="offm-hero-banner-image" optional>Banner Image</AdminFieldLabel>
+                  <div className="image-upload-zone">
+                    <input type="file" accept={CMS_IMAGE_ACCEPT} id="hero-banner-upload" onChange={handleHeroBannerImage} style={{ display: 'none' }} />
+                    <label htmlFor="hero-banner-upload" style={{ cursor: 'pointer', margin: 0, color: 'var(--admin-sidebar-active)', fontWeight: 600 }}>
+                      <FaImage /> Upload Banner Image
+                    </label>
+                    {heroBannerForm.bannerImage ? (
+                      <img src={getImageUrl(heroBannerForm.bannerImage)} alt="Hero banner preview" style={{ display: 'block', marginTop: 12, maxWidth: 220, borderRadius: 8 }} />
+                    ) : null}
+                  </div>
+                </div>
+                <div className="admin-form-group">
+                  <AdminFieldLabel htmlFor="offm-hero-badge" optional>Small Badge Text</AdminFieldLabel>
+                  <input id="offm-hero-badge" type="text" name="badgeText" value={heroBannerForm.badgeText} onChange={handleHeroBannerChange} />
+                </div>
+                <div className="admin-form-group row-split" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <div>
+                    <AdminFieldLabel htmlFor="offm-hero-banner-title" required>Title</AdminFieldLabel>
+                    <input id="offm-hero-banner-title" type="text" name="title" value={heroBannerForm.title} onChange={handleHeroBannerChange} required />
+                  </div>
+                  <div>
+                    <AdminFieldLabel htmlFor="offm-hero-highlighted" optional>Highlighted Title</AdminFieldLabel>
+                    <input id="offm-hero-highlighted" type="text" name="highlightedTitle" value={heroBannerForm.highlightedTitle} onChange={handleHeroBannerChange} />
+                  </div>
+                </div>
+                <div className="admin-form-group">
+                  <AdminFieldLabel htmlFor="offm-hero-banner-description" optional>Description</AdminFieldLabel>
+                  <textarea id="offm-hero-banner-description" name="description" rows={3} value={heroBannerForm.description} onChange={handleHeroBannerChange} />
+                </div>
+                <div className="admin-form-group row-split" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <div>
+                    <AdminFieldLabel htmlFor="offm-hero-button-text" optional>Button Text</AdminFieldLabel>
+                    <input id="offm-hero-button-text" type="text" name="buttonText" value={heroBannerForm.buttonText} onChange={handleHeroBannerChange} />
+                  </div>
+                  <div>
+                    <AdminFieldLabel htmlFor="offm-hero-button-url" optional>Button URL</AdminFieldLabel>
+                    <input id="offm-hero-button-url" type="text" name="buttonUrl" value={heroBannerForm.buttonUrl} onChange={handleHeroBannerChange} />
+                  </div>
+                </div>
+                <div className="admin-form-group row-split" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <div>
+                    <AdminFieldLabel htmlFor="offm-hero-button2-text" optional>Secondary Button Text</AdminFieldLabel>
+                    <input id="offm-hero-button2-text" type="text" name="button2Text" value={heroBannerForm.button2Text} onChange={handleHeroBannerChange} />
+                  </div>
+                  <div>
+                    <AdminFieldLabel htmlFor="offm-hero-button2-url" optional>Secondary Button URL</AdminFieldLabel>
+                    <input id="offm-hero-button2-url" type="text" name="button2Url" value={heroBannerForm.button2Url} onChange={handleHeroBannerChange} />
+                  </div>
+                </div>
+                <div className="admin-form-group row-split" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <div>
+                    <AdminFieldLabel htmlFor="offm-hero-overlay-color" optional>Overlay Color</AdminFieldLabel>
+                    <input id="offm-hero-overlay-color" type="color" name="overlayColor" value={heroBannerForm.overlayColor} onChange={handleHeroBannerChange} />
+                  </div>
+                  <div>
+                    <AdminFieldLabel htmlFor="offm-hero-overlay-opacity" optional>Overlay Opacity: {heroBannerForm.overlay}%</AdminFieldLabel>
+                    <input id="offm-hero-overlay-opacity" type="range" min="0" max="90" name="overlay" value={heroBannerForm.overlay} onChange={handleHeroBannerChange} className="offm-range" />
+                  </div>
+                </div>
+                <div className="admin-form-group row-split" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+                  <div>
+                    <AdminFieldLabel htmlFor="offm-hero-offer-type" optional>Offer Type</AdminFieldLabel>
+                    <select id="offm-hero-offer-type" name="offerType" value={heroBannerForm.offerType} onChange={handleHeroBannerChange}>
+                      {PRODUCT_OFFER_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <AdminFieldLabel htmlFor="offm-hero-offer-category" optional>Offer Category</AdminFieldLabel>
+                    <input id="offm-hero-offer-category" type="text" name="offerCategory" value={heroBannerForm.offerCategory} onChange={handleHeroBannerChange} list="offm-hero-category-options" />
+                    <datalist id="offm-hero-category-options">
+                      {categoryNames.map((name) => <option key={name} value={name} />)}
+                    </datalist>
+                  </div>
+                  <div>
+                    <AdminFieldLabel htmlFor="offm-hero-sort-order" optional>Sort Order</AdminFieldLabel>
+                    <input id="offm-hero-sort-order" type="number" name="sortOrder" value={heroBannerForm.sortOrder} onChange={handleHeroBannerChange} />
+                  </div>
+                </div>
+                <div className="admin-form-group row-split" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+                  <div>
+                    <AdminFieldLabel htmlFor="offm-hero-discount-type" optional>Discount Type</AdminFieldLabel>
+                    <select id="offm-hero-discount-type" name="discountType" value={heroBannerForm.discountType} onChange={handleHeroBannerChange}>
+                      {DISCOUNT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <AdminFieldLabel htmlFor="offm-hero-discount-value" optional>Discount Value</AdminFieldLabel>
+                    <input id="offm-hero-discount-value" type="number" step="0.01" name="discountValue" value={heroBannerForm.discountValue} onChange={handleHeroBannerChange} />
+                  </div>
+                  <div>
+                    <AdminFieldLabel htmlFor="offm-hero-offer-badge" optional>Discount Badge</AdminFieldLabel>
+                    <input id="offm-hero-offer-badge" type="text" name="offerBadge" value={heroBannerForm.offerBadge} onChange={handleHeroBannerChange} />
+                  </div>
+                </div>
+                <div className="admin-form-group row-split" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+                  <div>
+                    <AdminFieldLabel htmlFor="offm-hero-start-date" required>Start Date</AdminFieldLabel>
+                    <input id="offm-hero-start-date" type="date" name="startDate" value={heroBannerForm.startDate} onChange={handleHeroBannerChange} required />
+                  </div>
+                  <div>
+                    <AdminFieldLabel htmlFor="offm-hero-end-date" required>End Date</AdminFieldLabel>
+                    <input id="offm-hero-end-date" type="date" name="endDate" value={heroBannerForm.endDate} onChange={handleHeroBannerChange} required />
+                  </div>
+                  <div>
+                    <AdminFieldLabel htmlFor="offm-hero-status" required>Status</AdminFieldLabel>
+                    <select id="offm-hero-status" name="status" value={heroBannerForm.status} onChange={handleHeroBannerChange}>
+                      <option value="draft">Draft</option>
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="action-btn-secondary" onClick={closeHeroModal}>Cancel</button>
+                <button type="submit" className="action-btn-primary" disabled={heroBannerSaving}>
+                  {heroBannerSaving ? 'Saving…' : editingHeroBanner ? 'Update Banner' : 'Create Banner'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {deleteHeroTarget && (
+        <div className="admin-modal-overlay" onClick={() => setDeleteHeroTarget(null)} role="presentation">
+          <div className="admin-modal-container" style={{ maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Delete Hero Banner</h3>
+              <button type="button" className="modal-close-btn" onClick={() => setDeleteHeroTarget(null)} aria-label="Close">&times;</button>
+            </div>
+            <div className="modal-body">
+              <p>Delete hero banner <strong>{deleteHeroTarget.title}</strong>? This removes it from the Offers page.</p>
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="action-btn-secondary" onClick={() => setDeleteHeroTarget(null)}>Cancel</button>
+              <button type="button" className="action-btn-danger" onClick={confirmDeleteHeroBanner}>Delete</button>
             </div>
           </div>
         </div>
@@ -948,6 +1374,10 @@ export const AdminOffersManager = () => {
                 </div>
 
                 <div className="admin-form-group"><AdminFieldLabel htmlFor="offm-offer-badge" optional>Offer Badge</AdminFieldLabel><input id="offm-offer-badge" type="text" name="badge" value={offerForm.badge} onChange={handleOfferChange} placeholder="e.g. 20% OFF, BUY 1 GET 1, COMBO DEAL" /></div>
+                <div className="admin-form-group row-split" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <div><AdminFieldLabel htmlFor="offm-offer-button-text" optional>Button Text</AdminFieldLabel><input id="offm-offer-button-text" type="text" name="buttonText" value={offerForm.buttonText} onChange={handleOfferChange} /></div>
+                  <div><AdminFieldLabel htmlFor="offm-offer-button-link" optional>Button URL</AdminFieldLabel><input id="offm-offer-button-link" type="text" name="buttonLink" value={offerForm.buttonLink} onChange={handleOfferChange} placeholder="#enquiry for WhatsApp enquiry" /></div>
+                </div>
 
                 <div className="admin-form-group row-split" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                   <div>

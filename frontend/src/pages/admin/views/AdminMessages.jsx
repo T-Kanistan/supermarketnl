@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { FaTrash, FaEnvelopeOpenText, FaEye, FaWhatsapp, FaEdit } from 'react-icons/fa';
+import { FaTrash, FaEnvelopeOpenText, FaEye, FaWhatsapp } from 'react-icons/fa';
 import enquiryService from '../../../services/enquiryService';
 import { useToast } from '../../../context/ToastContext';
 import { useAuth } from '../../../context/AuthContext';
-import { ENQUIRY_STATUSES, getStatusClassName } from '../../../constants/enquiryMessages';
+import { ENQUIRY_STATUSES, getStatusClassName, getStatusBadgeLabel } from '../../../constants/enquiryMessages';
 import { invalidateDashboardStats } from '../../../utils/dashboardStatsRefresh';
 import useAdminSearch from '../../../hooks/useAdminSearch';
 import { ADMIN_NO_MATCH_MESSAGE } from '../../../utils/adminSearch';
@@ -59,7 +59,8 @@ export const AdminMessages = () => {
   const [typeFilter, setTypeFilter] = useState('all');
   const { searchInput, searchQuery, onSearchChange, hasActiveSearch } = useAdminSearch();
   const [selectedEnquiry, setSelectedEnquiry] = useState(null);
-  const [statusUpdatingId, setStatusUpdatingId] = useState(null);
+  const [viewStatus, setViewStatus] = useState('New');
+  const [statusSaving, setStatusSaving] = useState(false);
 
   const { addToast } = useToast();
   const { isAdmin } = useAuth();
@@ -87,8 +88,9 @@ export const AdminMessages = () => {
       if (searchQuery) params.search = searchQuery;
 
       const { data } = await enquiryService.getEnquiries(params);
+      const items = Array.isArray(data) ? data : [];
       setEnquiries(
-        data.sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date))
+        [...items].sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date))
       );
     } catch (err) {
       console.error('Failed to load enquiries', err);
@@ -107,33 +109,62 @@ export const AdminMessages = () => {
     setEnquiries((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
     if (selectedEnquiry?.id === updated.id) {
       setSelectedEnquiry(updated);
+      setViewStatus(normalizeStatus(updated.status));
     }
   };
 
-  const handleStatusChange = async (enquiry, nextStatus) => {
+  const persistStatusChange = async (enquiry, nextStatus, { closeOnSuccess = false } = {}) => {
     const currentStatus = normalizeStatus(enquiry.status);
-    if (currentStatus === nextStatus) return;
+    if (currentStatus === nextStatus) {
+      if (closeOnSuccess) setSelectedEnquiry(null);
+      return enquiry;
+    }
 
-    setStatusUpdatingId(enquiry.id);
+    setStatusSaving(true);
     try {
       const updated = await enquiryService.updateStatus(enquiry.id, nextStatus);
       updateEnquiryInList(updated);
-      fetchStats();
-      addToast(`Status updated to ${nextStatus}`, 'success');
+      await Promise.all([fetchStats(), fetchEnquiries()]);
       invalidateDashboardStats();
+      addToast(`Status updated to ${nextStatus}`, 'success');
+      if (closeOnSuccess) setSelectedEnquiry(null);
+      return updated;
     } catch (err) {
       console.error('Failed to update enquiry status', err);
       addToast(err.response?.data?.message || 'Failed to update status', 'error');
+      throw err;
     } finally {
-      setStatusUpdatingId(null);
+      setStatusSaving(false);
     }
   };
 
   const handleView = async (enquiry) => {
+    const currentStatus = normalizeStatus(enquiry.status);
     setSelectedEnquiry(enquiry);
-    if (normalizeStatus(enquiry.status) === 'New') {
-      await handleStatusChange(enquiry, 'Read');
+    setViewStatus(currentStatus);
+
+    if (currentStatus === 'New') {
+      try {
+        const updated = await persistStatusChange(enquiry, 'Read');
+        setViewStatus(normalizeStatus(updated.status));
+      } catch {
+        setViewStatus(currentStatus);
+      }
     }
+  };
+
+  const handleSaveStatus = async () => {
+    if (!selectedEnquiry) return;
+    try {
+      await persistStatusChange(selectedEnquiry, viewStatus, { closeOnSuccess: true });
+    } catch {
+      // Toast already shown in persistStatusChange
+    }
+  };
+
+  const closeViewModal = () => {
+    if (statusSaving) return;
+    setSelectedEnquiry(null);
   };
 
   const handleWhatsApp = (enquiry) => {
@@ -162,6 +193,9 @@ export const AdminMessages = () => {
       addToast(err.response?.data?.message || 'Failed to delete enquiry', 'error');
     }
   };
+
+  const selectedStatus = selectedEnquiry ? normalizeStatus(selectedEnquiry.status) : 'New';
+  const statusChangedInView = selectedEnquiry && viewStatus !== selectedStatus;
 
   return (
     <div>
@@ -246,7 +280,6 @@ export const AdminMessages = () => {
               {enquiries.map((enquiry) => {
                 const currentStatus = normalizeStatus(enquiry.status);
                 const isUnread = currentStatus === 'New';
-                const isUpdating = statusUpdatingId === enquiry.id;
 
                 return (
                   <tr key={enquiry.id} className={isUnread ? 'message-row-unread' : ''}>
@@ -270,18 +303,12 @@ export const AdminMessages = () => {
                       {truncateText(enquiry.messagePreview || enquiry.message)}
                     </td>
                     <td data-label="Status">
-                      <select
-                        id={`status-row-${enquiry.id}`}
-                        className={`enquiry-status-select ${getStatusClassName(currentStatus)}`}
-                        value={currentStatus}
-                        onChange={(e) => handleStatusChange(enquiry, e.target.value)}
-                        disabled={isUpdating}
-                        aria-label={`Change status for ${enquiry.senderName}`}
+                      <span
+                        className={`enquiry-status-badge ${getStatusClassName(currentStatus)}`}
+                        aria-label={`Status: ${currentStatus}`}
                       >
-                        {ENQUIRY_STATUSES.map((status) => (
-                          <option key={status} value={status}>{status}</option>
-                        ))}
-                      </select>
+                        {getStatusBadgeLabel(currentStatus)}
+                      </span>
                     </td>
                     <td data-label="Date">
                       <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
@@ -297,15 +324,6 @@ export const AdminMessages = () => {
                           title="View enquiry"
                         >
                           <FaEye />
-                        </button>
-                        <button
-                          type="button"
-                          className="btn-action-cell edit"
-                          onClick={() => document.getElementById(`status-row-${enquiry.id}`)?.focus()}
-                          title="Edit status"
-                          aria-label="Edit status"
-                        >
-                          <FaEdit />
                         </button>
                         {enquiry.source === 'whatsapp' && enquiry.whatsappLink && (
                           <button
@@ -346,11 +364,11 @@ export const AdminMessages = () => {
       )}
 
       {selectedEnquiry && (
-        <div className="admin-modal-overlay" onClick={() => setSelectedEnquiry(null)}>
+        <div className="admin-modal-overlay" onClick={closeViewModal}>
           <div className="admin-modal-container message-view-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>{selectedEnquiry.subject}</h3>
-              <button type="button" className="modal-close-btn" onClick={() => setSelectedEnquiry(null)}>×</button>
+              <button type="button" className="modal-close-btn" onClick={closeViewModal} disabled={statusSaving}>×</button>
             </div>
             <div className="modal-body message-view-body">
               <div className="message-view-meta">
@@ -366,23 +384,43 @@ export const AdminMessages = () => {
                 <div><strong>Date:</strong> {new Date(selectedEnquiry.createdAt || selectedEnquiry.date).toLocaleString()}</div>
                 <div><strong>Last Updated:</strong> {new Date(selectedEnquiry.updatedAt || selectedEnquiry.createdAt).toLocaleString()}</div>
                 <div>
-                  <strong>Status:</strong>{' '}
-                  <select
-                    id={`status-modal-${selectedEnquiry.id}`}
-                    className={`enquiry-status-select ${getStatusClassName(normalizeStatus(selectedEnquiry.status))}`}
-                    value={normalizeStatus(selectedEnquiry.status)}
-                    onChange={(e) => handleStatusChange(selectedEnquiry, e.target.value)}
-                    disabled={statusUpdatingId === selectedEnquiry.id}
-                  >
-                    {ENQUIRY_STATUSES.map((status) => (
-                      <option key={status} value={status}>{status}</option>
-                    ))}
-                  </select>
+                  <strong>Current Status:</strong>{' '}
+                  <span className={`enquiry-status-badge ${getStatusClassName(selectedStatus)}`}>
+                    {getStatusBadgeLabel(selectedStatus)}
+                  </span>
                 </div>
               </div>
               <div className="message-view-content">
                 <strong>Message</strong>
                 <p>{selectedEnquiry.message}</p>
+              </div>
+              <div className="enquiry-view-status-panel">
+                <strong>Update Status</strong>
+                <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--admin-text-sub)' }}>
+                  Change the enquiry status here. New enquiries are marked as Read when opened.
+                </p>
+                <div className="enquiry-view-status-row">
+                  <select
+                    id={`status-modal-${selectedEnquiry.id}`}
+                    className={`enquiry-status-select ${getStatusClassName(viewStatus)}`}
+                    value={viewStatus}
+                    onChange={(e) => setViewStatus(e.target.value)}
+                    disabled={statusSaving}
+                    aria-label="Enquiry status"
+                  >
+                    {ENQUIRY_STATUSES.map((status) => (
+                      <option key={status} value={status}>{status}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    className="action-btn-primary"
+                    onClick={handleSaveStatus}
+                    disabled={statusSaving || !statusChangedInView}
+                  >
+                    {statusSaving ? 'Saving…' : 'Update Status'}
+                  </button>
+                </div>
               </div>
             </div>
             <div className="modal-footer">
@@ -391,7 +429,7 @@ export const AdminMessages = () => {
                   <FaWhatsapp /> WhatsApp
                 </button>
               )}
-              <button type="button" className="action-btn-primary" onClick={() => setSelectedEnquiry(null)}>
+              <button type="button" className="action-btn-secondary" onClick={closeViewModal} disabled={statusSaving}>
                 Close
               </button>
             </div>

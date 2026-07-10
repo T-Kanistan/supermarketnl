@@ -13,6 +13,13 @@ import {
   getOffersByCategory,
   getOfferBanner,
   updateOfferBanner,
+  getOffersHeroBanners,
+  getOffersHeroBannersAdmin,
+  getOffersHeroBanner,
+  createOffersHeroBanner,
+  updateOffersHeroBanner,
+  updateOffersHeroBannerStatus,
+  deleteOffersHeroBanner,
   getOffer,
   createOffer,
   updateOffer,
@@ -29,6 +36,10 @@ import {
   updateOfferRules,
   updateOfferStatusRules,
   updateOfferBannerRules,
+  createOffersHeroBannerRules,
+  updateOffersHeroBannerRules,
+  updateOffersHeroBannerStatusRules,
+  offersHeroBannerIdRules,
   offerIdRules,
 } from '../validators/offerValidator.js';
 
@@ -41,6 +52,7 @@ router.get('/', getOffers);
 router.get('/featured', getFeaturedOffers);
 router.get('/categories', getOfferCategories);
 router.get('/banner', getOfferBanner);
+router.get('/hero-banners', getOffersHeroBanners);
 
 // Offer category management (admin/manager) — declared before `/category/:category`
 // and `/:id` so the static segments are not shadowed by the param routes.
@@ -54,6 +66,12 @@ router.get('/category/:category', getOffersByCategory);
 
 // Admin reads / banner management
 router.get('/all', ...auth, getAllOffers);
+router.get('/hero-banners/manage', ...auth, getOffersHeroBannersAdmin);
+router.post('/hero-banners', ...auth, createOffersHeroBannerRules, validateRequest, createOffersHeroBanner);
+router.get('/hero-banners/:id', ...auth, offersHeroBannerIdRules, validateRequest, getOffersHeroBanner);
+router.put('/hero-banners/:id', ...auth, updateOffersHeroBannerRules, validateRequest, updateOffersHeroBanner);
+router.patch('/hero-banners/:id/status', ...auth, updateOffersHeroBannerStatusRules, validateRequest, updateOffersHeroBannerStatus);
+router.delete('/hero-banners/:id', protect, adminOnly, offersHeroBannerIdRules, validateRequest, deleteOffersHeroBanner);
 router.put('/banner', ...auth, updateOfferBannerRules, validateRequest, updateOfferBanner);
 
 // Public single (kept after static GET routes so they are not shadowed)

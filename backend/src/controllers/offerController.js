@@ -132,6 +132,89 @@ export const updateOfferBanner = async (req, res, next) => {
   }
 };
 
+export const getOffersHeroBanners = async (req, res, next) => {
+  try {
+    const data = await offerService.getStorefrontOffersHeroBanners();
+    return res.status(200).json({ success: true, count: data.length, data });
+  } catch (error) {
+    return handleServiceError(error, res, next);
+  }
+};
+
+export const getOffersHeroBannersAdmin = async (req, res, next) => {
+  try {
+    const data = await offerService.listOffersHeroBannersAdmin(req.query);
+    return res.status(200).json({ success: true, count: data.length, data });
+  } catch (error) {
+    return handleServiceError(error, res, next);
+  }
+};
+
+export const getOffersHeroBanner = async (req, res, next) => {
+  try {
+    const data = await offerService.getOffersHeroBannerById(req.params.id);
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    return handleServiceError(error, res, next);
+  }
+};
+
+export const createOffersHeroBanner = async (req, res, next) => {
+  try {
+    const body = { ...req.body };
+    if (req.file) {
+      body.bannerImage = await persistUploadedFile(req.file);
+    }
+    const data = await offerService.createOffersHeroBanner(body, req.user);
+    return res.status(201).json({
+      success: true,
+      message: 'Hero banner created successfully',
+      data,
+    });
+  } catch (error) {
+    return handleServiceError(error, res, next);
+  }
+};
+
+export const updateOffersHeroBanner = async (req, res, next) => {
+  try {
+    const body = { ...req.body };
+    if (req.file) {
+      body.bannerImage = await persistUploadedFile(req.file);
+    }
+    const data = await offerService.updateOffersHeroBanner(req.params.id, body, req.user);
+    return res.status(200).json({
+      success: true,
+      message: 'Hero banner updated successfully',
+      data,
+    });
+  } catch (error) {
+    return handleServiceError(error, res, next);
+  }
+};
+
+export const updateOffersHeroBannerStatus = async (req, res, next) => {
+  try {
+    const data = await offerService.updateOffersHeroBannerStatus(
+      req.params.id,
+      req.body.status,
+      req.user
+    );
+    return res.status(200).json({ success: true, message: 'Status updated', data });
+  } catch (error) {
+    return handleServiceError(error, res, next);
+  }
+};
+
+export const deleteOffersHeroBanner = async (req, res, next) => {
+  try {
+    await offerService.deleteOffersHeroBanner(req.params.id, req.user);
+    return res.status(200).json({ success: true, message: 'Hero banner deleted successfully' });
+  } catch (error) {
+    return handleServiceError(error, res, next);
+  }
+};
+
 export const getOffer = async (req, res, next) => {
   try {
     const data = await offerService.getOfferById(req.params.id, { publicOnly: true });

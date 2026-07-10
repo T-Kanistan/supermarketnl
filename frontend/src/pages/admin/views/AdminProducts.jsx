@@ -827,16 +827,6 @@ export const AdminProducts = () => {
         <div className="filter-group-admin">
           <select 
             className="filter-select-admin" 
-            value={typeFilter} 
-            disabled
-          >
-            <option value={typeFilter}>
-              {typeFilter === 'food-corner' ? 'Food Corner (Kitchen)' : 'Grocery (Supermarket)'}
-            </option>
-          </select>
-
-          <select 
-            className="filter-select-admin" 
             value={categoryFilter} 
             onChange={(e) => { setCategoryFilter(e.target.value); setCurrentPage(1); }}
           >

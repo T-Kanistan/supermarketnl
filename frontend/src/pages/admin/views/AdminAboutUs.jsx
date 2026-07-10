@@ -263,6 +263,28 @@ const StatusToggle = ({ checked, onChange, label = 'Active' }) => (
   </label>
 );
 
+const EMPTY_MODAL_FORM = {
+  marker: '',
+  title: '',
+  description: '',
+  icon: 'FiCalendar',
+  value: '',
+  suffix: '',
+  label: '',
+  image: '',
+  isActive: true,
+};
+
+const ModalField = ({ fieldKey, label, required, optional, error, children }) => (
+  <label data-modal-field={fieldKey}>
+    <AdminFieldLegend required={required} optional={optional}>
+      {label}
+    </AdminFieldLegend>
+    {children}
+    {error ? <FieldError message={error} /> : null}
+  </label>
+);
+
 const paginate = (items, page, search, getFields) => {
   const filtered = filterByAdminSearch(items, search, getFields);
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -309,12 +331,17 @@ export const AdminAboutUs = () => {
   const setFieldValue = useCallback((path, value, { sanitize } = {}) => {
     const nextValue = sanitize ? sanitize(value) : value;
     setTouched((prev) => ({ ...prev, [path]: true }));
+
+    let nextPage = null;
     setAboutPage((prev) => {
-      const next = setPathValue(prev, path, nextValue);
-      const error = getFieldError(path, next);
-      setFieldErrors((fe) => patchFieldError(fe, path, error));
-      return next;
+      nextPage = setPathValue(prev, path, nextValue);
+      return nextPage;
     });
+
+    if (nextPage) {
+      const error = getFieldError(path, nextPage);
+      setFieldErrors((fe) => patchFieldError(fe, path, error));
+    }
   }, []);
 
   const handleFieldBlur = useCallback((path) => {
@@ -878,6 +905,7 @@ export const AdminAboutUs = () => {
 
       {modal && (
         <ItemModal
+          key={`${modal.type}-${modal.item?.id ?? 'new'}`}
           type={modal.type}
           item={modal.item}
           onClose={closeModal}
@@ -889,19 +917,24 @@ export const AdminAboutUs = () => {
 };
 
 const ItemModal = ({ type, item, onClose, onSave }) => {
-  const [form, setForm] = useState(() => item || {
-    marker: '', title: '', description: '', icon: 'FiCalendar', value: '', suffix: '', label: '', image: '', isActive: true,
-  });
+  const [form, setForm] = useState(() => item || { ...EMPTY_MODAL_FORM });
   const [fieldErrors, setFieldErrors] = useState({});
   const [touched, setTouched] = useState({});
 
   const set = (key, val) => {
-    const nextForm = { ...form, [key]: val };
     setTouched((prev) => ({ ...prev, [key]: true }));
-    setForm(nextForm);
-    const result = validateAboutListItem(type, nextForm);
-    const error = result.fieldErrors?.[key] || null;
-    setFieldErrors((prev) => patchFieldError(prev, key, error));
+
+    let nextForm = null;
+    setForm((prev) => {
+      nextForm = { ...prev, [key]: val };
+      return nextForm;
+    });
+
+    if (nextForm) {
+      const result = validateAboutListItem(type, nextForm);
+      const error = result.fieldErrors?.[key] || null;
+      setFieldErrors((prevErrors) => patchFieldError(prevErrors, key, error));
+    }
   };
 
   const blur = (key) => {
@@ -933,23 +966,13 @@ const ItemModal = ({ type, item, onClose, onSave }) => {
 
   const modalInputClass = (key) => (fieldErrors[key] ? 'about-admin-input-invalid' : '');
 
-  const ModalField = ({ fieldKey, label, required, optional, children }) => (
-    <label data-modal-field={fieldKey}>
-      <AdminFieldLegend required={required} optional={optional}>
-        {label}
-      </AdminFieldLegend>
-      {children}
-      {fieldErrors[fieldKey] && <FieldError message={fieldErrors[fieldKey]} />}
-    </label>
-  );
-
   return (
     <div className="about-admin-modal-backdrop" onClick={onClose}>
       <div className="about-admin-modal" onClick={(e) => e.stopPropagation()}>
         <h3>{item ? 'Edit' : 'Add'} {type}</h3>
         {type === 'timeline' && (
           <>
-            <ModalField fieldKey="marker" label="Timeline Year/Date" required>
+            <ModalField fieldKey="marker" label="Timeline Year/Date" required error={fieldErrors.marker}>
               <AboutTextControl
                 value={form.marker}
                 className={modalInputClass('marker')}
@@ -958,7 +981,7 @@ const ItemModal = ({ type, item, onClose, onSave }) => {
                 onBlur={() => blur('marker')}
               />
             </ModalField>
-            <ModalField fieldKey="title" label="Timeline Title" required>
+            <ModalField fieldKey="title" label="Timeline Title" required error={fieldErrors.title}>
               <AboutTextControl
                 value={form.title}
                 className={modalInputClass('title')}
@@ -967,7 +990,7 @@ const ItemModal = ({ type, item, onClose, onSave }) => {
                 onBlur={() => blur('title')}
               />
             </ModalField>
-            <ModalField fieldKey="description" label="Description" required>
+            <ModalField fieldKey="description" label="Description" required error={fieldErrors.description}>
               <AboutTextControl
                 multiline
                 rows={3}
@@ -988,7 +1011,7 @@ const ItemModal = ({ type, item, onClose, onSave }) => {
         )}
         {(type === 'mvp' || type === 'offers') && (
           <>
-            <ModalField fieldKey="title" label="Title" required>
+            <ModalField fieldKey="title" label="Title" required error={fieldErrors.title}>
               <AboutTextControl
                 value={form.title}
                 className={modalInputClass('title')}
@@ -997,7 +1020,7 @@ const ItemModal = ({ type, item, onClose, onSave }) => {
                 onBlur={() => blur('title')}
               />
             </ModalField>
-            <ModalField fieldKey="description" label="Description" required>
+            <ModalField fieldKey="description" label="Description" required error={fieldErrors.description}>
               <AboutTextControl
                 multiline
                 rows={3}
@@ -1036,7 +1059,7 @@ const ItemModal = ({ type, item, onClose, onSave }) => {
         )}
         {type === 'stats' && (
           <>
-            <ModalField fieldKey="label" label="Statistic Title" required>
+            <ModalField fieldKey="label" label="Statistic Title" required error={fieldErrors.label}>
               <AboutTextControl
                 value={form.label}
                 className={modalInputClass('label')}
@@ -1045,7 +1068,7 @@ const ItemModal = ({ type, item, onClose, onSave }) => {
                 onBlur={() => blur('label')}
               />
             </ModalField>
-            <ModalField fieldKey="value" label="Number" required>
+            <ModalField fieldKey="value" label="Number" required error={fieldErrors.value}>
               <input type="number" value={form.value} className={modalInputClass('value')} onChange={(e) => set('value', e.target.value)} onBlur={() => blur('value')} />
             </ModalField>
             <div className="about-admin-field">

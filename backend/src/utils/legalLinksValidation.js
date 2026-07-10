@@ -11,6 +11,9 @@ export const PATH_INVALID = 'Please enter a valid Path/URL.';
 export const PATH_DUPLICATE =
   'This Path/URL already exists. Please enter a unique Path/URL.';
 
+export const PARTIAL_LABEL_REQUIRED = 'Please enter a label for this footer link.';
+export const PARTIAL_PATH_REQUIRED = 'Please enter a URL for this footer link.';
+
 const collapseSpaces = (value) =>
   String(value ?? '')
     .replace(/\s+/g, ' ')
@@ -25,6 +28,15 @@ export const sanitizeLegalLinkLabel = (value) => collapseSpaces(value);
 export const sanitizeLegalLinkPath = (value) => String(value ?? '').trim();
 
 export const getLegalLinkPath = (link) => link?.path ?? link?.url ?? '';
+
+export const isLegalLinkRowEmpty = (link) => {
+  const label = sanitizeLegalLinkLabel(link?.label);
+  const path = sanitizeLegalLinkPath(getLegalLinkPath(link));
+  return !label && !path;
+};
+
+export const filterEmptyLegalLinks = (links = []) =>
+  links.filter((link) => !isLegalLinkRowEmpty(link));
 
 export const isValidLegalLinkPath = (value) => {
   const trimmed = sanitizeLegalLinkPath(value);
@@ -65,6 +77,30 @@ export const validateLegalLinkRow = (link, links, index) => ({
   path: validateLegalLinkPath(getLegalLinkPath(link), { links, excludeIndex: index }),
 });
 
+export const validateLegalLinkPartialRow = (link, allLinks, index) => {
+  const label = sanitizeLegalLinkLabel(link.label);
+  const path = sanitizeLegalLinkPath(getLegalLinkPath(link));
+
+  if (!label && !path) {
+    return { label: '', path: '' };
+  }
+
+  if (label && !path) {
+    return { label: '', path: PARTIAL_PATH_REQUIRED };
+  }
+
+  if (!label && path) {
+    return { label: PARTIAL_LABEL_REQUIRED, path: '' };
+  }
+
+  const completeLinks = filterEmptyLegalLinks(allLinks);
+  const completeIndex = completeLinks.findIndex(
+    (candidate) => candidate === link || candidate.label === link.label
+  );
+
+  return validateLegalLinkRow(link, completeLinks, completeIndex >= 0 ? completeIndex : index);
+};
+
 export const assertLegalLinksValid = (links = []) => {
   if (!Array.isArray(links)) {
     const error = new Error('Legal links must be an array');
@@ -72,14 +108,16 @@ export const assertLegalLinksValid = (links = []) => {
     throw error;
   }
 
-  const normalizedLinks = links.map((link) => ({
-    label: link.label,
-    path: getLegalLinkPath(link),
-    url: getLegalLinkPath(link),
-  }));
+  const nonEmptyLinks = filterEmptyLegalLinks(
+    links.map((link) => ({
+      label: link.label,
+      path: getLegalLinkPath(link),
+      url: getLegalLinkPath(link),
+    }))
+  );
 
-  for (let index = 0; index < normalizedLinks.length; index += 1) {
-    const rowErrors = validateLegalLinkRow(normalizedLinks[index], normalizedLinks, index);
+  for (let index = 0; index < nonEmptyLinks.length; index += 1) {
+    const rowErrors = validateLegalLinkPartialRow(nonEmptyLinks[index], nonEmptyLinks, index);
     const firstError = rowErrors.label || rowErrors.path;
     if (firstError) {
       const error = new Error(firstError);
@@ -90,9 +128,9 @@ export const assertLegalLinksValid = (links = []) => {
 };
 
 export const sanitizeLegalLinks = (links = []) =>
-  links.map((link, index) => ({
+  filterEmptyLegalLinks(links).map((link, index) => ({
     label: sanitizeLegalLinkLabel(link.label),
-    url: sanitizeLegalLinkPath(getLegalLinkPath(link) || '/'),
+    url: sanitizeLegalLinkPath(getLegalLinkPath(link)),
     show: link.isVisible !== false && link.show !== false,
     order: link.displayOrder ?? link.order ?? index + 1,
   }));

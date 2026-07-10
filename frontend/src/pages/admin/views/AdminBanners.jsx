@@ -16,8 +16,6 @@ import AdminFieldLabel from '../../../components/admin/AdminFieldLabel';
 import { ADMIN_TEXT_LIMITS, validateAdminText } from '../../../utils/adminTextValidation';
 import './AdminBanners.css';
 
-const PAGE_FILTER_OPTIONS = [{ value: 'all', label: 'All Pages' }, ...BANNER_PAGE_OPTIONS];
-
 const STATUS_FILTER_OPTIONS = [
   { value: 'all', label: 'All' },
   { value: 'active', label: 'Active' },
@@ -25,6 +23,19 @@ const STATUS_FILTER_OPTIONS = [
 ];
 
 const EMPTY_BANNER_SUMMARY = { total: 0, active: 0, inactive: 0 };
+
+const getEmptyBannerMessage = ({ hasActiveSearch, statusFilter, pageFilter }) => {
+  if (hasActiveSearch) return ADMIN_NO_MATCH_MESSAGE;
+  if (statusFilter === 'inactive') return 'No inactive banners found.';
+  if (statusFilter === 'active') return 'No active banners found.';
+  if (pageFilter !== 'all') {
+    return `No banners found for ${getPageBannerLabel(pageFilter)}.`;
+  }
+  return 'No banners found. Create your first banner to get started.';
+};
+
+const shouldShowEmptyAddButton = ({ hasActiveSearch, statusFilter, pageFilter }) =>
+  !hasActiveSearch && statusFilter === 'all' && pageFilter === 'all';
 
 const BANNER_TEXT_FIELDS = ['badgeText', 'title', 'highlightedTitle', 'description'];
 
@@ -358,6 +369,10 @@ export const AdminBanners = () => {
     getImageUrl(formData.backgroundImage) ||
     'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=2000';
 
+  const isAllPagesFilter = pageFilter === 'all';
+  const emptyBannerMessage = getEmptyBannerMessage({ hasActiveSearch, statusFilter, pageFilter });
+  const showEmptyAddButton = shouldShowEmptyAddButton({ hasActiveSearch, statusFilter, pageFilter });
+
   return (
     <div>
       <div className="view-header">
@@ -400,19 +415,51 @@ export const AdminBanners = () => {
 
         <div className="admin-banners-filters">
           <span className="admin-banners-filter-label">Page:</span>
-          {PAGE_FILTER_OPTIONS.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              className={pageFilter === option.value ? 'action-btn-primary' : 'action-btn-secondary'}
-              onClick={() => {
-                setPageFilter(option.value);
+          <button
+            type="button"
+            className={isAllPagesFilter ? 'action-btn-primary' : 'action-btn-secondary'}
+            onClick={() => {
+              setPageFilter('all');
+              setPagination((prev) => ({ ...prev, page: 1 }));
+            }}
+          >
+            All Pages
+          </button>
+          {isAllPagesFilter ? (
+            <select
+              className="admin-banners-page-select"
+              value=""
+              aria-label="Select a page to filter"
+              onChange={(e) => {
+                if (!e.target.value) return;
+                setPageFilter(e.target.value);
                 setPagination((prev) => ({ ...prev, page: 1 }));
               }}
             >
-              {option.label}
-            </button>
-          ))}
+              <option value="" disabled>
+                Select a page...
+              </option>
+              {BANNER_PAGE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          ) : (
+            BANNER_PAGE_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                className={pageFilter === option.value ? 'action-btn-primary' : 'action-btn-secondary'}
+                onClick={() => {
+                  setPageFilter(option.value);
+                  setPagination((prev) => ({ ...prev, page: 1 }));
+                }}
+              >
+                {option.label}
+              </button>
+            ))
+          )}
         </div>
 
         <div className="admin-banners-filters">
@@ -555,12 +602,8 @@ export const AdminBanners = () => {
         </div>
       ) : (
         <div className="dashboard-panel" style={{ padding: '32px', textAlign: 'center' }}>
-          <p>
-            {hasActiveSearch
-              ? ADMIN_NO_MATCH_MESSAGE
-              : 'No banners found. Create your first banner to get started.'}
-          </p>
-          {!hasActiveSearch ? (
+          <p>{emptyBannerMessage}</p>
+          {showEmptyAddButton ? (
             <button type="button" className="action-btn-primary" style={{ marginTop: '12px' }} onClick={openAddModal}>
               <FaPlus /> Add New Banner
             </button>

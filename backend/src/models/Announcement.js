@@ -18,6 +18,40 @@ const announcementSchema = new mongoose.Schema(
       minlength: 10,
       maxlength: 2000,
     },
+    subtitle: {
+      type: String,
+      trim: true,
+      default: '',
+      maxlength: 200,
+    },
+    badgeText: {
+      type: String,
+      trim: true,
+      default: '',
+      maxlength: 60,
+    },
+    buttonText: {
+      type: String,
+      trim: true,
+      default: 'Shop Offers',
+      maxlength: 50,
+    },
+    buttonLink: {
+      type: String,
+      trim: true,
+      default: '/offers',
+    },
+    overlayColor: {
+      type: String,
+      trim: true,
+      default: '#0f172a',
+    },
+    overlayOpacity: {
+      type: Number,
+      default: 0.35,
+      min: 0,
+      max: 1,
+    },
     discountPercentage: {
       type: Number,
       default: 0,

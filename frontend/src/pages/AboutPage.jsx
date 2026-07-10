@@ -403,24 +403,24 @@ const AboutPage = () => {
                     {phone && phoneHref && (
                       <li>
                         <a href={phoneHref} className="founder-contact-item">
-                          <span className="founder-contact-icon"><FiPhone /></span>
-                          <span>{phone}</span>
+                          <span className="founder-contact-icon" aria-hidden="true"><FiPhone /></span>
+                          <span className="founder-contact-text">{phone}</span>
                         </a>
                       </li>
                     )}
                     {email && emailHref && (
                       <li>
                         <a href={emailHref} className="founder-contact-item">
-                          <span className="founder-contact-icon"><FiMail /></span>
-                          <span>{email}</span>
+                          <span className="founder-contact-icon" aria-hidden="true"><FiMail /></span>
+                          <span className="founder-contact-text">{email}</span>
                         </a>
                       </li>
                     )}
                     {address && mapsHref && (
                       <li>
                         <a href={mapsHref} target="_blank" rel="noreferrer" className="founder-contact-item">
-                          <span className="founder-contact-icon"><FiMapPin /></span>
-                          <span>{address}</span>
+                          <span className="founder-contact-icon" aria-hidden="true"><FiMapPin /></span>
+                          <span className="founder-contact-text">{address}</span>
                         </a>
                       </li>
                     )}

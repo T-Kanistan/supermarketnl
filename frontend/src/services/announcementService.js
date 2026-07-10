@@ -2,7 +2,15 @@ import api, { apiRequest } from './api';
 
 const toPayload = (data) => ({
   title: data.title,
+  subtitle: data.subtitle || '',
   description: data.description,
+  badgeText: data.badgeText || '',
+  buttonText: data.buttonText || 'Shop Offers',
+  buttonLink: data.buttonLink || '/offers',
+  overlayColor: data.overlayColor || '#0f172a',
+  overlayOpacity: data.overlayOpacity != null && data.overlayOpacity !== ''
+    ? Number(data.overlayOpacity)
+    : 0.35,
   discountPercentage: Number(data.discountPercentage ?? data.offerPercentage ?? 0),
   bannerImage: data.bannerImage || data.image || '',
   status: data.status || 'draft',
@@ -12,7 +20,7 @@ const toPayload = (data) => ({
 
 export const announcementService = {
   getStorefrontAnnouncements: async () =>
-    apiRequest(() => api.get('/storefront/announcements')),
+    apiRequest(() => api.get('/storefront/announcements', { params: { _t: Date.now() } })),
 
   getAnnouncements: async (params = {}) => {
     const result = await api.get('/announcements', { params });

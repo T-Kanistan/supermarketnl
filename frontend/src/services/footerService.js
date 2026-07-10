@@ -1,6 +1,10 @@
 import api, { apiRequest } from './api';
 import { mapSocialLinksToSocials } from '../constants/footerPageDefaults';
-import { sanitizeLegalLinkLabel, sanitizeLegalLinkPath } from '../utils/legalLinksValidation';
+import {
+  filterEmptyLegalLinks,
+  sanitizeLegalLinkLabel,
+  sanitizeLegalLinkPath,
+} from '../utils/legalLinksValidation';
 
 const mapLinkToPage = (link) => ({
   id: String(link.id),
@@ -102,7 +106,7 @@ export const footerService = {
         emailAddress: formData.contactEmail,
         copyrightName: footer.copyrightText,
         quickLinks: (footer.quickLinks || []).map(mapPageLinkToApi),
-        legalLinks: (footer.legalLinks || []).map((link, index) => ({
+        legalLinks: filterEmptyLegalLinks(footer.legalLinks || []).map((link, index) => ({
           label: sanitizeLegalLinkLabel(link.label),
           url: sanitizeLegalLinkPath(link.path || ''),
           displayOrder: link.order ?? index + 1,

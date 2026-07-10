@@ -20,19 +20,13 @@ const aboutSectionSchema = new mongoose.Schema(
 
 const foodCornerPromoSchema = new mongoose.Schema(
   {
-    badge: { type: String, default: 'RESTAURANT', trim: true },
-    title: { type: String, default: 'DELICIOUS FOOD', trim: true },
-    highlight: { type: String, default: 'MADE FRESH', trim: true },
-    description: {
-      type: String,
-      default: 'Tasty | Healthy | Affordable\nExperience premium biryani and authentic meals prepared by our expert chefs.',
-    },
-    image: {
-      type: String,
-      default: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&w=800&q=80',
-    },
-    buttonText: { type: String, default: 'Order Now', trim: true },
-    buttonLink: { type: String, default: '/food-corner', trim: true },
+    badge: { type: String, default: '', trim: true },
+    title: { type: String, default: '', trim: true },
+    highlight: { type: String, default: '', trim: true },
+    description: { type: String, default: '' },
+    image: { type: String, default: '' },
+    buttonText: { type: String, default: '', trim: true },
+    buttonLink: { type: String, default: '', trim: true },
   },
   { _id: false }
 );

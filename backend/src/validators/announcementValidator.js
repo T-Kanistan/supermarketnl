@@ -59,6 +59,12 @@ export const createAnnouncementRules = [
     .withMessage('Status must be active, inactive, or draft'),
   body('bannerImage').optional().isString(),
   body('image').optional().isString(),
+  body('subtitle').optional().trim().isLength({ max: 200 }),
+  body('badgeText').optional().trim().isLength({ max: 60 }),
+  body('buttonText').optional().trim().isLength({ max: 50 }),
+  body('buttonLink').optional().trim(),
+  body('overlayColor').optional().trim(),
+  body('overlayOpacity').optional().isFloat({ min: 0, max: 1 }),
 ];
 
 export const updateAnnouncementRules = [
@@ -102,6 +108,12 @@ export const updateAnnouncementRules = [
     .withMessage('Invalid status value'),
   body('bannerImage').optional().isString(),
   body('image').optional().isString(),
+  body('subtitle').optional().trim().isLength({ max: 200 }),
+  body('badgeText').optional().trim().isLength({ max: 60 }),
+  body('buttonText').optional().trim().isLength({ max: 50 }),
+  body('buttonLink').optional().trim(),
+  body('overlayColor').optional().trim(),
+  body('overlayOpacity').optional().isFloat({ min: 0, max: 1 }),
 ];
 
 export const announcementIdRules = [param('id').isMongoId().withMessage('Invalid announcement id')];

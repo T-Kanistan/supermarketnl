@@ -96,6 +96,16 @@
   gap: 8px;
 }
 
+.admin-banners-page-select {
+  min-width: 180px;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #fff;
+  color: #0f172a;
+  font-size: 0.9rem;
+}
+
 .admin-banner-thumb {
   width: 120px;
   height: 64px;
