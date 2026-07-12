@@ -5,7 +5,6 @@ import {
   FaUtensils, FaShoppingCart, FaFacebookF,
 } from 'react-icons/fa';
 import offerService from '../services/offerService';
-import announcementService from '../services/announcementService';
 import { getImageUrl } from '../services/api';
 import { useEnquiry } from '../context/EnquiryContext';
 import OfferSeoHead from '../components/OfferSeoHead';
@@ -117,14 +116,6 @@ const SmartButton = ({ link, className, children }) => {
     return <Link to={target} className={className}>{children}</Link>;
   }
   return <a href={target} className={className} target="_blank" rel="noreferrer">{children}</a>;
-};
-
-const getAnnouncementBadge = (announcement) => {
-  if (announcement?.badgeText?.trim()) return announcement.badgeText.trim();
-  if (Number(announcement?.discountPercentage) > 0) {
-    return `${announcement.discountPercentage}% OFF`;
-  }
-  return '';
 };
 
 const getHeroDiscountLabel = (banner) => {
@@ -373,9 +364,7 @@ const OffersPage = () => {
   const { openEnquiry } = useEnquiry();
   const { offerId: routeOfferId } = useParams();
 
-  const [banner, setBanner] = useState(null);
   const [heroBanners, setHeroBanners] = useState([]);
-  const [announcements, setAnnouncements] = useState([]);
   const [categories, setCategories] = useState([]);
   const [offers, setOffers] = useState([]);
   const [activeDepartment, setActiveDepartment] = useState('all');
@@ -407,31 +396,9 @@ const OffersPage = () => {
     }
   }, []);
 
-  const loadBanner = useCallback(async () => {
-    try {
-      const data = await offerService.getBanner();
-      setBanner(data || null);
-    } catch (err) {
-      console.error('Failed to load offers banner', err);
-      setBanner(null);
-    }
-  }, []);
-
-  const loadAnnouncements = useCallback(async () => {
-    try {
-      const data = await announcementService.getStorefrontAnnouncements();
-      setAnnouncements(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error('Failed to load store announcements', err);
-      setAnnouncements([]);
-    }
-  }, []);
-
   useEffect(() => {
     loadHeroBanners();
-    loadBanner();
-    loadAnnouncements();
-  }, [loadHeroBanners, loadBanner, loadAnnouncements]);
+  }, [loadHeroBanners]);
 
   const loadCategories = useCallback(async () => {
     setLoadingCategories(true);
@@ -478,13 +445,11 @@ const OffersPage = () => {
     const refreshLiveData = () => {
       if (document.visibilityState !== 'visible') return;
       loadHeroBanners();
-      loadBanner();
-      loadAnnouncements();
       fetchOffers(activeDepartment, activeCategory, debouncedSearch);
     };
     document.addEventListener('visibilitychange', refreshLiveData);
     return () => document.removeEventListener('visibilitychange', refreshLiveData);
-  }, [loadHeroBanners, loadBanner, loadAnnouncements, fetchOffers, activeDepartment, activeCategory, debouncedSearch]);
+  }, [loadHeroBanners, fetchOffers, activeDepartment, activeCategory, debouncedSearch]);
 
   useEffect(() => {
     if (!routeOfferId) {
@@ -553,21 +518,9 @@ const OffersPage = () => {
 
   const handleRetry = () => {
     loadHeroBanners();
-    loadBanner();
-    loadAnnouncements();
     loadCategories();
     fetchOffers(activeDepartment, activeCategory, debouncedSearch);
   };
-
-  const promoImage = banner?.promoImage ? getImageUrl(banner.promoImage) : '';
-  const promoTitle = banner?.promoTitle || '';
-  const promoSubtitle = banner?.promoSubtitle || '';
-  const promoDescription = banner?.promoDescription || '';
-  const promoButtonText = banner?.promoButtonText || '';
-  const promoButtonLink = banner?.promoButtonLink || '';
-  const promoOverlayColor = banner?.promoOverlayColor || '#0f172a';
-  const promoOverlayOpacity = banner?.promoOverlayOpacity ?? 0.45;
-  const showPromoBanner = Boolean(promoImage || promoTitle || promoSubtitle || promoDescription);
 
   const sectionTitle = DEPARTMENT_OPTIONS.find((opt) => opt.value === activeDepartment)?.label || 'All Offers';
   const hasActiveFilters = activeDepartment !== 'all' || activeCategory || debouncedSearch;
@@ -577,82 +530,7 @@ const OffersPage = () => {
       <OfferSeoHead offer={sharedOffer} />
       <OffersHeroCarousel banners={heroBanners} />
 
-      {showPromoBanner ? (
-        <section className="offers-promo-banner">
-          {promoImage && (
-            <div
-              className="offers-promo-banner-bg"
-              style={{ backgroundImage: `url(${promoImage})` }}
-              aria-hidden="true"
-            />
-          )}
-          <div
-            className="offers-promo-banner-overlay"
-            style={{ backgroundColor: promoOverlayColor, opacity: promoOverlayOpacity }}
-            aria-hidden="true"
-          />
-          <div className="offers-promo-banner-inner">
-            {promoSubtitle && <span className="offers-promo-eyebrow">{promoSubtitle}</span>}
-            {promoTitle && <h2 className="offers-promo-title">{promoTitle}</h2>}
-            {promoDescription && <p className="offers-promo-desc">{promoDescription}</p>}
-            {promoButtonText && (
-              <SmartButton link={promoButtonLink || '#offers'} className="offers-promo-btn">
-                {promoButtonText} <FaArrowRight aria-hidden="true" />
-              </SmartButton>
-            )}
-          </div>
-        </section>
-      ) : null}
-
       <div className="offers-container" id="offers">
-        {announcements.length > 0 && (
-          <section className="offers-announcements" aria-label="Store announcements">
-            <div className="offers-section-head offers-section-head--stacked">
-              <h2 className="offers-section-title">Store Announcements</h2>
-            </div>
-            <div className="offers-announcements-grid">
-              {announcements.map((announcement) => {
-                const badge = getAnnouncementBadge(announcement);
-                const image = getImageUrl(announcement.bannerImage || announcement.image);
-                return (
-                  <article key={announcement.id || announcement.title} className="offers-announcement-card">
-                    {image ? (
-                      <div className="offers-announcement-media">
-                        <img src={image} alt={announcement.title} loading="lazy" decoding="async" />
-                        <div
-                          className="offers-announcement-overlay"
-                          style={{
-                            backgroundColor: announcement.overlayColor || '#0f172a',
-                            opacity: announcement.overlayOpacity ?? 0.35,
-                          }}
-                          aria-hidden="true"
-                        />
-                      </div>
-                    ) : null}
-                    <div className="offers-announcement-body">
-                      {badge ? <span className="offers-announcement-badge">{badge}</span> : null}
-                      {announcement.subtitle?.trim() ? (
-                        <p className="offers-announcement-subtitle">{announcement.subtitle}</p>
-                      ) : null}
-                      <h3 className="offers-announcement-title">{announcement.title}</h3>
-                      {announcement.description ? (
-                        <p className="offers-announcement-desc">{announcement.description}</p>
-                      ) : null}
-                      {announcement.buttonText ? (
-                        <SmartButton
-                          link={announcement.buttonLink || '/offers'}
-                          className="offers-announcement-btn"
-                        >
-                          {announcement.buttonText}
-                        </SmartButton>
-                      ) : null}
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          </section>
-        )}
         {(loadingCategories || categories.length > 0) && (
           <div className="offers-category-chips" aria-label="Offer category filters">
             {loadingCategories ? (

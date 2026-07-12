@@ -10,13 +10,11 @@ const CARD_THEMES = [
   {
     cardClass: 'green-promo-card',
     btnClass: 'btn-green',
-    badgeIcon: '🛒',
     ButtonIcon: FiShoppingBag,
   },
   {
     cardClass: 'orange-promo-card',
     btnClass: 'btn-orange',
-    badgeIcon: '👨‍🍳',
     ButtonIcon: FiChevronRight,
   },
 ];
@@ -48,10 +46,20 @@ const PromoButton = ({ link, className, children }) => {
   );
 };
 
-const splitPromoTitle = (title) => {
-  const parts = String(title || '').trim().split(/\s+/).filter(Boolean);
+/** Prefer admin highlighted title (subtitle); fall back to splitting long titles. */
+const resolveTitleParts = (announcement) => {
+  const title = String(announcement?.title || '').trim();
+  const highlighted = String(
+    announcement?.highlightedTitle || announcement?.subtitle || ''
+  ).trim();
+
+  if (highlighted) {
+    return { lead: title, highlight: highlighted };
+  }
+
+  const parts = title.split(/\s+/).filter(Boolean);
   if (parts.length <= 2) {
-    return { lead: parts.join(' '), highlight: '' };
+    return { lead: title, highlight: '' };
   }
   return {
     lead: parts.slice(0, 2).join(' '),
@@ -64,39 +72,35 @@ const PromoCard = ({ announcement, theme }) => {
   const promoImage = announcement.bannerImage || announcement.image
     ? getImageUrl(announcement.bannerImage || announcement.image)
     : '';
-  const { lead, highlight } = splitPromoTitle(announcement.title);
-  const subtitle = announcement.subtitle?.trim() || '';
+  const { lead, highlight } = resolveTitleParts(announcement);
   const ButtonIcon = theme.ButtonIcon;
 
   return (
-    <div className={`modern-promo-card ${theme.cardClass}`}>
+    <article className={`modern-promo-card ${theme.cardClass}`}>
       <div className="modern-promo-content">
-        <div className="modern-promo-badge-slot">
+        <div className="modern-promo-content-inner">
           {badgeText ? (
             <div className="modern-pill-badge">
-              <span className="badge-icon" aria-hidden="true">{theme.badgeIcon}</span>
               <span>{badgeText}</span>
             </div>
           ) : null}
-        </div>
-        <div className="modern-promo-copy">
-          <div className="modern-promo-subtitle-slot">
-            {subtitle ? <p className="modern-promo-subtitle">{subtitle}</p> : null}
-          </div>
-          <h2 className="modern-promo-title">
-            {lead}
-            {highlight ? (
-              <>
-                <br />
-                <span className="highlight-text">{highlight}</span>
-              </>
-            ) : null}
-          </h2>
+
+          {(lead || highlight) ? (
+            <h2 className="modern-promo-title">
+              {lead ? <span className="modern-promo-title-lead">{lead}</span> : null}
+              {highlight ? (
+                <>
+                  {lead ? <br /> : null}
+                  <span className="highlight-text">{highlight}</span>
+                </>
+              ) : null}
+            </h2>
+          ) : null}
+
           {announcement.description ? (
             <p className="modern-promo-desc">{announcement.description}</p>
           ) : null}
-        </div>
-        <div className="modern-promo-actions">
+
           {announcement.buttonText ? (
             <PromoButton
               link={announcement.buttonLink || '/offers'}
@@ -108,6 +112,7 @@ const PromoCard = ({ announcement, theme }) => {
           ) : null}
         </div>
       </div>
+
       {promoImage ? (
         <div className="modern-promo-image-wrapper">
           <img
@@ -116,14 +121,12 @@ const PromoCard = ({ announcement, theme }) => {
             className="modern-promo-img"
             loading="lazy"
             decoding="async"
-            width="360"
-            height="240"
           />
         </div>
       ) : (
         <div className="modern-promo-image-wrapper modern-promo-image-wrapper--empty" aria-hidden="true" />
       )}
-    </div>
+    </article>
   );
 };
 
@@ -132,7 +135,7 @@ const Promotions = () => {
 
   const loadAnnouncements = async () => {
     try {
-      const list = await announcementService.getStorefrontAnnouncements();
+      const list = await announcementService.getActiveAnnouncements();
       setAnnouncements(Array.isArray(list) ? list : []);
     } catch (err) {
       console.error('Failed to load store announcements', err);

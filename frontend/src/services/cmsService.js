@@ -48,7 +48,7 @@ export const cmsService = {
 
   deleteContactMessage: async (id) => enquiryService.deleteEnquiry(id),
 
-  getAnnouncements: async () => apiRequest(() => api.get('/storefront/announcements')),
+  getAnnouncements: async () => apiRequest(() => api.get('/store-announcements/active')),
 
   getAllAnnouncements: async (params = {}) => {
     const result = await api.get('/announcements', { params });

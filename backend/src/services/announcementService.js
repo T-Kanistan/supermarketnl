@@ -56,6 +56,7 @@ export const formatStorefrontAnnouncement = (doc, now = new Date()) => {
     id: formatted.id,
     title: formatted.title,
     subtitle: formatted.subtitle || '',
+    highlightedTitle: formatted.subtitle || '',
     description: formatted.description,
     badgeText: formatted.badgeText || '',
     discountPercentage: formatted.discountPercentage,

@@ -1,9 +1,8 @@
 .promotions {
-  padding-top: 32px;
-  padding-bottom: 40px;
+  padding-top: 40px;
+  padding-bottom: 48px;
 }
 
-/* Full-width section — edge-to-edge on large screens */
 .promotions .container {
   width: 100%;
   max-width: none;
@@ -15,32 +14,31 @@
 .promotions-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 20px;
+  gap: 24px;
   width: 100%;
   align-items: stretch;
 }
 
 .promotions-grid--single {
   grid-template-columns: minmax(0, 1fr);
-  max-width: 640px;
+  max-width: 920px;
   margin: 0 auto;
 }
 
 .modern-promo-card {
-  border-radius: 14px;
+  position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
-  min-height: 240px;
-  height: 100%;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+  grid-template-columns: 55% 45%;
+  height: 520px;
+  border-radius: 20px;
   overflow: hidden;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.12);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
-  text-decoration: none;
 }
 
 .modern-promo-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.16);
 }
 
 .green-promo-card {
@@ -52,210 +50,262 @@
 }
 
 .modern-promo-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  height: 100%;
+  padding: 40px 24px 40px 48px;
+}
+
+.modern-promo-content-inner {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  justify-content: flex-start;
-  min-height: 100%;
-  padding: 18px 16px 18px 22px;
-  z-index: 2;
-}
-
-.modern-promo-badge-slot {
-  min-height: 30px;
-  display: flex;
-  align-items: flex-start;
-  margin-bottom: 8px;
+  justify-content: center;
+  gap: 18px;
   width: 100%;
+  max-width: 100%;
 }
 
 .modern-pill-badge {
-  background-color: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(4px);
-  color: white;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 5px 12px;
+  padding: 8px 16px;
   border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  line-height: 1.2;
-}
-
-.modern-promo-copy {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
-  width: 100%;
-}
-
-.modern-promo-subtitle-slot {
-  min-height: 1.1rem;
-  display: flex;
-  align-items: flex-start;
-}
-
-.modern-promo-subtitle {
-  margin: 0;
-  color: rgba(255, 255, 255, 0.88);
-  font-size: 0.78rem;
+  background-color: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(6px);
+  color: #ffffff;
+  font-size: 14px;
   font-weight: 600;
-  line-height: 1.35;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
 .modern-promo-title {
-  font-size: clamp(1.2rem, 1.9vw, 1.55rem);
-  font-weight: 900;
-  color: white;
-  line-height: 1.12;
   margin: 0;
+  max-width: 480px;
+  color: #ffffff;
+  font-size: 52px;
+  font-weight: 800;
+  line-height: 1.05;
   text-transform: uppercase;
-}
-
-.highlight-text {
-  color: #fde047;
-}
-
-.modern-promo-desc {
-  font-size: 0.82rem;
-  color: rgba(255, 255, 255, 0.86);
-  line-height: 1.45;
-  margin: 0;
-  font-weight: 400;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  word-break: break-word;
 }
 
-.modern-promo-actions {
-  margin-top: auto;
-  padding-top: 12px;
-  min-height: 42px;
-  width: 100%;
-  display: flex;
-  align-items: flex-end;
+.modern-promo-title-lead {
+  color: #ffffff;
+}
+
+.highlight-text {
+  color: #fde047;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.modern-promo-desc {
+  margin: 0;
+  max-width: 460px;
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1.7;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
 }
 
 .modern-promo-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 9px 18px;
-  border-radius: 999px;
-  font-weight: 700;
-  font-size: 0.88rem;
-  text-decoration: none;
-  transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
+  gap: 10px;
+  width: auto;
+  height: 56px;
+  padding: 18px 34px;
+  border-radius: 40px;
   border: none;
+  font-weight: 700;
+  font-size: 1rem;
+  text-decoration: none;
   cursor: pointer;
   white-space: nowrap;
+  transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
 }
 
 .btn-green {
   background-color: #fde047;
   color: #0f3612;
-  box-shadow: 0 4px 12px rgba(253, 224, 71, 0.28);
+  box-shadow: 0 6px 18px rgba(253, 224, 71, 0.3);
 }
 
 .btn-green:hover {
-  background-color: #fff;
-  transform: translateY(-1px);
+  background-color: #ffffff;
+  transform: translateY(-2px);
 }
 
 .btn-orange {
-  background-color: #fff;
+  background-color: #ffffff;
   color: #bf360c;
-  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.18);
+  box-shadow: 0 6px 18px rgba(255, 255, 255, 0.22);
 }
 
 .btn-orange:hover {
   background-color: #fde047;
   color: #0f3612;
-  transform: translateY(-1px);
+  transform: translateY(-2px);
 }
 
 .btn-icon {
-  font-size: 1rem;
+  font-size: 1.15rem;
   flex-shrink: 0;
 }
 
 .modern-promo-image-wrapper {
   position: relative;
+  z-index: 1;
+  height: 100%;
+  min-height: 0;
   overflow: hidden;
-  min-height: 100%;
-  clip-path: polygon(12% 0, 100% 0, 100% 100%, 0% 100%);
+  clip-path: polygon(14% 0, 100% 0, 100% 100%, 0% 100%);
 }
 
 .modern-promo-image-wrapper--empty {
-  background: rgba(0, 0, 0, 0.12);
+  background: rgba(0, 0, 0, 0.14);
 }
 
 .modern-promo-img {
+  display: block;
   width: 100%;
   height: 100%;
-  min-height: 240px;
   object-fit: cover;
   object-position: center;
   transition: transform 0.5s ease;
 }
 
 .modern-promo-card:hover .modern-promo-img {
-  transform: scale(1.05);
+  transform: scale(1.04);
 }
 
-@media (max-width: 1200px) {
+/* Tablet: same 2-column layout, smaller type, shorter height */
+@media (max-width: 1023px) {
+  .modern-promo-card {
+    height: 420px;
+  }
+
   .modern-promo-content {
-    padding: 20px 16px 20px 20px;
+    padding: 32px 18px 32px 32px;
   }
 
   .modern-promo-title {
-    font-size: 1.45rem;
+    font-size: 36px;
+    max-width: 360px;
+  }
+
+  .modern-promo-desc {
+    font-size: 18px;
+    max-width: 340px;
+    line-height: 1.6;
+  }
+
+  .modern-promo-btn {
+    height: 48px;
+    padding: 14px 28px;
+    font-size: 0.95rem;
+  }
+
+  .modern-pill-badge {
+    font-size: 13px;
+    padding: 7px 14px;
   }
 }
 
-@media (max-width: 992px) {
-  .promotions-grid {
-    grid-template-columns: 1fr;
-    gap: 16px;
+/* Narrow tablet / large phone: still side-by-side until mobile breakpoint */
+@media (max-width: 900px) and (min-width: 768px) {
+  .modern-promo-title {
+    font-size: 30px;
   }
 
-  .promotions-grid--single {
-    max-width: 640px;
-  }
-
-  .modern-promo-card {
-    min-height: 220px;
-  }
-
-  .modern-promo-img {
-    min-height: 220px;
-  }
-}
-
-@media (max-width: 600px) {
-  .modern-promo-card {
-    grid-template-columns: 1fr;
-    min-height: auto;
+  .modern-promo-desc {
+    font-size: 16px;
+    -webkit-line-clamp: 2;
   }
 
   .modern-promo-content {
-    padding: 20px 18px 18px;
+    padding: 28px 14px 28px 24px;
+  }
+
+  .modern-promo-content-inner {
+    gap: 14px;
+  }
+}
+
+/* Mobile: stack text then image for readability */
+@media (max-width: 767px) {
+  .promotions {
+    padding-top: 28px;
+    padding-bottom: 32px;
+  }
+
+  .promotions-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .promotions-grid--single {
+    max-width: none;
+  }
+
+  .modern-promo-card {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+    height: auto;
+    min-height: 0;
+  }
+
+  .modern-promo-content {
+    order: 1;
+    padding: 28px 22px 24px;
+    height: auto;
   }
 
   .modern-promo-image-wrapper {
+    order: 2;
     clip-path: none;
-    min-height: 200px;
+    height: 240px;
   }
 
-  .modern-promo-img {
-    min-height: 200px;
+  .modern-promo-title {
+    font-size: clamp(28px, 8vw, 36px);
+    max-width: 100%;
+  }
+
+  .modern-promo-desc {
+    font-size: 17px;
+    max-width: 100%;
+    line-height: 1.65;
+  }
+
+  .modern-promo-btn {
+    height: 50px;
+    padding: 14px 28px;
+  }
+
+  .modern-promo-content-inner {
+    gap: 14px;
   }
 }

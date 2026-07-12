@@ -49,6 +49,7 @@ const auth = [protect, restrictTo('admin', 'manager')];
 
 // Public reads
 router.get('/', getOffers);
+router.get('/active', getOffers);
 router.get('/featured', getFeaturedOffers);
 router.get('/categories', getOfferCategories);
 router.get('/banner', getOfferBanner);

@@ -46,7 +46,7 @@ const toPayload = (data) => {
 const offerService = {
   getOffers: async (params = {}) => {
     const { admin, ...query } = params;
-    const endpoint = admin ? '/offers/all' : '/offers';
+    const endpoint = admin ? '/offers/all' : '/offers/active';
     const response = await api.get(endpoint, { params: { ...query, _t: Date.now() } });
     return unwrap(response);
   },

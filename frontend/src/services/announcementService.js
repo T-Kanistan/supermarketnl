@@ -19,8 +19,13 @@ const toPayload = (data) => ({
 });
 
 export const announcementService = {
+  /** Homepage announcement banners only — active + within date range. */
+  getActiveAnnouncements: async () =>
+    apiRequest(() => api.get('/store-announcements/active', { params: { _t: Date.now() } })),
+
+  /** @deprecated Use getActiveAnnouncements — kept for callers still on the storefront alias. */
   getStorefrontAnnouncements: async () =>
-    apiRequest(() => api.get('/storefront/announcements', { params: { _t: Date.now() } })),
+    apiRequest(() => api.get('/store-announcements/active', { params: { _t: Date.now() } })),
 
   getAnnouncements: async (params = {}) => {
     const result = await api.get('/announcements', { params });

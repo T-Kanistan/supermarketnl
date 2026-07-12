@@ -7,6 +7,7 @@ import { getStorefrontTestimonials } from '../controllers/testimonialController.
 
 const router = express.Router();
 
+/** @deprecated Prefer GET /api/store-announcements/active (homepage banners only). */
 router.get('/announcements', getStorefrontAnnouncements);
 router.get('/home-banner', getStorefrontHomeBanner);
 router.get('/homepage-about', getStorefrontHomepageAbout);

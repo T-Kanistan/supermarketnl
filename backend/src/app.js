@@ -29,6 +29,7 @@ import managerDashboardRoutes from './routes/managerDashboardRoutes.js';
 import quickActionRoutes from './routes/quickActionRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
 import storefrontRoutes from './routes/storefrontRoutes.js';
+import storeAnnouncementRoutes from './routes/storeAnnouncementRoutes.js';
 import accountRoutes from './routes/accountRoutes.js';
 import jobApplicationRoutes from './routes/jobApplicationRoutes.js';
 import adminJobApplicationRoutes from './routes/adminJobApplicationRoutes.js';
@@ -115,6 +116,7 @@ app.use('/api/managers', managerRoutes);
 app.use('/api/manager', managerDashboardRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/storefront', storefrontRoutes);
+app.use('/api/store-announcements', storeAnnouncementRoutes);
 // Offers module (registered before the catch-all `/api` quick-action router so the
 // public `GET /api/offers` list endpoint is not shadowed by the legacy manager
 // quick-action `/offers` summary, which remains available at `/api/manager/offers`).

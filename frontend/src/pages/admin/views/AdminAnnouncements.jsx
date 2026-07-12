@@ -235,7 +235,7 @@ export const AdminAnnouncements = () => {
       <div className="view-header">
         <div className="view-title-wrap">
           <h2>Store Announcements</h2>
-          <p>Create discount campaigns, seasonal promotions, and store announcements appearing on storefront pages.</p>
+          <p>Homepage promotional banners only. These do not appear on the Offers page.</p>
         </div>
         <button className="action-btn-primary" onClick={openAddModal}>
           <FaPlus /> Add Announcement
@@ -391,14 +391,14 @@ export const AdminAnnouncements = () => {
                 </div>
 
                 <div className="admin-form-group">
-                  <AdminFieldLabel htmlFor="ann-subtitle" optional>Subtitle</AdminFieldLabel>
+                  <AdminFieldLabel htmlFor="ann-subtitle" optional>Highlighted Title</AdminFieldLabel>
                   <input
                     id="ann-subtitle"
                     type="text"
                     name="subtitle"
                     value={formData.subtitle}
                     onChange={handleChange}
-                    placeholder="Short supporting line"
+                    placeholder="e.g. MADE FRESH (shown in accent color)"
                     maxLength={200}
                   />
                 </div>
