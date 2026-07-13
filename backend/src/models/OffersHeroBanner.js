@@ -25,31 +25,31 @@ const offersHeroBannerSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: '',
-      maxlength: 60,
+      maxlength: 30,
     },
     title: {
       type: String,
       required: [true, 'Title is required'],
       trim: true,
-      maxlength: 150,
+      maxlength: 60,
     },
     highlightedTitle: {
       type: String,
       trim: true,
       default: '',
-      maxlength: 100,
+      maxlength: 60,
     },
     description: {
       type: String,
       trim: true,
       default: '',
-      maxlength: 600,
+      maxlength: 250,
     },
     buttonText: {
       type: String,
       trim: true,
       default: '',
-      maxlength: 50,
+      maxlength: 25,
     },
     buttonUrl: {
       type: String,
@@ -66,6 +66,11 @@ const offersHeroBannerSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: '',
+    },
+    backgroundColor: {
+      type: String,
+      trim: true,
+      default: '#0f172a',
     },
     overlayColor: {
       type: String,
@@ -108,7 +113,7 @@ const offersHeroBannerSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: OFFERS_HERO_BANNER_STATUSES,
-      default: 'draft',
+      default: 'inactive',
       index: true,
     },
     startDate: {

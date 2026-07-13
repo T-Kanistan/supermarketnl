@@ -118,26 +118,15 @@ const SmartButton = ({ link, className, children }) => {
   return <a href={target} className={className} target="_blank" rel="noreferrer">{children}</a>;
 };
 
-const getHeroDiscountLabel = (banner) => {
-  if (banner?.offerBadge?.trim()) return banner.offerBadge.trim();
-  const type = banner?.discountType || 'percentage';
-  const value = banner?.discountValue;
-  if (type === 'bogo') return 'Buy 1 Get 1';
-  if (type === 'combo') return 'Combo Deal';
-  if (value == null || value === '') return '';
-  const num = Number(value);
-  if (Number.isNaN(num)) return '';
-  if (type === 'percentage') return `${num % 1 === 0 ? num : num.toFixed(2)}% OFF`;
-  if (type === 'flat') return `€${num.toFixed(2)} OFF`;
-  return '';
-};
-
 const OffersHeroSlide = ({ banner }) => {
-  const heroImage = banner.bannerImage || banner.backgroundImage
-    ? getImageUrl(banner.bannerImage || banner.backgroundImage)
+  const heroImage = banner.bannerImage || banner.backgroundImage || banner.heroImage
+    ? getImageUrl(banner.bannerImage || banner.backgroundImage || banner.heroImage)
     : '';
-  const discountLabel = getHeroDiscountLabel(banner);
-  const metaParts = [banner.offerType, banner.offerCategory].filter(Boolean);
+  const title = banner.title || banner.heroTitle || '';
+  const subtitle = banner.highlightedTitle || banner.subtitle || banner.heroSubtitle || '';
+  const description = banner.description || banner.heroDescription || '';
+  const overlayColor = banner.overlayColor || banner.heroOverlayColor || '#0f172a';
+  const overlayOpacity = banner.overlayOpacity ?? banner.heroOverlayOpacity ?? 0.55;
 
   return (
     <>
@@ -150,91 +139,43 @@ const OffersHeroSlide = ({ banner }) => {
       ) : null}
       <div
         className="offers-hero-overlay"
-        style={{
-          backgroundColor: banner.overlayColor || '#0f172a',
-          opacity: banner.overlayOpacity ?? 0.55,
-        }}
+        style={{ backgroundColor: overlayColor, opacity: overlayOpacity }}
         aria-hidden="true"
       />
       <div className="offers-hero-inner">
-        {banner.badgeText ? <span className="offers-hero-eyebrow">{banner.badgeText}</span> : null}
-        {(banner.title || banner.highlightedTitle) ? (
-          <h1 className="offers-hero-title">
-            {banner.title ? <span>{banner.title}</span> : null}
-            {banner.highlightedTitle ? (
-              <span className="offers-hero-highlight"> {banner.highlightedTitle}</span>
-            ) : null}
-          </h1>
-        ) : null}
-        {discountLabel ? <span className="offers-hero-discount">{discountLabel}</span> : null}
-        {metaParts.length > 0 ? (
-          <p className="offers-hero-meta">{metaParts.join(' · ')}</p>
-        ) : null}
-        {banner.description ? <p className="offers-hero-desc">{banner.description}</p> : null}
-        {(banner.buttonText || banner.button2Text) ? (
-          <div className="offers-hero-actions">
-            {banner.buttonText ? (
-              <SmartButton
-                link={banner.buttonUrl || '#offers'}
-                className="offers-hero-btn offers-hero-btn--primary"
-              >
-                {banner.buttonText} <FaArrowRight aria-hidden="true" />
-              </SmartButton>
-            ) : null}
-            {banner.button2Text ? (
-              <SmartButton
-                link={banner.button2Url}
-                className="offers-hero-btn offers-hero-btn--secondary"
-              >
-                {banner.button2Text}
-              </SmartButton>
-            ) : null}
-          </div>
-        ) : null}
+        {subtitle ? <span className="offers-hero-eyebrow">{subtitle}</span> : null}
+        {title ? <h1 className="offers-hero-title"><span>{title}</span></h1> : null}
+        {description ? <p className="offers-hero-desc">{description}</p> : null}
+        <div className="offers-hero-actions">
+          <SmartButton link="#offers" className="offers-hero-btn offers-hero-btn--primary">
+            Shop Offers <FaArrowRight aria-hidden="true" />
+          </SmartButton>
+          <SmartButton link="/products" className="offers-hero-btn offers-hero-btn--secondary">
+            View Products
+          </SmartButton>
+        </div>
       </div>
     </>
   );
 };
 
-const OffersHeroCarousel = ({ banners }) => {
-  const [activeIndex, setActiveIndex] = useState(0);
-
-  useEffect(() => {
-    setActiveIndex(0);
-  }, [banners]);
-
-  useEffect(() => {
-    if (banners.length <= 1) return undefined;
-    const timer = setInterval(() => {
-      setActiveIndex((prev) => (prev + 1) % banners.length);
-    }, 6000);
-    return () => clearInterval(timer);
-  }, [banners.length]);
-
-  if (!banners.length) return null;
-
-  const activeBanner = banners[activeIndex] || banners[0];
+const OffersHeroBanner = ({ banner }) => {
+  if (!banner) return null;
+  const hasContent = Boolean(
+    banner.bannerImage
+      || banner.heroImage
+      || banner.title
+      || banner.heroTitle
+      || banner.description
+      || banner.heroDescription
+  );
+  if (!hasContent) return null;
 
   return (
     <section className="offers-hero" aria-label="Offers hero banner">
-      <div className="offers-hero-slide" key={activeBanner.id || activeIndex}>
-        <OffersHeroSlide banner={activeBanner} />
+      <div className="offers-hero-slide">
+        <OffersHeroSlide banner={banner} />
       </div>
-      {banners.length > 1 ? (
-        <div className="offers-hero-dots" role="tablist" aria-label="Hero banner slides">
-          {banners.map((banner, index) => (
-            <button
-              key={banner.id || index}
-              type="button"
-              role="tab"
-              aria-selected={index === activeIndex}
-              aria-label={`Show banner ${index + 1}`}
-              className={`offers-hero-dot${index === activeIndex ? ' is-active' : ''}`}
-              onClick={() => setActiveIndex(index)}
-            />
-          ))}
-        </div>
-      ) : null}
     </section>
   );
 };
@@ -364,7 +305,7 @@ const OffersPage = () => {
   const { openEnquiry } = useEnquiry();
   const { offerId: routeOfferId } = useParams();
 
-  const [heroBanners, setHeroBanners] = useState([]);
+  const [heroBanner, setHeroBanner] = useState(null);
   const [categories, setCategories] = useState([]);
   const [offers, setOffers] = useState([]);
   const [activeDepartment, setActiveDepartment] = useState('all');
@@ -386,19 +327,32 @@ const OffersPage = () => {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  const loadHeroBanners = useCallback(async () => {
+  const loadHeroBanner = useCallback(async () => {
     try {
-      const data = await offerService.getHeroBanners();
-      setHeroBanners(Array.isArray(data) ? data : []);
+      const data = await offerService.getBanner();
+      if (!data || data.heroStatus === 'inactive') {
+        setHeroBanner(null);
+        return;
+      }
+      setHeroBanner({
+        heroImage: data.heroImage || '',
+        heroTitle: data.heroTitle || '',
+        heroSubtitle: data.heroSubtitle || '',
+        heroDescription: data.heroDescription || '',
+        heroButtonText: data.heroButtonText || '',
+        heroButtonLink: data.heroButtonLink || '',
+        heroOverlayColor: data.heroOverlayColor || '#0f172a',
+        heroOverlayOpacity: data.heroOverlayOpacity ?? 0.55,
+      });
     } catch (err) {
-      console.error('Failed to load offers hero banners', err);
-      setHeroBanners([]);
+      console.error('Failed to load offers hero banner', err);
+      setHeroBanner(null);
     }
   }, []);
 
   useEffect(() => {
-    loadHeroBanners();
-  }, [loadHeroBanners]);
+    loadHeroBanner();
+  }, [loadHeroBanner]);
 
   const loadCategories = useCallback(async () => {
     setLoadingCategories(true);
@@ -444,12 +398,12 @@ const OffersPage = () => {
   useEffect(() => {
     const refreshLiveData = () => {
       if (document.visibilityState !== 'visible') return;
-      loadHeroBanners();
+      loadHeroBanner();
       fetchOffers(activeDepartment, activeCategory, debouncedSearch);
     };
     document.addEventListener('visibilitychange', refreshLiveData);
     return () => document.removeEventListener('visibilitychange', refreshLiveData);
-  }, [loadHeroBanners, fetchOffers, activeDepartment, activeCategory, debouncedSearch]);
+  }, [loadHeroBanner, fetchOffers, activeDepartment, activeCategory, debouncedSearch]);
 
   useEffect(() => {
     if (!routeOfferId) {
@@ -517,7 +471,7 @@ const OffersPage = () => {
   };
 
   const handleRetry = () => {
-    loadHeroBanners();
+    loadHeroBanner();
     loadCategories();
     fetchOffers(activeDepartment, activeCategory, debouncedSearch);
   };
@@ -528,7 +482,7 @@ const OffersPage = () => {
   return (
     <div className="offers-page">
       <OfferSeoHead offer={sharedOffer} />
-      <OffersHeroCarousel banners={heroBanners} />
+      <OffersHeroBanner banner={heroBanner} />
 
       <div className="offers-container" id="offers">
         {(loadingCategories || categories.length > 0) && (

@@ -716,6 +716,11 @@ export const updateOfferBanner = async (body, user) => {
     banner.promoOverlayOpacity = Number.isNaN(opacity) ? 0.45 : Math.min(1, Math.max(0, opacity));
   }
 
+  if (body.heroStatus !== undefined) {
+    const status = String(body.heroStatus).trim().toLowerCase();
+    banner.heroStatus = status === 'inactive' ? 'inactive' : 'active';
+  }
+
   if (body.heroImage !== undefined) {
     banner.heroImage = body.heroImage ? await resolveImage(body.heroImage) : '';
   }
@@ -785,6 +790,7 @@ export const formatOffersHeroBanner = (doc, now = new Date()) => {
     buttonUrl: plain.buttonUrl || '',
     button2Text: plain.button2Text || '',
     button2Url: plain.button2Url || '',
+    backgroundColor: plain.backgroundColor || '#0f172a',
     overlayColor: plain.overlayColor || '#0f172a',
     overlayOpacity: plain.overlayOpacity ?? 0.55,
     offerType: plain.offerType || 'Supermarket',
@@ -792,7 +798,7 @@ export const formatOffersHeroBanner = (doc, now = new Date()) => {
     discountType: plain.discountType || 'percentage',
     discountValue: plain.discountValue ?? null,
     offerBadge: plain.offerBadge || '',
-    status: plain.status || 'draft',
+    status: plain.status || 'inactive',
     effectiveStatus,
     sortOrder: Number.isFinite(plain.sortOrder) ? plain.sortOrder : 0,
     startDate: plain.startDate ? new Date(plain.startDate).toISOString().split('T')[0] : null,
@@ -900,8 +906,58 @@ export const getOffersHeroBannerById = async (id) => {
 
 const normalizeOffersHeroBannerPayload = async (body, { isCreate = false, existing = null } = {}) => {
   const title = (body.title ?? existing?.title ?? '').trim();
+  const badgeText = (body.badgeText ?? existing?.badgeText ?? '').trim();
+  const highlightedTitle = (body.highlightedTitle ?? existing?.highlightedTitle ?? '').trim();
+  const description = (body.description ?? existing?.description ?? '').trim();
+  const buttonText = (body.buttonText ?? existing?.buttonText ?? '').trim();
+
   if (!title) {
     const error = new Error('Title is required');
+    error.statusCode = 400;
+    throw error;
+  }
+  if (!badgeText) {
+    const error = new Error('Badge is required');
+    error.statusCode = 400;
+    throw error;
+  }
+  if (!highlightedTitle) {
+    const error = new Error('Highlighted title is required');
+    error.statusCode = 400;
+    throw error;
+  }
+  if (!description) {
+    const error = new Error('Description is required');
+    error.statusCode = 400;
+    throw error;
+  }
+  if (!buttonText) {
+    const error = new Error('Button text is required');
+    error.statusCode = 400;
+    throw error;
+  }
+  if (badgeText.length > 30) {
+    const error = new Error('Badge cannot exceed 30 characters');
+    error.statusCode = 400;
+    throw error;
+  }
+  if (title.length > 60) {
+    const error = new Error('Title cannot exceed 60 characters');
+    error.statusCode = 400;
+    throw error;
+  }
+  if (highlightedTitle.length > 60) {
+    const error = new Error('Highlighted title cannot exceed 60 characters');
+    error.statusCode = 400;
+    throw error;
+  }
+  if (description.length > 250) {
+    const error = new Error('Description cannot exceed 250 characters');
+    error.statusCode = 400;
+    throw error;
+  }
+  if (buttonText.length > 25) {
+    const error = new Error('Button text cannot exceed 25 characters');
     error.statusCode = 400;
     throw error;
   }
@@ -924,53 +980,49 @@ const normalizeOffersHeroBannerPayload = async (body, { isCreate = false, existi
   }
 
   const imageInput = body.bannerImage ?? body.backgroundImage ?? body.heroImage;
-  let bannerImage = '';
+  let bannerImage = existing?.bannerImage || existing?.backgroundImage || '';
   if (imageInput !== undefined) {
     bannerImage = imageInput ? await resolveImage(imageInput) : '';
-  } else if (isCreate) {
-    bannerImage = '';
+  }
+  if (!bannerImage) {
+    const error = new Error('Banner image is required');
+    error.statusCode = 400;
+    throw error;
   }
 
   const payload = {
     title,
-    highlightedTitle: (body.highlightedTitle || '').trim(),
-    badgeText: (body.badgeText ?? body.heroSubtitle ?? '').trim(),
-    description: (body.description ?? body.heroDescription ?? '').trim(),
-    buttonText: (body.buttonText ?? body.heroButtonText ?? '').trim(),
-    buttonUrl: (body.buttonUrl ?? body.buttonLink ?? body.heroButtonLink ?? '').trim(),
-    button2Text: (body.button2Text ?? body.heroButton2Text ?? '').trim(),
-    button2Url: (body.button2Url ?? body.heroButton2Link ?? '').trim(),
-    overlayColor: (body.overlayColor ?? body.heroOverlayColor ?? '#0f172a').trim(),
-    offerType: normalizeOfferDepartment(body.offerType ?? body.offerDepartment),
-    offerCategory: (body.offerCategory ?? body.category ?? '').trim(),
-    discountType: normalizeDiscountType(body.discountType),
-    discountValue: parseNumber(body.discountValue),
-    offerBadge: (body.offerBadge ?? body.badge ?? '').trim(),
+    highlightedTitle,
+    badgeText,
+    description,
+    buttonText,
+    buttonUrl: (body.buttonUrl ?? body.buttonLink ?? existing?.buttonUrl ?? '').trim(),
+    backgroundColor: (body.backgroundColor ?? existing?.backgroundColor ?? '#0f172a').trim() || '#0f172a',
+    overlayColor: (body.overlayColor ?? body.heroOverlayColor ?? existing?.overlayColor ?? '#0f172a').trim() || '#0f172a',
+    bannerImage,
+    backgroundImage: bannerImage,
     startDate,
     endDate,
-    sortOrder: parseNumber(body.sortOrder) ?? 0,
+    sortOrder: parseNumber(body.sortOrder) ?? existing?.sortOrder ?? 0,
   };
-
-  if (imageInput !== undefined || isCreate) {
-    payload.bannerImage = bannerImage;
-    payload.backgroundImage = bannerImage;
-  }
 
   if (body.overlayOpacity !== undefined || body.heroOverlayOpacity !== undefined) {
     const opacity = Number(body.overlayOpacity ?? body.heroOverlayOpacity);
     payload.overlayOpacity = Number.isNaN(opacity) ? 0.55 : Math.min(1, Math.max(0, opacity));
+  } else if (isCreate) {
+    payload.overlayOpacity = 0.55;
   }
 
   if (body.status !== undefined) {
     const status = String(body.status).trim().toLowerCase();
-    if (!['active', 'inactive', 'draft'].includes(status)) {
-      const error = new Error('Status must be active, inactive, or draft');
+    if (!['active', 'inactive'].includes(status)) {
+      const error = new Error('Status must be active or inactive');
       error.statusCode = 400;
       throw error;
     }
     payload.status = status;
   } else if (isCreate) {
-    payload.status = 'draft';
+    payload.status = 'active';
   }
 
   return payload;
@@ -1018,8 +1070,8 @@ export const updateOffersHeroBanner = async (id, body, user) => {
 
 export const updateOffersHeroBannerStatus = async (id, status, user) => {
   const normalized = String(status || '').trim().toLowerCase();
-  if (!['active', 'inactive', 'draft'].includes(normalized)) {
-    const error = new Error('Status must be active, inactive, or draft');
+  if (!['active', 'inactive'].includes(normalized)) {
+    const error = new Error('Status must be active or inactive');
     error.statusCode = 400;
     throw error;
   }

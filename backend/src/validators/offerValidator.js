@@ -215,66 +215,105 @@ export const offersHeroBannerIdRules = [
 ];
 
 export const createOffersHeroBannerRules = [
-  body('title').trim().notEmpty().withMessage('Title is required').isLength({ max: 150 }),
-  body('highlightedTitle').optional({ values: 'null' }).isLength({ max: 100 }),
-  body('badgeText').optional({ values: 'null' }).isLength({ max: 60 }),
-  body('description').optional({ values: 'null' }).isLength({ max: 600 }),
-  body('buttonText').optional({ values: 'null' }).isLength({ max: 50 }),
-  body('buttonUrl').optional({ values: 'null' }).trim(),
-  body('button2Text').optional({ values: 'null' }).isLength({ max: 50 }),
-  body('button2Url').optional({ values: 'null' }).trim(),
-  body('overlayColor').optional({ values: 'null' }).trim(),
+  body('bannerImage')
+    .trim()
+    .notEmpty()
+    .withMessage('Banner image is required')
+    .custom((value) => {
+      if (!isValidImageUrl(value)) {
+        throw new Error('Banner image must use /uploads/, http://, https://, or data:image/');
+      }
+      return true;
+    }),
+  body('badgeText')
+    .trim()
+    .notEmpty()
+    .withMessage('Badge is required')
+    .isLength({ max: 30 })
+    .withMessage('Badge cannot exceed 30 characters'),
+  body('title')
+    .trim()
+    .notEmpty()
+    .withMessage('Title is required')
+    .isLength({ max: 60 })
+    .withMessage('Title cannot exceed 60 characters'),
+  body('highlightedTitle')
+    .trim()
+    .notEmpty()
+    .withMessage('Highlighted title is required')
+    .isLength({ max: 60 })
+    .withMessage('Highlighted title cannot exceed 60 characters'),
+  body('description')
+    .trim()
+    .notEmpty()
+    .withMessage('Description is required')
+    .isLength({ max: 250 })
+    .withMessage('Description cannot exceed 250 characters'),
+  body('buttonText')
+    .trim()
+    .notEmpty()
+    .withMessage('Button text is required')
+    .isLength({ max: 25 })
+    .withMessage('Button text cannot exceed 25 characters'),
+  body('buttonUrl').optional({ values: 'falsy' }).trim(),
+  body('backgroundColor').optional({ values: 'falsy' }).trim(),
+  body('overlayColor').optional({ values: 'falsy' }).trim(),
   body('overlayOpacity').optional().isFloat({ min: 0, max: 1 }),
-  body('offerType').optional().isIn(['Supermarket', 'Food Corner']),
-  body('offerCategory').optional({ values: 'null' }).isLength({ max: 100 }),
-  body('discountType').optional().isIn(['percentage', 'flat', 'bogo', 'combo']),
-  body('discountValue').optional().isFloat({ min: 0 }),
-  body('offerBadge').optional({ values: 'null' }).isLength({ max: 60 }),
-  body('status').optional().isIn(['active', 'inactive', 'draft']),
+  body('status').optional().isIn(['active', 'inactive']),
   body('startDate').notEmpty().withMessage('Start date is required'),
   body('endDate').notEmpty().withMessage('End date is required'),
-  optionalNumberRule('sortOrder', 'Sort order'),
-  body(['bannerImage', 'backgroundImage', 'heroImage']).custom((_, { req }) => {
-    for (const key of ['bannerImage', 'backgroundImage', 'heroImage']) {
-      const value = req.body[key];
-      if (value && !isValidImageUrl(value)) {
-        throw new Error(`${key} must use /uploads/, http://, https://, or data:image/`);
-      }
-    }
-    return true;
-  }),
 ];
 
 export const updateOffersHeroBannerRules = [
   ...offersHeroBannerIdRules,
-  body('title').optional().trim().notEmpty().withMessage('Title cannot be empty').isLength({ max: 150 }),
-  body('highlightedTitle').optional({ values: 'null' }).isLength({ max: 100 }),
-  body('badgeText').optional({ values: 'null' }).isLength({ max: 60 }),
-  body('description').optional({ values: 'null' }).isLength({ max: 600 }),
-  body('buttonText').optional({ values: 'null' }).isLength({ max: 50 }),
-  body('buttonUrl').optional({ values: 'null' }).trim(),
-  body('button2Text').optional({ values: 'null' }).isLength({ max: 50 }),
-  body('button2Url').optional({ values: 'null' }).trim(),
-  body('overlayColor').optional({ values: 'null' }).trim(),
-  body('overlayOpacity').optional().isFloat({ min: 0, max: 1 }),
-  body('offerType').optional().isIn(['Supermarket', 'Food Corner']),
-  body('offerCategory').optional({ values: 'null' }).isLength({ max: 100 }),
-  body('discountType').optional().isIn(['percentage', 'flat', 'bogo', 'combo']),
-  body('discountValue').optional().isFloat({ min: 0 }),
-  body('offerBadge').optional({ values: 'null' }).isLength({ max: 60 }),
-  body('status').optional().isIn(['active', 'inactive', 'draft']),
-  body('startDate').optional().notEmpty(),
-  body('endDate').optional().notEmpty(),
-  optionalNumberRule('sortOrder', 'Sort order'),
-  body(['bannerImage', 'backgroundImage', 'heroImage']).custom((_, { req }) => {
-    for (const key of ['bannerImage', 'backgroundImage', 'heroImage']) {
-      const value = req.body[key];
+  body('bannerImage')
+    .optional()
+    .trim()
+    .notEmpty()
+    .withMessage('Banner image cannot be empty')
+    .custom((value) => {
       if (value && !isValidImageUrl(value)) {
-        throw new Error(`${key} must use /uploads/, http://, https://, or data:image/`);
+        throw new Error('Banner image must use /uploads/, http://, https://, or data:image/');
       }
-    }
-    return true;
-  }),
+      return true;
+    }),
+  body('badgeText')
+    .optional()
+    .trim()
+    .notEmpty()
+    .withMessage('Badge cannot be empty')
+    .isLength({ max: 30 }),
+  body('title')
+    .optional()
+    .trim()
+    .notEmpty()
+    .withMessage('Title cannot be empty')
+    .isLength({ max: 60 }),
+  body('highlightedTitle')
+    .optional()
+    .trim()
+    .notEmpty()
+    .withMessage('Highlighted title cannot be empty')
+    .isLength({ max: 60 }),
+  body('description')
+    .optional()
+    .trim()
+    .notEmpty()
+    .withMessage('Description cannot be empty')
+    .isLength({ max: 250 }),
+  body('buttonText')
+    .optional()
+    .trim()
+    .notEmpty()
+    .withMessage('Button text cannot be empty')
+    .isLength({ max: 25 }),
+  body('buttonUrl').optional({ values: 'falsy' }).trim(),
+  body('backgroundColor').optional({ values: 'falsy' }).trim(),
+  body('overlayColor').optional({ values: 'falsy' }).trim(),
+  body('overlayOpacity').optional().isFloat({ min: 0, max: 1 }),
+  body('status').optional().isIn(['active', 'inactive']),
+  body('startDate').optional().notEmpty().withMessage('Start date is required'),
+  body('endDate').optional().notEmpty().withMessage('End date is required'),
 ];
 
 export const updateOffersHeroBannerStatusRules = [
@@ -282,6 +321,6 @@ export const updateOffersHeroBannerStatusRules = [
   body('status')
     .notEmpty()
     .withMessage('Status is required')
-    .isIn(['active', 'inactive', 'draft'])
-    .withMessage('Status must be active, inactive, or draft'),
+    .isIn(['active', 'inactive'])
+    .withMessage('Status must be active or inactive'),
 ];

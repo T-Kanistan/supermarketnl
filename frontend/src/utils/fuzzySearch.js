@@ -5,7 +5,7 @@ export const normalizeSearchText = (value) =>
     .replace(/\s+/g, ' ')
     .trim();
 
-const levenshtein = (a, b, maxDistance = Infinity) => {
+export const levenshtein = (a, b, maxDistance = Infinity) => {
   if (a === b) return 0;
   if (!a.length) return b.length;
   if (!b.length) return a.length;
@@ -35,55 +35,16 @@ const levenshtein = (a, b, maxDistance = Infinity) => {
   return prev[b.length];
 };
 
-const maxEditDistance = (query) => {
-  const len = query.length;
-  if (len <= 3) return 1;
-  if (len <= 6) return 2;
-  return 3;
-};
-
-const fuzzyMatchTerm = (query, text) => {
-  if (!query || !text) return false;
-  if (text.includes(query)) return true;
-
-  const limit = maxEditDistance(query);
-  if (levenshtein(query, text, limit) <= limit) return true;
-
-  const words = text.split(' ').filter(Boolean);
-  for (const word of words) {
-    if (word.includes(query)) return true;
-    if (levenshtein(query, word, limit) <= limit) return true;
-
-    const windowSizes = new Set([
-      query.length - 1,
-      query.length,
-      query.length + 1,
-    ]);
-
-    for (const size of windowSizes) {
-      if (size <= 0 || size > word.length) continue;
-      for (let i = 0; i <= word.length - size; i += 1) {
-        const slice = word.slice(i, i + size);
-        if (levenshtein(query, slice, limit) <= limit) return true;
-      }
-    }
-  }
-
-  for (let size = query.length; size <= query.length + 1; size += 1) {
-    if (size <= 0 || size > text.length) continue;
-    for (let i = 0; i <= text.length - size; i += 1) {
-      const slice = text.slice(i, i + size);
-      if (levenshtein(query, slice, limit) <= limit) return true;
-    }
-  }
-
-  return false;
+const getEditDistanceLimit = (term) => {
+  const len = term.length;
+  if (len <= 2) return 0;
+  if (len <= 5) return 1;
+  return 2;
 };
 
 export const matchesFuzzySearch = (query, fields = []) => {
   const normalizedQuery = normalizeSearchText(query);
   if (!normalizedQuery) return true;
-  if (normalizedQuery.length < 2) return true;
 
   const terms = normalizedQuery.split(' ').filter(Boolean);
   const normalizedFields = fields
@@ -95,18 +56,26 @@ export const matchesFuzzySearch = (query, fields = []) => {
 
   if (!normalizedFields.length) return false;
 
-  const combined = normalizedFields.join(' ');
+  return terms.every((term) => {
+    return normalizedFields.some((field) => {
+      const fieldWords = field.split(' ').filter(Boolean);
+      return fieldWords.some((word) => {
+        // 1. Prefix match
+        if (word.startsWith(term)) return true;
 
-  return terms.every(
-    (term) =>
-      normalizedFields.some((field) => fuzzyMatchTerm(term, field)) ||
-      fuzzyMatchTerm(term, combined)
-  );
+        // 2. Fuzzy match
+        const limit = getEditDistanceLimit(term);
+        if (limit > 0 && levenshtein(term, word, limit) <= limit) return true;
+
+        return false;
+      });
+    });
+  });
 };
 
 export const filterByFuzzySearch = (items, query, getFields) => {
   const normalizedQuery = normalizeSearchText(query);
-  if (!normalizedQuery || normalizedQuery.length < 2) return items;
+  if (!normalizedQuery) return items;
 
   return items.filter((item) => matchesFuzzySearch(normalizedQuery, getFields(item)));
 };

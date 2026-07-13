@@ -63,8 +63,13 @@ const offerBannerSchema = new mongoose.Schema(
       min: 0,
       max: 1,
     },
+    heroStatus: {
+      type: String,
+      enum: ['active', 'inactive'],
+      default: 'active',
+    },
 
-    // Promotion banner (mid/bottom of the offers page)
+    // Promotion banner (mid/bottom of the offers page) — legacy fields retained
     promoImage: {
       type: String,
       trim: true,

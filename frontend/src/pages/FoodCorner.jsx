@@ -14,7 +14,7 @@ import foodCornerService from '../services/foodCornerService';
 import { getImageUrl } from '../services/api';
 import { buildFoodAlt } from '../utils/seoImageAlt';
 import { formatCategoryName } from '../utils/formatCategoryName';
-import { filterByFuzzySearch } from '../utils/fuzzySearch';
+import Fuse from 'fuse.js';
 import { useEnquiry } from '../context/EnquiryContext';
 import { useCMS } from '../context/CMSContext';
 import usePageBanner from '../hooks/usePageBanner';
@@ -41,7 +41,204 @@ const getItemTimestamp = (item) => {
   return value ? new Date(value).getTime() : 0;
 };
 
-const FoodItemCard = ({ item, onEnquiry }) => {
+/** Lowercase and strip spaces, hyphens, and special characters. */
+const normalizeSearchText = (value) =>
+  String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+
+const levenshteinDistance = (a, b, maxDistance = Infinity) => {
+  if (a === b) return 0;
+  if (!a.length) return b.length;
+  if (!b.length) return a.length;
+  const lengthDiff = Math.abs(a.length - b.length);
+  if (lengthDiff > maxDistance) return maxDistance + 1;
+  let prev = new Array(b.length + 1);
+  let curr = new Array(b.length + 1);
+  for (let j = 0; j <= b.length; j += 1) prev[j] = j;
+  for (let i = 1; i <= a.length; i += 1) {
+    curr[0] = i;
+    let rowMin = curr[0];
+    for (let j = 1; j <= b.length; j += 1) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      curr[j] = Math.min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + cost);
+      rowMin = Math.min(rowMin, curr[j]);
+    }
+    if (rowMin > maxDistance) return maxDistance + 1;
+    [prev, curr] = [curr, prev];
+  }
+  return prev[b.length];
+};
+
+const getHighlightEditLimit = (term) => {
+  const len = term.length;
+  if (len <= 2) return 0;
+  if (len <= 5) return 1;
+  return 2;
+};
+
+const highlightLevenshtein = (a, b, maxDistance = Infinity) =>
+  levenshteinDistance(a, b, maxDistance);
+
+const getSearchWords = (text) =>
+  String(text || '')
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean)
+    .map(normalizeSearchText);
+
+/** Allowed edits: 1 for short queries, 2 for longer (typos like briyani ↔ biryani). */
+const getMaxEditDistance = (queryLength) => (queryLength <= 2 ? 1 : 2);
+
+const hasExactPartialMatch = (candidate, normalizedQuery) =>
+  Boolean(candidate) &&
+  (candidate.includes(normalizedQuery) || candidate.startsWith(normalizedQuery));
+
+/** Edit-distance match; requires the same first character to avoid weak hits. */
+const hasFuzzyNameMatch = (candidate, normalizedQuery, maxDist) => {
+  if (!candidate || candidate[0] !== normalizedQuery[0]) return false;
+
+  if (
+    Math.abs(candidate.length - normalizedQuery.length) <= maxDist &&
+    levenshteinDistance(candidate, normalizedQuery, maxDist) <= maxDist
+  ) {
+    return true;
+  }
+
+  if (candidate.length >= normalizedQuery.length - maxDist) {
+    const prefixLen = Math.min(
+      candidate.length,
+      normalizedQuery.length + (normalizedQuery.length <= 2 ? 0 : 1)
+    );
+    const prefix = candidate.slice(0, prefixLen);
+    if (
+      prefix.length > 0 &&
+      levenshteinDistance(prefix, normalizedQuery, maxDist) <= maxDist
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
+/**
+ * True only when the query is a real partial/typo match.
+ * - All fields: exact substring / prefix (normalized)
+ * - Name only: Levenshtein ≤ 2 (rejects weak Fuse hits like Rolls for "briyani")
+ */
+const isRelevantMatch = (item, normalizedQuery) => {
+  if (!normalizedQuery) return true;
+
+  const maxDist = getMaxEditDistance(normalizedQuery.length);
+  const nameCandidates = [
+    ...new Set([
+      normalizeSearchText(item.name),
+      ...getSearchWords(item.name),
+    ]),
+  ].filter(Boolean);
+
+  const otherCandidates = [
+    ...new Set([
+      normalizeSearchText(item.categoryName || item.category),
+      normalizeSearchText(item.description),
+      ...getSearchWords(item.categoryName || item.category),
+      ...getSearchWords(item.description),
+    ]),
+  ].filter(Boolean);
+
+  if (
+    [...nameCandidates, ...otherCandidates].some((candidate) =>
+      hasExactPartialMatch(candidate, normalizedQuery)
+    )
+  ) {
+    return true;
+  }
+
+  return nameCandidates.some((candidate) =>
+    hasFuzzyNameMatch(candidate, normalizedQuery, maxDist)
+  );
+};
+
+
+const HighlightText = ({ text, search }) => {
+  if (!search || !text) return <span>{text}</span>;
+
+  const searchTokens = search.toLowerCase().split(' ').filter(Boolean);
+  if (searchTokens.length === 0) return <span>{text}</span>;
+
+  const intervals = [];
+  const lowerText = text.toLowerCase();
+
+  // Find word boundaries and check for exact/prefix/fuzzy match
+  const wordRegex = /[a-z0-9]+/g;
+  let match;
+  while ((match = wordRegex.exec(lowerText)) !== null) {
+    const word = match[0];
+    const start = match.index;
+    const end = start + word.length;
+
+    const matchesToken = searchTokens.some((token) => {
+      if (word.startsWith(token) || token.startsWith(word)) return true;
+      const limit = getHighlightEditLimit(token);
+      if (limit > 0 && highlightLevenshtein(token, word, limit) <= limit) return true;
+      return false;
+    });
+
+    if (matchesToken) {
+      intervals.push({ start, end });
+    }
+  }
+
+  // Fallback to exact index matching for substrings
+  for (const token of searchTokens) {
+    let idx = lowerText.indexOf(token);
+    while (idx !== -1) {
+      intervals.push({ start: idx, end: idx + token.length });
+      idx = lowerText.indexOf(token, idx + 1);
+    }
+  }
+
+  if (intervals.length === 0) return <span>{text}</span>;
+
+  intervals.sort((a, b) => a.start - b.start);
+  const merged = [];
+  let current = intervals[0];
+
+  for (let i = 1; i < intervals.length; i++) {
+    const next = intervals[i];
+    if (next.start <= current.end) {
+      current.end = Math.max(current.end, next.end);
+    } else {
+      merged.push(current);
+      current = next;
+    }
+  }
+  merged.push(current);
+
+  const result = [];
+  let lastIdx = 0;
+
+  merged.forEach((interval, index) => {
+    if (interval.start > lastIdx) {
+      result.push(text.slice(lastIdx, interval.start));
+    }
+    result.push(
+      <mark key={index} className="fc-search-highlight">
+        {text.slice(interval.start, interval.end)}
+      </mark>
+    );
+    lastIdx = interval.end;
+  });
+
+  if (lastIdx < text.length) {
+    result.push(text.slice(lastIdx));
+  }
+
+  return <span>{result}</span>;
+};
+
+const FoodItemCard = ({ item, onEnquiry, searchTerm }) => {
   const available = item.isAvailable !== false && (item.stock ?? 0) > 0;
 
   return (
@@ -63,7 +260,9 @@ const FoodItemCard = ({ item, onEnquiry }) => {
         {item.badge && <span className="fc-card-badge">{item.badge}</span>}
       </div>
       <div className="fc-card-body">
-        <h3 className="fc-card-title">{item.name}</h3>
+        <h3 className="fc-card-title">
+          <HighlightText text={item.name} search={searchTerm} />
+        </h3>
         {item.description && <p className="fc-card-desc">{item.description}</p>}
         <p className="fc-card-time">
           <FaRegClock aria-hidden="true" />
@@ -98,7 +297,6 @@ const FoodCorner = () => {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [sortOption, setSortOption] = useState('default');
   const { openEnquiry } = useEnquiry();
   const { cmsData, loading: cmsLoading } = useCMS();
@@ -108,13 +306,6 @@ const FoodCorner = () => {
     ready: bannerReady,
   } = usePageBanner('food-corner');
   const foodCornerHours = cmsData?.foodCornerTimings || '';
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchTerm(searchTerm.trim());
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -178,19 +369,58 @@ const FoodCorner = () => {
     });
   };
 
+  // Fuse indexes normalized name/category/description; original item kept for display.
+  const foodItems = useMemo(
+    () =>
+      items.map((item) => ({
+        original: item,
+        name: normalizeSearchText(item.name),
+        category: normalizeSearchText(item.categoryName || item.category || ''),
+        description: normalizeSearchText(item.description || ''),
+      })),
+    [items]
+  );
+
+  const fuse = useMemo(
+    () =>
+      new Fuse(foodItems, {
+        keys: ['name', 'category', 'description'],
+        threshold: 0.5,
+        ignoreLocation: true,
+        includeScore: true,
+        findAllMatches: true,
+        minMatchCharLength: 1,
+      }),
+    [foodItems]
+  );
+
   const filteredItems = useMemo(() => {
-    return filterByFuzzySearch(items, debouncedSearchTerm, (item) => [
-      item.name,
-      item.categoryName,
-      item.categoryId,
-      item.description,
-      item.shortDescription,
-      item.badge,
-      item.specialBadge,
-      item.tags,
-      item.keywords,
-    ]);
-  }, [items, debouncedSearchTerm]);
+    const query = searchTerm;
+    const normalizedQuery = normalizeSearchText(query);
+
+    console.log('Search:', query);
+    console.log('Normalized:', normalizedQuery);
+
+    if (!normalizedQuery) {
+      console.log('Fuse Results:', []);
+      return items;
+    }
+
+    const results = fuse.search(normalizedQuery);
+    console.log('Fuse Results:', results);
+
+    // Keep Fuse ranking, but drop weak/irrelevant hits (e.g. Rolls for "briyani")
+    const fuseMatches = results
+      .map((result) => result.item.original)
+      .filter((item) => isRelevantMatch(item, normalizedQuery));
+
+    if (fuseMatches.length > 0) {
+      return fuseMatches;
+    }
+
+    // Second pass: Levenshtein / partial match across all items
+    return items.filter((item) => isRelevantMatch(item, normalizedQuery));
+  }, [items, fuse, searchTerm]);
 
   const sortedItems = useMemo(() => {
     const list = [...filteredItems];
@@ -382,13 +612,13 @@ const FoodCorner = () => {
           ) : hasNoSearchResults ? (
             <div className="fc-empty-wrap">
               <span className="fc-empty-emoji" aria-hidden="true">🔍</span>
-              <p className="fc-empty">No food items found</p>
-              <p className="fc-empty-sub">Try another search term or category.</p>
+              <p className="fc-empty">No food items found.</p>
+              <p className="fc-empty-sub">Try searching with a different keyword.</p>
             </div>
           ) : (
             <div className="fc-grid">
               {sortedItems.map((item) => (
-                <FoodItemCard key={item.id} item={item} onEnquiry={handleEnquiry} />
+                <FoodItemCard key={item.id} item={item} onEnquiry={handleEnquiry} searchTerm={searchTerm} />
               ))}
             </div>
           )}
