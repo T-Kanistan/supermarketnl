@@ -1019,34 +1019,6 @@ export const AdminProducts = () => {
 
                   return (
                     <>
-                {isGroceryCatalog ? (
-                  <div className="admin-form-group">
-                    <AdminFieldLabel required>Product Catalog Type</AdminFieldLabel>
-                    <input
-                      type="text"
-                      value="Grocery (Supermarket Section)"
-                      readOnly
-                      disabled
-                      style={{ background: '#f8fafc', color: '#475569', cursor: 'not-allowed' }}
-                    />
-                  </div>
-                ) : (
-                <div className="admin-form-group">
-                  <AdminFieldLabel required>Product Catalog Type</AdminFieldLabel>
-                  <select
-                    name="productType"
-                    value={formData.productType}
-                    onChange={handleChange}
-                    disabled={Boolean(editingProduct) && isManager}
-                    ref={(el) => { formFieldRefs.current.productType = el; }}
-                    className={formErrors.productType ? 'admin-input-invalid' : ''}
-                  >
-                    <option value="food-corner">Food Corner (Kitchen Section)</option>
-                  </select>
-                  {formErrors.productType ? <p className="admin-field-error" role="alert">{formErrors.productType}</p> : null}
-                </div>
-                )}
-
                 <div className="admin-form-group">
                   <AdminFieldLabel htmlFor="productName" required>Product Name</AdminFieldLabel>
                   <input 
@@ -1323,28 +1295,6 @@ export const AdminProducts = () => {
               <div className="modal-body">
                 <div style={{ marginBottom: '16px', padding: '12px', background: '#fee2e2', color: '#991b1b', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600, borderLeft: '4px solid #dc2626', lineHeight: 1.4 }}>
                   ⚠️ <strong>Warning:</strong> This operation will bulk update prices of all active products in the selected category directly in the database. This action is irreversible.
-                </div>
-
-                <div className="admin-form-group">
-                  <AdminFieldLabel required>Product Catalog Type</AdminFieldLabel>
-                  {isGroceryCatalog ? (
-                    <input
-                      type="text"
-                      value="Grocery (Supermarket Section)"
-                      readOnly
-                      disabled
-                      style={{ background: '#f8fafc', color: '#475569', cursor: 'not-allowed' }}
-                    />
-                  ) : (
-                  <select
-                    name="productType"
-                    value={adjustFormData.productType}
-                    onChange={handleAdjustChange}
-                    required
-                  >
-                    <option value="food-corner">Food Corner (Kitchen Section)</option>
-                  </select>
-                  )}
                 </div>
 
                 <div className="admin-form-group">
