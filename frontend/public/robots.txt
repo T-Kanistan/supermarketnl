@@ -8,4 +8,4 @@ Disallow: /forgot-password
 Disallow: /reset-password
 Disallow: /careers/apply/
 
-Sitemap: http://localhost:5173/sitemap.xml
+Sitemap: https://raguwinswereldwinkel.nl/sitemap.xml

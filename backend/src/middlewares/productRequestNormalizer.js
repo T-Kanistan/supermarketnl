@@ -9,8 +9,16 @@ const parseOptionalBoolean = (value) => {
 export const normalizeProductRequestBody = (req, _res, next) => {
   const body = req.body || {};
 
+  // Legacy alias only — catalog type is not a required form field.
   if (body.productCatalogType !== undefined && body.productType === undefined && body.type === undefined) {
     body.productType = body.productCatalogType;
+  }
+  delete body.productCatalogType;
+
+  if (body.productType === undefined && body.type === undefined) {
+    body.productType = 'grocery';
+  } else if (body.productType !== undefined || body.type !== undefined) {
+    body.productType = body.productType || body.type;
   }
 
   if (body.weightUnitSize !== undefined && body.weightUnit === undefined && body.weight === undefined) {

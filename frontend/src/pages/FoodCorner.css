@@ -344,15 +344,25 @@
 }
 
 .fc-tab-icon {
-  font-size: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
   line-height: 1;
+  font-size: 1rem;
 }
 
 .fc-tab-icon-img {
-  width: 1.25rem;
-  height: 1.25rem;
+  width: auto;
+  height: auto;
+  max-width: 1.25rem;
+  max-height: 1.25rem;
   object-fit: contain;
+  object-position: center;
   display: block;
+  background: transparent;
 }
 
 /* ─── Search & Sort ─── */

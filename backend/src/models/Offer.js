@@ -2,7 +2,14 @@ import mongoose from 'mongoose';
 
 export const OFFER_DISCOUNT_TYPES = ['percentage', 'flat', 'bogo', 'combo'];
 export const OFFER_DEPARTMENT_TYPES = ['Supermarket', 'Food Corner'];
-export const OFFER_STATUS_TYPES = ['active', 'inactive', 'deleted'];
+export const OFFER_STATUS_TYPES = [
+  'scheduled',
+  'active',
+  'expired',
+  'inactive',
+  'draft',
+  'deleted',
+];
 
 const offerSchema = new mongoose.Schema(
   {

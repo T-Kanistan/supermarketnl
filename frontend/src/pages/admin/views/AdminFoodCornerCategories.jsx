@@ -169,13 +169,14 @@ export const AdminFoodCornerCategories = () => {
     }
   };
 
-  const handleIconUpload = (e) => {
+  const handleIconUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const { valid, error } = validateFoodCornerCategoryIconFile(file);
+    const { valid, error } = await validateFoodCornerCategoryIconFile(file);
     if (!valid) {
       setFieldErrors((prev) => ({ ...prev, icon: error }));
+      addToast(error, 'error');
       e.target.value = '';
       return;
     }
@@ -498,7 +499,7 @@ export const AdminFoodCornerCategories = () => {
 
                 <div className="admin-form-group">
                   <AdminFieldLabel htmlFor="fc-category-icon-file" required>
-                    Category Icon Upload
+                    Category Icon
                   </AdminFieldLabel>
                   <div className={`image-upload-zone${fieldErrors.icon ? ' admin-input-invalid' : ''}`} style={{ padding: '12px' }}>
                     <input
@@ -513,7 +514,10 @@ export const AdminFoodCornerCategories = () => {
                         Browse Files
                       </p>
                       <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '4px 0 0' }}>
-                        PNG, JPG, JPEG, SVG, WEBP (max 2 MB)
+                        SVG, ICO, PNG (Transparent Icon Only)
+                      </p>
+                      <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '2px 0 0' }}>
+                        Max Size: 512 KB
                       </p>
                     </label>
                   </div>
@@ -526,7 +530,7 @@ export const AdminFoodCornerCategories = () => {
                   <div className="upload-preview-container">
                     <p style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>Preview:</p>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                      <span className="fc-admin-icon-preview fc-admin-icon-preview--large">
+                      <span className="fc-admin-icon-preview fc-admin-icon-preview--form">
                         <FoodCornerCategoryIcon
                           icon={formData.icon}
                           imgClassName="fc-admin-icon-preview-img"
@@ -538,7 +542,7 @@ export const AdminFoodCornerCategories = () => {
                           className="action-btn-secondary"
                           style={{ cursor: 'pointer', margin: 0, padding: '8px 12px', fontSize: '0.85rem' }}
                         >
-                          Replace Image
+                          Replace Icon
                         </label>
                         <button
                           type="button"
@@ -546,7 +550,7 @@ export const AdminFoodCornerCategories = () => {
                           onClick={handleRemoveIcon}
                           style={{ padding: '8px 12px', fontSize: '0.85rem' }}
                         >
-                          Remove Image
+                          Remove Icon
                         </button>
                       </div>
                     </div>

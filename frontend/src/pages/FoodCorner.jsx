@@ -14,7 +14,6 @@ import foodCornerService from '../services/foodCornerService';
 import { getImageUrl } from '../services/api';
 import { buildFoodAlt } from '../utils/seoImageAlt';
 import { formatCategoryName } from '../utils/formatCategoryName';
-import Fuse from 'fuse.js';
 import { useEnquiry } from '../context/EnquiryContext';
 import { useCMS } from '../context/CMSContext';
 import usePageBanner from '../hooks/usePageBanner';
@@ -125,7 +124,7 @@ const hasFuzzyNameMatch = (candidate, normalizedQuery, maxDist) => {
 /**
  * True only when the query is a real partial/typo match.
  * - All fields: exact substring / prefix (normalized)
- * - Name only: Levenshtein ≤ 2 (rejects weak Fuse hits like Rolls for "briyani")
+ * - Name only: Levenshtein ≤ 2 (rejects weak false positives)
  */
 const isRelevantMatch = (item, normalizedQuery) => {
   if (!normalizedQuery) return true;
@@ -339,7 +338,11 @@ const FoodCorner = () => {
       })
       .catch((err) => {
         if (active) {
-          setLoadError(err.message || 'Failed to load Food Corner menu.');
+          setLoadError(
+            err.response?.status
+              ? `Food Corner menu is temporarily unavailable (error ${err.response.status}). Please try again.`
+              : err.message || 'Failed to load Food Corner menu. Please check your connection and try again.'
+          );
           setItems([]);
         }
       })
@@ -369,58 +372,17 @@ const FoodCorner = () => {
     });
   };
 
-  // Fuse indexes normalized name/category/description; original item kept for display.
-  const foodItems = useMemo(
-    () =>
-      items.map((item) => ({
-        original: item,
-        name: normalizeSearchText(item.name),
-        category: normalizeSearchText(item.categoryName || item.category || ''),
-        description: normalizeSearchText(item.description || ''),
-      })),
-    [items]
-  );
-
-  const fuse = useMemo(
-    () =>
-      new Fuse(foodItems, {
-        keys: ['name', 'category', 'description'],
-        threshold: 0.5,
-        ignoreLocation: true,
-        includeScore: true,
-        findAllMatches: true,
-        minMatchCharLength: 1,
-      }),
-    [foodItems]
-  );
-
   const filteredItems = useMemo(() => {
     const query = searchTerm;
     const normalizedQuery = normalizeSearchText(query);
 
-    console.log('Search:', query);
-    console.log('Normalized:', normalizedQuery);
-
     if (!normalizedQuery) {
-      console.log('Fuse Results:', []);
       return items;
     }
 
-    const results = fuse.search(normalizedQuery);
-    console.log('Fuse Results:', results);
-
-    // Keep Fuse ranking, but drop weak/irrelevant hits (e.g. Rolls for "briyani")
-    const fuseMatches = results
-      .map((result) => result.item.original)
-      .filter((item) => isRelevantMatch(item, normalizedQuery));
-
-    if (fuseMatches.length > 0) {
-      return fuseMatches;
-    }
-
-    // Second pass: Levenshtein / partial match across all items
+    // Built-in fuzzy match (normalize + Levenshtein / partial text)
     return items.filter((item) => isRelevantMatch(item, normalizedQuery));
-  }, [items, fuse, searchTerm]);
+  }, [items, searchTerm]);
 
   const sortedItems = useMemo(() => {
     const list = [...filteredItems];
@@ -603,7 +565,11 @@ const FoodCorner = () => {
               ))}
             </div>
           ) : loadError ? (
-            <p className="fc-empty">{loadError}</p>
+            <div className="fc-empty-wrap" role="alert">
+              <FaUtensils className="fc-empty-icon" aria-hidden="true" />
+              <p className="fc-empty">{loadError}</p>
+              <p className="fc-empty-sub">Refresh the page or try again in a moment.</p>
+            </div>
           ) : items.length === 0 ? (
             <div className="fc-empty-wrap">
               <FaUtensils className="fc-empty-icon" aria-hidden="true" />

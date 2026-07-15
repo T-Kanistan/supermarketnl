@@ -7,10 +7,18 @@ import { logManagerActivity } from './activityLogService.js';
 import {
   buildPublicOfferScheduleFilter,
   getOfferScheduleState,
+  getServerTodayYmd,
+  isManualOfferStatus,
   isOfferPubliclyVisible,
   mergeScheduleFilter,
   normalizeOfferEndDate,
   normalizeOfferStartDate,
+  OFFER_END_DATE_RANGE_ERROR,
+  OFFER_START_DATE_PAST_ERROR,
+  resolveOfferLifecycleStatus,
+  toOfferYmd,
+  compareYmd,
+  maxYmd,
 } from '../utils/offerSchedule.js';
 
 const slugify = (value) =>
@@ -41,17 +49,39 @@ const parseDate = (value) => {
   return Number.isNaN(date.getTime()) ? null : date;
 };
 
-export const expirePastOffers = async () => {
-  const now = new Date();
-  const result = await Offer.updateMany(
-    {
-      status: 'active',
-      endDate: { $ne: null, $lt: now },
-    },
-    { $set: { status: 'inactive' } }
+/**
+ * Persist schedule-driven statuses from the current server calendar day.
+ * Leaves inactive / draft / deleted alone (manual or soft-delete).
+ */
+export const syncOfferScheduleStatuses = async (now = new Date()) => {
+  const offers = await Offer.find({
+    status: { $nin: ['inactive', 'draft', 'deleted'] },
+    $or: [{ startDate: { $ne: null } }, { endDate: { $ne: null } }],
+  }).select('_id status startDate endDate');
+
+  let modified = 0;
+  await Promise.all(
+    offers.map(async (offer) => {
+      const next = resolveOfferLifecycleStatus(
+        { status: 'active', startDate: offer.startDate, endDate: offer.endDate },
+        now
+      );
+      // resolve above forces schedule math; map scheduled/active/expired
+      const scheduleStatus =
+        next === 'scheduled' || next === 'expired' || next === 'active' ? next : 'active';
+      if (offer.status !== scheduleStatus) {
+        offer.status = scheduleStatus;
+        await offer.save();
+        modified += 1;
+      }
+    })
   );
-  return result.modifiedCount || 0;
+
+  return modified;
 };
+
+/** @deprecated Use syncOfferScheduleStatuses — kept as alias for existing imports. */
+export const expirePastOffers = async () => syncOfferScheduleStatuses();
 
 const resolveImage = async (value) => {
   if (!value) return '';
@@ -102,7 +132,8 @@ const buildDepartmentFilter = (department) => {
 export const formatOffer = (doc) => {
   if (!doc) return null;
   const plain = doc.toObject ? doc.toObject() : { ...doc };
-  const { isExpired, isScheduled } = getOfferScheduleState(plain);
+  const schedule = getOfferScheduleState(plain);
+  const lifecycleStatus = resolveOfferLifecycleStatus(plain);
 
   return {
     ...plain,
@@ -115,13 +146,15 @@ export const formatOffer = (doc) => {
     originalPrice: plain.originalPrice ?? null,
     offerPrice: plain.offerPrice ?? null,
     buttonText: plain.buttonText || 'Enquiry',
-    status: plain.status || 'active',
-    active: (plain.status || 'active') === 'active',
+    status: lifecycleStatus,
+    active: lifecycleStatus === 'active',
     featured: Boolean(plain.featured),
     sortOrder: Number.isFinite(plain.sortOrder) ? plain.sortOrder : 0,
-    isExpired,
-    isScheduled,
-    isLive: isOfferPubliclyVisible(plain),
+    isExpired: schedule.isExpired || lifecycleStatus === 'expired',
+    isScheduled: schedule.isScheduled || lifecycleStatus === 'scheduled',
+    isLive: lifecycleStatus === 'active',
+    lifecycleStatus,
+    serverToday: schedule.today,
     // Aliases for consumers expecting imageUrl
     imageUrl: plain.image || '',
   };
@@ -174,7 +207,7 @@ export const buildOfferFilter = (query = {}, { publicOnly = false } = {}) => {
   return filter;
 };
 
-export const normalizeOfferPayload = async (body) => {
+export const normalizeOfferPayload = async (body, { existing = null } = {}) => {
   const title = (body.title || '').trim();
   if (!title) {
     const error = new Error('Offer title is required');
@@ -198,10 +231,54 @@ export const normalizeOfferPayload = async (body) => {
 
   const startDate = normalizeOfferStartDate(body.startDate);
   const endDate = normalizeOfferEndDate(body.endDate);
-  if (startDate && endDate && endDate < startDate) {
-    const error = new Error('End date must be after the start date');
+  if (!startDate) {
+    const error = new Error('Start Date is required.');
     error.statusCode = 400;
     throw error;
+  }
+  if (!endDate) {
+    const error = new Error('End Date is required.');
+    error.statusCode = 400;
+    throw error;
+  }
+  if (endDate < startDate) {
+    const error = new Error(OFFER_END_DATE_RANGE_ERROR);
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const today = getServerTodayYmd();
+  const startYmd = toOfferYmd(startDate);
+  const existingStartYmd = existing ? toOfferYmd(existing.startDate) : '';
+  const startUnchanged = Boolean(existingStartYmd && startYmd === existingStartYmd);
+  const minStartYmd = existingStartYmd
+    ? maxYmd(existingStartYmd, today)
+    : today;
+
+  // New offers (or changed start) cannot use a past date. Unchanged past starts stay allowed on edit.
+  if (!startUnchanged && compareYmd(startYmd, today) < 0) {
+    const error = new Error(OFFER_START_DATE_PAST_ERROR);
+    error.statusCode = 400;
+    throw error;
+  }
+  if (!startUnchanged && compareYmd(startYmd, minStartYmd) < 0) {
+    const error = new Error(OFFER_START_DATE_PAST_ERROR);
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const requestedStatus = String(body.status || '').trim().toLowerCase();
+  let status;
+  if (requestedStatus === 'inactive' || body.active === false) {
+    status = 'inactive';
+  } else if (requestedStatus === 'draft') {
+    status = 'draft';
+  } else {
+    status = resolveOfferLifecycleStatus({
+      status: 'active',
+      startDate,
+      endDate,
+    });
   }
 
   const payload = {
@@ -222,7 +299,7 @@ export const normalizeOfferPayload = async (body) => {
     buttonText: (body.buttonText || '').trim() || 'Enquiry',
     buttonLink: (body.buttonLink || '').trim(),
     featured: parseBoolean(body.featured) ?? false,
-    status: ['active', 'inactive'].includes(body.status) ? body.status : 'active',
+    status,
     sortOrder: parseNumber(body.sortOrder) ?? 0,
   };
 
@@ -274,13 +351,25 @@ export const buildPartialOfferUpdate = async (body, existing) => {
     update.featured = parseBoolean(body.featured) ?? false;
   }
 
-  if (hasField(body, 'status')) {
-    if (!['active', 'inactive'].includes(body.status)) {
-      const error = new Error('Status must be active or inactive');
+  if (hasField(body, 'status') || hasField(body, 'active')) {
+    const requested = String(body.status || '').trim().toLowerCase();
+    if (requested === 'inactive' || body.active === false) {
+      update.status = 'inactive';
+    } else if (requested === 'draft') {
+      update.status = 'draft';
+    } else if (
+      requested === 'active' ||
+      requested === 'scheduled' ||
+      requested === 'expired' ||
+      body.active === true
+    ) {
+      // Will recompute from dates below after effective dates are known.
+      update.status = '__recompute__';
+    } else if (requested) {
+      const error = new Error('Invalid offer status');
       error.statusCode = 400;
       throw error;
     }
-    update.status = body.status;
   }
 
   if (hasField(body, 'startDate')) update.startDate = normalizeOfferStartDate(body.startDate);
@@ -288,10 +377,53 @@ export const buildPartialOfferUpdate = async (body, existing) => {
 
   const effectiveStart = update.startDate !== undefined ? update.startDate : existingPlain.startDate;
   const effectiveEnd = update.endDate !== undefined ? update.endDate : existingPlain.endDate;
-  if (effectiveStart && effectiveEnd && new Date(effectiveEnd) < new Date(effectiveStart)) {
-    const error = new Error('End date must be after the start date');
+
+  if (!effectiveStart) {
+    const error = new Error('Start Date is required.');
     error.statusCode = 400;
     throw error;
+  }
+  if (!effectiveEnd) {
+    const error = new Error('End Date is required.');
+    error.statusCode = 400;
+    throw error;
+  }
+  if (new Date(effectiveEnd) < new Date(effectiveStart)) {
+    const error = new Error(OFFER_END_DATE_RANGE_ERROR);
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (hasField(body, 'startDate')) {
+    const today = getServerTodayYmd();
+    const startYmd = toOfferYmd(effectiveStart);
+    const existingStartYmd = toOfferYmd(existingPlain.startDate);
+    const startUnchanged = startYmd === existingStartYmd;
+    const minStartYmd = existingStartYmd ? maxYmd(existingStartYmd, today) : today;
+    if (!startUnchanged && compareYmd(startYmd, minStartYmd) < 0) {
+      const error = new Error(OFFER_START_DATE_PAST_ERROR);
+      error.statusCode = 400;
+      throw error;
+    }
+  }
+
+  const currentManual = isManualOfferStatus(existingPlain.status);
+  if (update.status === '__recompute__') {
+    update.status = resolveOfferLifecycleStatus({
+      status: 'active',
+      startDate: effectiveStart,
+      endDate: effectiveEnd,
+    });
+  } else if (
+    update.status === undefined &&
+    !currentManual &&
+    (hasField(body, 'startDate') || hasField(body, 'endDate'))
+  ) {
+    update.status = resolveOfferLifecycleStatus({
+      status: 'active',
+      startDate: effectiveStart,
+      endDate: effectiveEnd,
+    });
   }
 
   if (hasField(body, 'image', 'imageUrl')) {
@@ -307,16 +439,14 @@ export const buildPartialOfferUpdate = async (body, existing) => {
 };
 
 export const listOffers = async (query = {}, options = {}) => {
-  if (options.publicOnly) {
-    await expirePastOffers();
-  }
+  await syncOfferScheduleStatuses();
   const filter = buildOfferFilter(query, options);
   const offers = await Offer.find(filter).sort({ sortOrder: 1, createdAt: -1 });
   return offers.map(formatOffer);
 };
 
 export const getFeaturedOffers = async () => {
-  await expirePastOffers();
+  await syncOfferScheduleStatuses();
   const now = new Date();
   const filter = {
     status: 'active',
@@ -331,7 +461,7 @@ export const getFeaturedOffers = async () => {
 };
 
 export const getOffersByCategory = async (category) => {
-  await expirePastOffers();
+  await syncOfferScheduleStatuses();
   const now = new Date();
   const filter = {
     status: 'active',
@@ -538,9 +668,7 @@ export const deleteOfferCategory = async (id, user) => {
 };
 
 export const getOfferById = async (id, options = {}) => {
-  if (options.publicOnly) {
-    await expirePastOffers();
-  }
+  await syncOfferScheduleStatuses();
 
   const filter = { _id: id, status: { $ne: 'deleted' } };
   if (options.publicOnly) filter.status = 'active';
@@ -630,12 +758,7 @@ export const softDeleteOffer = async (id, user) => {
 };
 
 export const updateOfferStatus = async (id, status, user) => {
-  if (!['active', 'inactive'].includes(status)) {
-    const error = new Error('Status must be active or inactive');
-    error.statusCode = 400;
-    throw error;
-  }
-
+  const requested = String(status || '').trim().toLowerCase();
   const offer = await Offer.findOne({ _id: id, status: { $ne: 'deleted' } });
   if (!offer) {
     const error = new Error('Offer not found');
@@ -643,7 +766,23 @@ export const updateOfferStatus = async (id, status, user) => {
     throw error;
   }
 
-  offer.status = status;
+  if (requested === 'inactive') {
+    offer.status = 'inactive';
+  } else if (requested === 'draft') {
+    offer.status = 'draft';
+  } else if (['active', 'scheduled', 'expired'].includes(requested)) {
+    // Re-enable automatic schedule status from dates.
+    offer.status = resolveOfferLifecycleStatus({
+      status: 'active',
+      startDate: offer.startDate,
+      endDate: offer.endDate,
+    });
+  } else {
+    const error = new Error('Invalid offer status');
+    error.statusCode = 400;
+    throw error;
+  }
+
   offer.updatedBy = user?._id || null;
   await offer.save();
 
@@ -651,7 +790,7 @@ export const updateOfferStatus = async (id, status, user) => {
     user,
     action: 'UPDATE_STATUS',
     module: 'OFFER',
-    description: `Set offer "${offer.title}" status to ${status}`,
+    description: `Set offer "${offer.title}" status to ${offer.status}`,
   });
 
   return formatOffer(offer);

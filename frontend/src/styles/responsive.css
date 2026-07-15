@@ -347,8 +347,10 @@ iframe {
     grid-template-columns: 1fr;
   }
 
-  .about-intro-actions {
+  .about-intro-content > .about-intro-actions {
     flex-direction: column;
+    margin-top: 40px;
+    gap: 14px;
   }
 
   .about-btn {

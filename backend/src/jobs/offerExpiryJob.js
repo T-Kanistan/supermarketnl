@@ -1,6 +1,7 @@
 import { expirePastOffers, expireOffersHeroBanners } from '../services/offerService.js';
 
-const HOUR_MS = 60 * 60 * 1000;
+/** Check often enough that day-boundary activation/expiry feels automatic. */
+const INTERVAL_MS = 5 * 60 * 1000;
 
 export const startOfferExpiryJob = () => {
   const runExpiryCheck = async () => {
@@ -8,7 +9,7 @@ export const startOfferExpiryJob = () => {
       const offerCount = await expirePastOffers();
       const heroCount = await expireOffersHeroBanners();
       if (offerCount > 0) {
-        console.log(`[offer-expiry] Marked ${offerCount} offer(s) as inactive`);
+        console.log(`[offer-expiry] Synced schedule status for ${offerCount} offer(s)`);
       }
       if (heroCount > 0) {
         console.log(`[offer-expiry] Marked ${heroCount} hero banner(s) as expired`);
@@ -19,5 +20,5 @@ export const startOfferExpiryJob = () => {
   };
 
   runExpiryCheck();
-  setInterval(runExpiryCheck, HOUR_MS);
+  setInterval(runExpiryCheck, INTERVAL_MS);
 };

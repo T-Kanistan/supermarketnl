@@ -2,10 +2,10 @@ import { body, param, query } from 'express-validator';
 import { normalizeProductType, validateCookingTimes } from '../services/productService.js';
 import { ADMIN_TEXT_LIMITS, sanitizeAdminText } from '../utils/adminTextValidation.js';
 
-const productTypeRule = body(['productType', 'type', 'productCatalogType'])
+const productTypeRule = body('productType')
   .optional({ values: 'falsy' })
   .custom((value, { req }) => {
-    const raw = value ?? req.body.productType ?? req.body.type ?? req.body.productCatalogType;
+    const raw = value ?? req.body.productType ?? req.body.type;
     if (!raw) return true;
     const normalized = normalizeProductType(raw);
     if (!['grocery', 'food-corner'].includes(normalized)) {
@@ -14,13 +14,14 @@ const productTypeRule = body(['productType', 'type', 'productCatalogType'])
     return true;
   });
 
-const foodCornerRules = (req) =>
-  normalizeProductType(req.body.productType || req.body.type || req.body.productCatalogType) ===
-  'food-corner';
+const resolveRequestProductType = (req) =>
+  normalizeProductType(
+    req.body?.productType || req.body?.type || req.body?.productCatalogType || 'grocery'
+  );
 
-const groceryRules = (req) =>
-  normalizeProductType(req.body.productType || req.body.type || req.body.productCatalogType) ===
-  'grocery';
+const foodCornerRules = (req) => resolveRequestProductType(req) === 'food-corner';
+
+const groceryRules = (req) => resolveRequestProductType(req) === 'grocery';
 
 const resolveWeightUnit = (body) =>
   sanitizeAdminText(body.weightUnit ?? body.weightUnitSize ?? body.weight ?? '');
@@ -104,9 +105,22 @@ const featuredRule = body(['showOnHomepage', 'featuredProduct', 'isFeatured', 'f
   });
 
 export const createProductRules = [
-  body(['productType', 'type', 'productCatalogType'])
-    .notEmpty()
-    .withMessage('Please select a product catalog type.'),
+  // productType is optional — defaults to grocery when omitted (no catalog-type form field).
+  productTypeRule,
+  body().custom((_, { req }) => {
+    if (
+      req.body.productType === undefined &&
+      req.body.type === undefined &&
+      req.body.productCatalogType === undefined
+    ) {
+      req.body.productType = 'grocery';
+    } else {
+      req.body.productType = normalizeProductType(
+        req.body.productType || req.body.type || req.body.productCatalogType
+      );
+    }
+    return true;
+  }),
   body('productName')
     .optional({ values: 'falsy' })
     .trim()
@@ -139,7 +153,6 @@ export const createProductRules = [
       }
       return true;
     }),
-  productTypeRule,
   body('price')
     .custom((value) => {
       if (value === undefined || value === null || String(value).trim() === '') {

@@ -1,8 +1,19 @@
 import { body, param } from 'express-validator';
-import { OFFER_DISCOUNT_TYPES, OFFER_DEPARTMENT_TYPES } from '../models/Offer.js';
+import { OFFER_DISCOUNT_TYPES, OFFER_DEPARTMENT_TYPES, OFFER_STATUS_TYPES } from '../models/Offer.js';
 import { ADMIN_TEXT_LIMITS, expressTextValidator } from '../utils/adminTextValidation.js';
+import {
+  getServerTodayYmd,
+  normalizeOfferEndDate,
+  normalizeOfferStartDate,
+  OFFER_END_DATE_RANGE_ERROR,
+  OFFER_START_DATE_PAST_ERROR,
+  toOfferYmd,
+  compareYmd,
+} from '../utils/offerSchedule.js';
 
 const { offerTitle, offerDescription, offerBadge } = ADMIN_TEXT_LIMITS;
+
+const OFFER_MUTABLE_STATUSES = OFFER_STATUS_TYPES.filter((s) => s !== 'deleted');
 
 const isValidImageUrl = (value) => {
   if (value === undefined || value === null || value === '') return true;
@@ -39,6 +50,40 @@ const optionalDateRule = (field) =>
       }
       return true;
     });
+
+const offerDateRangeRule = body().custom((_, { req }) => {
+  const startRaw = req.body.startDate;
+  const endRaw = req.body.endDate;
+  if (!startRaw && !endRaw) return true;
+
+  if (startRaw !== undefined && startRaw !== null && String(startRaw).trim() !== '') {
+    const start = normalizeOfferStartDate(startRaw);
+    if (!start) throw new Error('Start Date must be a valid date');
+  }
+  if (endRaw !== undefined && endRaw !== null && String(endRaw).trim() !== '') {
+    const end = normalizeOfferEndDate(endRaw);
+    if (!end) throw new Error('End Date must be a valid date');
+  }
+
+  if (startRaw && endRaw) {
+    const start = normalizeOfferStartDate(startRaw);
+    const end = normalizeOfferEndDate(endRaw);
+    if (start && end && end < start) {
+      throw new Error(OFFER_END_DATE_RANGE_ERROR);
+    }
+  }
+
+  // Create path: reject past start dates (update keeps existing past via service).
+  if (req.method === 'POST' && startRaw) {
+    const today = getServerTodayYmd();
+    const startYmd = toOfferYmd(startRaw);
+    if (startYmd && compareYmd(startYmd, today) < 0) {
+      throw new Error(OFFER_START_DATE_PAST_ERROR);
+    }
+  }
+
+  return true;
+});
 
 const optionalNumberRule = (field, label) =>
   body(field)
@@ -109,10 +154,11 @@ export const createOfferRules = [
   imageRule(true),
   optionalDateRule('startDate'),
   optionalDateRule('endDate'),
+  offerDateRangeRule,
   body('buttonText').optional({ values: 'null' }).isLength({ max: 50 }),
   body('buttonLink').optional({ values: 'null' }),
   booleanRule('featured', 'Featured'),
-  body('status').optional().isIn(['active', 'inactive']),
+  body('status').optional().isIn(OFFER_MUTABLE_STATUSES),
   optionalNumberRule('sortOrder', 'Sort order'),
 ];
 
@@ -165,10 +211,11 @@ export const updateOfferRules = [
   imageRule(false),
   optionalDateRule('startDate'),
   optionalDateRule('endDate'),
+  offerDateRangeRule,
   body('buttonText').optional({ values: 'null' }).isLength({ max: 50 }),
   body('buttonLink').optional({ values: 'null' }),
   booleanRule('featured', 'Featured'),
-  body('status').optional().isIn(['active', 'inactive']),
+  body('status').optional().isIn(OFFER_MUTABLE_STATUSES),
   optionalNumberRule('sortOrder', 'Sort order'),
 ];
 
@@ -179,8 +226,8 @@ export const updateOfferStatusRules = [
   body('status')
     .notEmpty()
     .withMessage('Status is required')
-    .isIn(['active', 'inactive'])
-    .withMessage('Status must be active or inactive'),
+    .isIn(OFFER_MUTABLE_STATUSES)
+    .withMessage(`Status must be one of: ${OFFER_MUTABLE_STATUSES.join(', ')}`),
 ];
 
 export const updateOfferBannerRules = [

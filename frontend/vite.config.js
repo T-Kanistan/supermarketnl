@@ -37,9 +37,37 @@ export default defineConfig(({ mode }) => {
     '/vacancies': createShareProxy(proxyTarget),
   }
 
+  const siteUrl = String(env.VITE_SITE_URL || '').trim()
+  const apiUrl = String(env.VITE_API_URL || '').trim()
+  const isLocalHostUrl = (value) =>
+    /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/i.test(value)
+
+  if (mode === 'production') {
+    if (!siteUrl || isLocalHostUrl(siteUrl)) {
+      throw new Error(
+        'Production builds require VITE_SITE_URL to be your live HTTPS domain ' +
+          '(e.g. https://raguwinswereldwinkel.nl). Do not use localhost.'
+      )
+    }
+    if (apiUrl && isLocalHostUrl(apiUrl)) {
+      throw new Error(
+        'VITE_API_URL points at localhost, which would break the production site for visitors. ' +
+          'Leave VITE_API_URL empty so the app uses same-origin /api (via Nginx).'
+      )
+    }
+  }
+
   return {
     plugins: [react()],
     server: { proxy },
     preview: { proxy },
+    build: {
+      // Never leave npm packages as bare imports in the browser bundle.
+      // A bare `from "fuse.js"` crashes the Food Corner page on production
+      // because Nginx serves index.html for that path instead of the module.
+      rollupOptions: {
+        external: [],
+      },
+    },
   }
 })

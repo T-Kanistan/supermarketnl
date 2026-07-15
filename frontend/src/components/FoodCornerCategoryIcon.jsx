@@ -1,6 +1,10 @@
 import { getImageUrl } from '../services/api';
 import { isFoodCornerCategoryIconUrl } from '../utils/foodCornerCategoryIconValidation';
 
+/**
+ * Renders a category icon inside chips/buttons.
+ * Supports new SVG/ICO/PNG icons and temporary legacy image URLs.
+ */
 const FoodCornerCategoryIcon = ({
   icon,
   className = '',
@@ -21,15 +25,18 @@ const FoodCornerCategoryIcon = ({
   }
 
   if (isFoodCornerCategoryIconUrl(value)) {
-    const src = value.startsWith('blob:') || value.startsWith('data:')
-      ? value
-      : getImageUrl(value);
+    const src =
+      value.startsWith('blob:') || value.startsWith('data:')
+        ? value
+        : getImageUrl(value);
 
     return (
       <img
         src={src}
         alt={alt}
         className={imgClassName || className}
+        draggable={false}
+        style={{ background: 'transparent' }}
       />
     );
   }

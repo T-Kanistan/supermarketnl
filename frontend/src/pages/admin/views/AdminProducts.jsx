@@ -361,37 +361,6 @@ export const AdminProducts = () => {
       setFormData((prev) => ({ ...prev, [name]: checked }));
       return;
     }
-    if (name === 'productType') {
-      if (isGroceryCatalog) return;
-      const isFoodCorner = mapProductType(value) === 'food-corner';
-      const cats = isFoodCorner ? foodCornerCategories : categories;
-      setFormData((prev) => ({
-        ...prev,
-        productType: value,
-        categoryId: cats[0]?.categoryId || cats[0]?.id || cats[0]?.slug || '',
-        ...(isFoodCorner
-          ? {
-              stockStatus: 'in_stock',
-              weightUnit: '',
-              showOnHomepage: false,
-              featuredProduct: false,
-            }
-          : {
-              menuDisplayTiming: '',
-              description: '',
-            }),
-      }));
-      setFormErrors((prev) => ({
-        ...prev,
-        productType: '',
-        weightUnit: '',
-        stockStatus: '',
-        menuDisplayTiming: '',
-        description: '',
-        imageUrl: '',
-      }));
-      return;
-    }
     if (name === 'description') {
       setFormData((prev) => ({
         ...prev,
@@ -440,9 +409,10 @@ export const AdminProducts = () => {
   const isDuplicateProductName = (candidate, draft) => {
     const normalizedName = normalizeForCompare(candidate);
     if (!normalizedName) return false;
+    const catalogType = isGroceryCatalog ? 'grocery' : 'food-corner';
     return products.some((product) => {
       if (editingProduct && product.id === editingProduct.id) return false;
-      const sameType = mapProductType(product.productType || product.type) === mapProductType(draft.productType);
+      const sameType = mapProductType(product.productType || product.type) === catalogType;
       const sameCategory = String(product.categoryId || '') === String(draft.categoryId || '');
       const sameName = normalizeForCompare(product.productName || product.name) === normalizedName;
       return sameType && sameCategory && sameName;
@@ -457,16 +427,13 @@ export const AdminProducts = () => {
 
   const validateProductForm = (draft) => {
     const errors = {};
-    const catalogType = isGroceryCatalog ? 'grocery' : mapProductType(draft.productType);
-    const isFoodCorner = catalogType === 'food-corner';
+    // Catalog type is implied by the current admin route (Grocery vs Food Corner), not a form field.
+    const isFoodCorner = !isGroceryCatalog;
     const cleanedName = sanitizeText(draft.productName);
     const cleanedDescription = sanitizeText(draft.description);
     const cleanedTiming = sanitizeText(draft.menuDisplayTiming);
     const imageValue = String(draft.imageUrl || '').trim();
 
-    if (!draft.productType) {
-      errors.productType = 'Please select a product catalog type.';
-    }
     if (!cleanedName) {
       errors.productName = 'Please enter the product name.';
     } else {
@@ -515,6 +482,10 @@ export const AdminProducts = () => {
       });
       if (weightUnitError) errors.weightUnit = weightUnitError;
 
+      if (!draft.status || !['active', 'inactive'].includes(draft.status)) {
+        errors.status = 'Please select a product status.';
+      }
+
       if (draft.description !== undefined && String(draft.description).trim()) {
         const groceryDescription = sanitizeText(draft.description, { collapse: false });
         if (groceryDescription.length > productDescription.max) {
@@ -546,7 +517,7 @@ export const AdminProducts = () => {
   };
 
   const focusFirstInvalidField = (errors) => {
-    const order = ['productType', 'productName', 'categoryId', 'price', 'stockStatus', 'weightUnit', 'menuDisplayTiming', 'description', 'imageUrl'];
+    const order = ['productName', 'categoryId', 'price', 'stockStatus', 'weightUnit', 'status', 'menuDisplayTiming', 'description', 'imageUrl'];
     const firstKey = order.find((key) => errors[key]);
     if (!firstKey) return;
     const node = formFieldRefs.current[firstKey];
@@ -617,10 +588,10 @@ export const AdminProducts = () => {
   };
 
   const buildSubmitPayload = (draft) => {
-    const catalogType = isGroceryCatalog ? 'grocery' : mapProductType(draft.productType);
-    const isFoodCorner = catalogType === 'food-corner';
+    const isFoodCorner = !isGroceryCatalog;
     const base = {
-      productType: catalogType,
+      // Internal classification only — not a user-facing form field.
+      productType: isGroceryCatalog ? 'grocery' : 'food-corner',
       productName: sanitizeText(draft.productName),
       categoryId: draft.categoryId,
       price: Number(String(draft.price).trim()),
@@ -653,7 +624,7 @@ export const AdminProducts = () => {
     }
     const cleanedForm = {
       ...formData,
-      productType: isGroceryCatalog ? 'grocery' : formData.productType,
+      productType: isGroceryCatalog ? 'grocery' : 'food-corner',
       productName: sanitizeText(formData.productName),
       weightUnit: sanitizeText(formData.weightUnit),
       menuDisplayTiming: sanitizeText(formData.menuDisplayTiming),
@@ -1219,11 +1190,19 @@ export const AdminProducts = () => {
                 </div>
 
                 <div className="admin-form-group">
-                  <AdminFieldLabel htmlFor="product-status">Product Status</AdminFieldLabel>
-                  <select name="status" value={formData.status} onChange={handleChange}>
+                  <AdminFieldLabel htmlFor="product-status" required>Product Status</AdminFieldLabel>
+                  <select
+                    id="product-status"
+                    name="status"
+                    value={formData.status}
+                    onChange={handleChange}
+                    ref={(el) => { formFieldRefs.current.status = el; }}
+                    className={formErrors.status ? 'admin-input-invalid' : ''}
+                  >
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
                   </select>
+                  {formErrors.status ? <p className="admin-field-error" role="alert">{formErrors.status}</p> : null}
                 </div>
 
                 {isGroceryProduct ? (

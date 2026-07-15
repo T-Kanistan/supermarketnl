@@ -2,12 +2,13 @@ import mongoose from 'mongoose';
 import FoodCornerCategory from '../models/FoodCornerCategory.js';
 import Product from '../models/Product.js';
 import { buildMultiFieldSearchFilter } from '../utils/adminSearchQuery.js';
-import { handleBase64Upload } from '../middlewares/uploadMiddleware.js';
+import { persistFoodCornerCategoryIconUpload } from './uploadService.js';
 import {
-  assertFoodCornerCategoryIcon,
   isFoodCornerCategoryIconUrl,
   resolveFoodCornerCategoryIcon,
 } from '../utils/foodCornerCategoryIconValidation.js';
+
+const uploadCategoryIcon = async (value) => persistFoodCornerCategoryIconUpload(value);
 
 export const slugify = (value) =>
   String(value || '')
@@ -200,7 +201,7 @@ export const createCategory = async (payload) => {
   const category = await FoodCornerCategory.create({
     categoryName,
     slug,
-    icon: await resolveFoodCornerCategoryIcon(payload.icon, { required: true }, handleBase64Upload),
+    icon: await resolveFoodCornerCategoryIcon(payload.icon, { required: true }, uploadCategoryIcon),
     description: payload.description || '',
     displayOrder: Number(payload.displayOrder) || 0,
     status: payload.status !== undefined ? Boolean(payload.status) : true,
@@ -262,7 +263,7 @@ export const updateCategory = async (id, payload) => {
     category.icon = await resolveFoodCornerCategoryIcon(
       payload.icon,
       { required: true, existingIcon: category.icon },
-      handleBase64Upload
+      uploadCategoryIcon
     );
   } else if (!isFoodCornerCategoryIconUrl(category.icon)) {
     const error = new Error('Please upload a category icon.');

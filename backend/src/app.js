@@ -65,6 +65,8 @@ const defaultCorsOrigins = [
   'http://localhost:5175',
   'http://127.0.0.1:5175',
   'http://localhost:3000',
+  'https://raguwinswereldwinkel.nl',
+  'https://www.raguwinswereldwinkel.nl',
 ];
 
 const corsOrigins = new Set(

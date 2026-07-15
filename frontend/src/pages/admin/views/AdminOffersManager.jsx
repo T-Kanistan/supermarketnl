@@ -8,7 +8,7 @@ import { useToast } from '../../../context/ToastContext';
 import { useAuth } from '../../../context/AuthContext';
 import offerService from '../../../services/offerService';
 import { getImageUrl } from '../../../services/api';
-import { validateOfferDates } from '../../../utils/offerDateValidation';
+import { validateOfferDates, getOfferStartMinDate, getTodayYmd } from '../../../utils/offerDateValidation';
 import './AdminOffersManager.css';
 import { CMS_IMAGE_ACCEPT, rejectInvalidCmsImageFile } from '../../../utils/imageUploadValidation';
 import useAdminSearch from '../../../hooks/useAdminSearch';
@@ -62,28 +62,36 @@ const toDateInput = (value) => {
 };
 
 // Maps a backend offer document to the shape this studio's table/form expect.
-const mapApiOffer = (offer) => ({
-  id: offer.id,
-  title: offer.title || '',
-  subtitle: offer.subtitle || '',
-  description: offer.description || '',
-  category: offer.category || '',
-  discountType: offer.discountType || 'percentage',
-  offerDepartment: offer.offerDepartment || offer.offerType || 'Supermarket',
-  discountValue: offer.discountValue ?? null,
-  originalPrice: offer.originalPrice ?? null,
-  offerPrice: offer.offerPrice ?? null,
-  badge: offer.offerBadge || '',
-  buttonText: offer.buttonText || 'Enquiry',
-  buttonLink: offer.buttonLink || '',
-  startDate: toDateInput(offer.startDate),
-  endDate: toDateInput(offer.endDate),
-  image: offer.image || '',
-  active: offer.status ? offer.status === 'active' : Boolean(offer.active),
-  featured: Boolean(offer.featured),
-  sortOrder: offer.sortOrder ?? 0,
-  createdAt: offer.createdAt || new Date().toISOString(),
-});
+const mapApiOffer = (offer) => {
+  const lifecycleStatus = offer.lifecycleStatus || offer.status || (offer.active ? 'active' : 'inactive');
+  return {
+    id: offer.id,
+    title: offer.title || '',
+    subtitle: offer.subtitle || '',
+    description: offer.description || '',
+    category: offer.category || '',
+    discountType: offer.discountType || 'percentage',
+    offerDepartment: offer.offerDepartment || offer.offerType || 'Supermarket',
+    discountValue: offer.discountValue ?? null,
+    originalPrice: offer.originalPrice ?? null,
+    offerPrice: offer.offerPrice ?? null,
+    badge: offer.offerBadge || '',
+    buttonText: offer.buttonText || 'Enquiry',
+    buttonLink: offer.buttonLink || '',
+    startDate: toDateInput(offer.startDate),
+    endDate: toDateInput(offer.endDate),
+    image: offer.image || '',
+    status: lifecycleStatus,
+    lifecycleStatus,
+    active: lifecycleStatus !== 'inactive' && lifecycleStatus !== 'draft',
+    isScheduled: Boolean(offer.isScheduled) || lifecycleStatus === 'scheduled',
+    isExpired: Boolean(offer.isExpired) || lifecycleStatus === 'expired',
+    featured: Boolean(offer.featured),
+    sortOrder: offer.sortOrder ?? 0,
+    createdAt: offer.createdAt || new Date().toISOString(),
+    serverToday: offer.serverToday || '',
+  };
+};
 
 const emptyOfferForm = {
   title: '', subtitle: '', description: '', category: '',
@@ -109,19 +117,19 @@ const HERO_IMAGE_MAX_BYTES = 3 * 1024 * 1024;
 
 const ITEMS_PER_PAGE = 5;
 
-const isExpired = (offer) => {
-  if (typeof offer?.isExpired === 'boolean') return offer.isExpired;
-  if (!offer?.endDate) return false;
-  const end = new Date(offer.endDate);
-  return !Number.isNaN(end.getTime()) && end.getTime() < Date.now();
+const getLifecycleStatus = (offer) => {
+  if (offer?.lifecycleStatus) return offer.lifecycleStatus;
+  if (offer?.status && ['scheduled', 'active', 'expired', 'inactive', 'draft'].includes(offer.status)) {
+    return offer.status;
+  }
+  if (offer?.isScheduled) return 'scheduled';
+  if (offer?.isExpired) return 'expired';
+  if (offer?.active === false) return 'inactive';
+  return 'active';
 };
 
-const isScheduled = (offer) => {
-  if (typeof offer?.isScheduled === 'boolean') return offer.isScheduled;
-  if (!offer?.startDate) return false;
-  const start = new Date(offer.startDate);
-  return !Number.isNaN(start.getTime()) && start.getTime() > Date.now();
-};
+const isExpired = (offer) => getLifecycleStatus(offer) === 'expired';
+const isScheduled = (offer) => getLifecycleStatus(offer) === 'scheduled';
 
 const formatDate = (value) => {
   if (!value) return '—';
@@ -256,10 +264,11 @@ export const AdminOffersManager = () => {
   // --- Derived data ---
   const stats = useMemo(() => {
     const total = offers.length;
-    const expired = offers.filter(isExpired).length;
-    const active = offers.filter((o) => o.active && !isExpired(o)).length;
+    const expired = offers.filter((o) => getLifecycleStatus(o) === 'expired').length;
+    const active = offers.filter((o) => getLifecycleStatus(o) === 'active').length;
+    const scheduled = offers.filter((o) => getLifecycleStatus(o) === 'scheduled').length;
     const featured = offers.filter((o) => o.featured).length;
-    return { total, active, expired, featured };
+    return { total, active, expired, scheduled, featured };
   }, [offers]);
 
   const categoryNames = useMemo(() => {
@@ -278,21 +287,23 @@ export const AdminOffersManager = () => {
 
   const filteredOffers = useMemo(() => {
     let list = offers.filter((offer) => {
-      const expired = isExpired(offer);
+      const status = getLifecycleStatus(offer);
       const matchesSearch = matchesAdminSearch(searchQuery, [
         offer.title,
         offer.subtitle,
         offer.productName,
         offer.category,
-        statusSearchLabel(offer.active),
+        status,
+        statusSearchLabel(status === 'active'),
         offer.featured ? 'featured' : '',
-        expired ? 'expired' : '',
       ]);
       const matchesCategory = categoryFilter === 'all' || offer.category === categoryFilter;
       let matchesStatus = true;
-      if (statusFilter === 'active') matchesStatus = offer.active && !expired;
-      else if (statusFilter === 'inactive') matchesStatus = !offer.active;
-      else if (statusFilter === 'expired') matchesStatus = expired;
+      if (statusFilter === 'active') matchesStatus = status === 'active';
+      else if (statusFilter === 'scheduled') matchesStatus = status === 'scheduled';
+      else if (statusFilter === 'inactive') matchesStatus = status === 'inactive';
+      else if (statusFilter === 'expired') matchesStatus = status === 'expired';
+      else if (statusFilter === 'draft') matchesStatus = status === 'draft';
       else if (statusFilter === 'featured') matchesStatus = offer.featured;
       return matchesSearch && matchesCategory && matchesStatus;
     });
@@ -328,20 +339,42 @@ export const AdminOffersManager = () => {
   const openEditOffer = (offer) => {
     setEditingOffer(offer);
     setOfferDateTouched(false);
+    const status = getLifecycleStatus(offer);
     setOfferForm({
-      ...emptyOfferForm, ...offer,
+      ...emptyOfferForm,
+      ...offer,
       discountValue: offer.discountValue ?? '',
       originalPrice: offer.originalPrice ?? '',
       offerPrice: offer.offerPrice ?? '',
+      // Enabled unless manually inactive/draft
+      active: status !== 'inactive' && status !== 'draft',
     });
     setIsOfferModalOpen(true);
   };
 
   const closeOfferModal = () => { setIsOfferModalOpen(false); setEditingOffer(null); setOfferDateTouched(false); };
 
+  const serverToday = useMemo(
+    () => offers.find((o) => o.serverToday)?.serverToday || getTodayYmd(),
+    [offers]
+  );
+
   const offerDateValidation = useMemo(
-    () => validateOfferDates(offerForm.startDate, offerForm.endDate),
-    [offerForm.startDate, offerForm.endDate]
+    () =>
+      validateOfferDates(offerForm.startDate, offerForm.endDate, {
+        today: serverToday,
+        existingStartDate: editingOffer?.startDate || '',
+      }),
+    [offerForm.startDate, offerForm.endDate, serverToday, editingOffer]
+  );
+
+  const startDateMin = useMemo(
+    () =>
+      getOfferStartMinDate({
+        today: serverToday,
+        existingStartDate: editingOffer?.startDate || '',
+      }),
+    [serverToday, editingOffer]
   );
 
   const showOfferDateErrors = offerDateTouched || Boolean(offerForm.startDate || offerForm.endDate);
@@ -351,7 +384,14 @@ export const AdminOffersManager = () => {
     if (name === 'startDate' || name === 'endDate') {
       setOfferDateTouched(true);
     }
-    setOfferForm((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    setOfferForm((prev) => {
+      const next = { ...prev, [name]: type === 'checkbox' ? checked : value };
+      // Keep end date from falling before start when start moves forward.
+      if (name === 'startDate' && next.endDate && next.endDate < value) {
+        next.endDate = value;
+      }
+      return next;
+    });
   };
 
   const handleOfferImage = (field) => async (e) => {
@@ -428,11 +468,13 @@ export const AdminOffersManager = () => {
   };
 
   const toggleActive = async (offer) => {
-    const nextStatus = offer.active ? 'inactive' : 'active';
-    setOffers((prev) => prev.map((o) => (o.id === offer.id ? { ...o, active: !o.active } : o)));
+    const status = getLifecycleStatus(offer);
+    const currentlyEnabled = status !== 'inactive' && status !== 'draft';
+    const nextStatus = currentlyEnabled ? 'inactive' : 'active';
     try {
       await offerService.updateOfferStatus(offer.id, nextStatus);
-      addToast(`Offer "${offer.title}" ${offer.active ? 'disabled' : 'enabled'}`, 'success');
+      addToast(`Offer "${offer.title}" ${currentlyEnabled ? 'disabled' : 'enabled'}`, 'success');
+      await loadOffers();
     } catch (err) {
       console.error('Failed to update offer status', err);
       addToast(err.message || 'Failed to update offer status', 'error');
@@ -630,11 +672,19 @@ export const AdminOffersManager = () => {
   };
 
   const renderStatusBadge = (offer) => {
-    if (offer.isScheduled || isScheduled(offer)) {
+    const status = getLifecycleStatus(offer);
+    if (status === 'scheduled') {
       return <span className="product-status-badge inactive" style={{ background: '#fef3c7', color: '#b45309' }}>🟡 Scheduled</span>;
     }
-    if (!offer.active) return <span className="product-status-badge inactive">⚪ Inactive</span>;
-    if (isExpired(offer)) return <span className="product-status-badge inactive" style={{ background: '#fee2e2', color: '#b91c1c' }}>🔴 Expired</span>;
+    if (status === 'expired') {
+      return <span className="product-status-badge inactive" style={{ background: '#fee2e2', color: '#b91c1c' }}>🔴 Expired</span>;
+    }
+    if (status === 'draft') {
+      return <span className="product-status-badge inactive" style={{ background: '#e2e8f0', color: '#475569' }}>Draft</span>;
+    }
+    if (status === 'inactive') {
+      return <span className="product-status-badge inactive">⚪ Inactive</span>;
+    }
     return <span className="product-status-badge active">🟢 Active</span>;
   };
 
@@ -725,9 +775,11 @@ export const AdminOffersManager = () => {
               </select>
               <select className="filter-select-admin" value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}>
                 <option value="all">All Status</option>
+                <option value="scheduled">Scheduled</option>
                 <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
                 <option value="expired">Expired</option>
+                <option value="inactive">Inactive</option>
+                <option value="draft">Draft</option>
                 <option value="featured">Featured</option>
               </select>
               <select className="filter-select-admin" value={sortOption} onChange={(e) => setSortOption(e.target.value)}>
@@ -1035,7 +1087,15 @@ export const AdminOffersManager = () => {
                 <div className="admin-form-group row-split" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                   <div>
                     <AdminFieldLabel htmlFor="offm-start-date" required>Start Date</AdminFieldLabel>
-                    <input id="offm-start-date" type="date" name="startDate" value={offerForm.startDate} onChange={handleOfferChange} required />
+                    <input
+                      id="offm-start-date"
+                      type="date"
+                      name="startDate"
+                      value={offerForm.startDate}
+                      onChange={handleOfferChange}
+                      min={startDateMin}
+                      required
+                    />
                     {showOfferDateErrors && offerDateValidation.startDateError && (
                       <p className="offm-field-error" role="alert">{offerDateValidation.startDateError}</p>
                     )}
@@ -1048,7 +1108,7 @@ export const AdminOffersManager = () => {
                       name="endDate"
                       value={offerForm.endDate}
                       onChange={handleOfferChange}
-                      min={offerForm.startDate || undefined}
+                      min={offerForm.startDate || startDateMin || undefined}
                       required
                     />
                     {showOfferDateErrors && offerDateValidation.endDateError && (
@@ -1071,8 +1131,17 @@ export const AdminOffersManager = () => {
                 <div className="admin-form-group"><AdminFieldLabel htmlFor="offm-sort-order" optional>Sort Order</AdminFieldLabel><input id="offm-sort-order" type="number" name="sortOrder" value={offerForm.sortOrder} onChange={handleOfferChange} /></div>
 
                 <div className="offm-toggle-grid">
-                  <label className="offm-switch-row"><span>Active</span>
-                    <span className="toggle-switch-admin"><input type="checkbox" name="active" checked={offerForm.active} onChange={handleOfferChange} /><span className="toggle-slider-admin" /></span>
+                  <label className="offm-switch-row">
+                    <span>
+                      Enabled
+                      <small style={{ display: 'block', fontWeight: 400, color: '#64748b', marginTop: 2 }}>
+                        When enabled, status becomes Scheduled / Active / Expired automatically from the dates.
+                      </small>
+                    </span>
+                    <span className="toggle-switch-admin">
+                      <input type="checkbox" name="active" checked={offerForm.active} onChange={handleOfferChange} />
+                      <span className="toggle-slider-admin" />
+                    </span>
                   </label>
                 </div>
 
