@@ -7,7 +7,7 @@ import {
   deleteAnnouncement,
   searchAnnouncements,
 } from '../controllers/announcementController.js';
-import { protect, restrictTo, adminOnly } from '../middlewares/authMiddleware.js';
+import { protect, restrictTo } from '../middlewares/authMiddleware.js';
 import { validateRequest } from '../middlewares/validationMiddleware.js';
 import { announcementBannerUpload } from '../middlewares/announcementUploadMiddleware.js';
 import {
@@ -44,6 +44,6 @@ router.put(
   updateAnnouncement
 );
 
-router.delete('/:id', protect, adminOnly, announcementIdRules, validateRequest, deleteAnnouncement);
+router.delete('/:id', ...auth, announcementIdRules, validateRequest, deleteAnnouncement);
 
 export default router;

@@ -3,7 +3,6 @@ import { FaPlus, FaEdit, FaTrash, FaCommentDots, FaStar, FaUpload, FaSearch } fr
 import testimonialService, { DEFAULT_AVATAR } from '../../../services/testimonialService';
 import { getImageUrl } from '../../../services/api';
 import { useToast } from '../../../context/ToastContext';
-import { useAuth } from '../../../context/AuthContext';
 import { invalidateDashboardStats } from '../../../utils/dashboardStatsRefresh';
 import { CMS_IMAGE_ACCEPT, rejectInvalidCmsImageFile } from '../../../utils/imageUploadValidation';
 import useAdminSearch from '../../../hooks/useAdminSearch';
@@ -49,6 +48,7 @@ export const AdminTestimonials = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [editingTestimonial, setEditingTestimonial] = useState(null);
   const [formData, setFormData] = useState(emptyForm);
+  const [imageError, setImageError] = useState('');
   const fileInputRef = useRef(null);
   const {
     searchInput,
@@ -60,7 +60,6 @@ export const AdminTestimonials = () => {
   } = useAdminSearch();
 
   const { addToast } = useToast();
-  const { isAdmin } = useAuth();
 
   const fetchTestimonials = useCallback(async (query = '') => {
     setLoading(true);
@@ -84,6 +83,7 @@ export const AdminTestimonials = () => {
   const openAddModal = () => {
     setEditingTestimonial(null);
     setFormData(emptyForm);
+    setImageError('');
     setIsModalOpen(true);
   };
 
@@ -96,6 +96,7 @@ export const AdminTestimonials = () => {
       avatarImage: t.avatarImage && t.avatarImage !== DEFAULT_AVATAR ? t.avatarImage : '',
       status: t.status || 'active',
     });
+    setImageError('');
     setIsModalOpen(true);
   };
 
@@ -110,13 +111,21 @@ export const AdminTestimonials = () => {
   const handleImageUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (rejectInvalidCmsImageFile(file, (msg) => addToast(msg, 'error'), e.target)) return;
-
-    if (file.size > 3 * 1024 * 1024) {
-      addToast('Avatar image must be 3MB or smaller', 'error');
+    if (
+      rejectInvalidCmsImageFile(
+        file,
+        (msg) => {
+          setImageError(msg);
+          addToast(msg, 'error');
+        },
+        e.target,
+        { maxBytes: 3 * 1024 * 1024 }
+      )
+    ) {
       return;
     }
 
+    setImageError('');
     setIsUploading(true);
     try {
       const imageUrl = await testimonialService.uploadAvatar(file);
@@ -124,7 +133,9 @@ export const AdminTestimonials = () => {
       addToast('Avatar uploaded successfully', 'success');
     } catch (err) {
       console.error('Failed to upload avatar', err);
-      addToast(err.response?.data?.message || 'Failed to upload avatar', 'error');
+      const message = err.response?.data?.message || 'Failed to upload avatar';
+      setImageError(message);
+      addToast(message, 'error');
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -132,10 +143,6 @@ export const AdminTestimonials = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!isAdmin) {
-      addToast('Only administrators can delete testimonials', 'error');
-      return;
-    }
     if (!window.confirm('Delete this testimonial?')) return;
     try {
       await testimonialService.deleteTestimonial(id);
@@ -198,22 +205,23 @@ export const AdminTestimonials = () => {
         </button>
       </div>
 
-      <form onSubmit={applySearchNow} style={{ marginBottom: '20px', display: 'flex', gap: '12px', maxWidth: '420px' }}>
-        <input
-          type="text"
-          value={searchInput}
-          onChange={onSearchChange}
-          placeholder="Search by customer name or review..."
-          style={{ flex: 1 }}
-        />
-        <button type="submit" className="action-btn-secondary">
-          <FaSearch /> Search
-        </button>
-        {hasActiveSearch || searchInput ? (
-          <button type="button" className="action-btn-secondary" onClick={clearSearch}>
-            Clear
+      <form onSubmit={applySearchNow} className="view-toolbar view-toolbar-search-only">
+        <div className="view-toolbar-search">
+          <input
+            type="text"
+            value={searchInput}
+            onChange={onSearchChange}
+            placeholder="Search by customer name or review..."
+          />
+          <button type="submit" className="action-btn-secondary">
+            <FaSearch /> Search
           </button>
-        ) : null}
+          {hasActiveSearch || searchInput ? (
+            <button type="button" className="action-btn-secondary" onClick={clearSearch}>
+              Clear
+            </button>
+          ) : null}
+        </div>
       </form>
 
       {loading ? (
@@ -265,11 +273,9 @@ export const AdminTestimonials = () => {
                       <button className="btn-action-cell edit" onClick={() => openEditModal(t)} title="Edit Testimonial">
                         <FaEdit />
                       </button>
-                      {isAdmin && (
-                        <button className="btn-action-cell delete" onClick={() => handleDelete(t.id)} title="Delete Testimonial">
-                          <FaTrash />
-                        </button>
-                      )}
+                      <button className="btn-action-cell delete" onClick={() => handleDelete(t.id)} title="Delete Testimonial">
+                        <FaTrash />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -312,6 +318,10 @@ export const AdminTestimonials = () => {
                     minLength={2}
                     maxLength={100}
                   />
+                  <div className="admin-field-meta">
+                    <span />
+                    <span className="admin-char-counter">{formData.customerName.length}/100</span>
+                  </div>
                 </div>
 
                 <div className="admin-form-group">
@@ -357,7 +367,7 @@ export const AdminTestimonials = () => {
                       onError={(e) => { e.target.src = DEFAULT_AVATAR; }}
                     />
                     <div
-                      className="image-upload-zone"
+                      className={`image-upload-zone${imageError ? ' admin-input-invalid' : ''}`}
                       style={{ flex: 1, minWidth: '200px', padding: '16px', cursor: 'pointer' }}
                       onClick={() => !isUploading && fileInputRef.current?.click()}
                     >
@@ -370,10 +380,11 @@ export const AdminTestimonials = () => {
                       />
                       <FaUpload style={{ marginBottom: '6px' }} />
                       <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>
-                        {isUploading ? 'Uploading...' : 'Click to upload — jpg, jpeg, png, webp (max 3MB)'}
+                        {isUploading ? 'Uploading...' : 'Click to upload — JPG, JPEG, PNG, WEBP (max 3 MB)'}
                       </p>
                     </div>
                   </div>
+                  {imageError ? <p className="admin-field-error" role="alert">{imageError}</p> : null}
                   <p className="admin-field-hint">Leave empty to use the default avatar on the storefront.</p>
                 </div>
 

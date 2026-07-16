@@ -1,8 +1,11 @@
+/* Shared by Terms & Conditions and Privacy Policy (LegalPage) */
+
 .terms-page {
   padding-top: 90px; /* Account for fixed header */
   background-color: var(--bg-light);
   min-height: 100vh;
   padding-bottom: 60px;
+  overflow-x: hidden;
 }
 
 .terms-header {
@@ -13,29 +16,49 @@
   margin-bottom: 40px;
 }
 
+.terms-header .container {
+  padding-left: clamp(16px, 4vw, 48px);
+  padding-right: clamp(16px, 4vw, 48px);
+}
+
 .terms-header h1 {
-  font-size: 2.5rem;
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
   font-weight: 800;
   color: var(--white);
-  margin-bottom: 10px;
+  margin: 0 0 10px;
+  line-height: 1.25;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .terms-header p {
-  font-size: 1.1rem;
-  opacity: 0.8;
+  font-size: clamp(0.95rem, 2vw, 1.1rem);
+  opacity: 0.85;
+  margin: 0;
+  line-height: 1.5;
 }
 
 .terms-content {
   background: var(--white);
-  padding: 40px 50px;
+  padding: 44px 48px;
   border-radius: 12px;
   box-shadow: var(--shadow-md);
-  max-width: 1000px;
+  max-width: 920px;
+  width: 100%;
   margin: 0 auto;
+  box-sizing: border-box;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Same element also has .container — lock padding so global container rules don't fight */
+.terms-page > .container.terms-content {
+  max-width: 920px;
+  padding: 44px 48px;
 }
 
 .terms-section {
-  margin-bottom: 35px;
+  margin-bottom: 36px;
 }
 
 .terms-section:last-child {
@@ -43,31 +66,184 @@
 }
 
 .terms-section h2 {
-  font-size: 1.5rem;
+  font-size: clamp(1.2rem, 2.5vw, 1.5rem);
   font-weight: 700;
   color: var(--dark-blue);
-  margin-bottom: 15px;
+  margin: 0 0 16px;
   padding-bottom: 10px;
   border-bottom: 1px solid var(--border-color);
+  line-height: 1.35;
+  text-align: left;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .terms-section p {
-  color: var(--text-light);
-  font-size: 1.05rem;
+  color: var(--text-light, #475569);
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.8;
+  margin: 0 0 16px;
+  text-align: justify;
+  text-justify: inter-word;
+  hyphens: auto;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  max-width: 100%;
+}
+
+.terms-section p:last-child {
+  margin-bottom: 0;
+}
+
+.terms-section ul,
+.terms-section ol {
+  margin: 0 0 16px;
+  padding-left: 1.35em;
+  color: var(--text-light, #475569);
+  font-size: 17px;
   line-height: 1.8;
 }
 
-@media (max-width: 768px) {
+.terms-section li {
+  margin-bottom: 8px;
+  padding-left: 0.15em;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.terms-section li:last-child {
+  margin-bottom: 0;
+}
+
+.terms-section ul ul,
+.terms-section ol ol,
+.terms-section ul ol,
+.terms-section ol ul {
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+/* ─── Tablet ─── */
+@media (max-width: 1023px) and (min-width: 768px) {
+  .terms-page {
+    padding-bottom: 48px;
+  }
+
   .terms-header {
-    padding: 40px 0;
+    padding: 48px 0;
+    margin-bottom: 32px;
   }
-  .terms-header h1 {
-    font-size: 2rem;
-  }
+
   .terms-content {
-    padding: 30px 20px;
+    padding: 28px 32px;
+    border-radius: 10px;
   }
+
+  .terms-page > .container.terms-content {
+    padding: 28px 32px;
+  }
+
+  .terms-section {
+    margin-bottom: 30px;
+  }
+
   .terms-section h2 {
-    font-size: 1.3rem;
+    margin-bottom: 14px;
+  }
+
+  .terms-section p,
+  .terms-section ul,
+  .terms-section ol {
+    font-size: 15.5px;
+    line-height: 1.8;
+  }
+
+  .terms-section p {
+    margin-bottom: 14px;
+  }
+}
+
+/* ─── Mobile ─── */
+@media (max-width: 767px) {
+  .terms-page {
+    padding-top: 72px;
+    padding-bottom: 32px;
+  }
+
+  .terms-header {
+    padding: 36px 0;
+    margin-bottom: 20px;
+  }
+
+  .terms-header h1 {
+    font-size: 1.65rem;
+  }
+
+  .terms-header p {
+    font-size: 0.95rem;
+  }
+
+  .terms-content {
+    padding: 20px 16px;
+    border-radius: 0;
+    box-shadow: none;
+    max-width: 100%;
+  }
+
+  .terms-page > .container.terms-content {
+    max-width: 100%;
+    padding: 20px 16px;
+  }
+
+  .terms-section {
+    margin-bottom: 28px;
+  }
+
+  .terms-section h2 {
+    font-size: 1.2rem;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+  }
+
+  .terms-section p,
+  .terms-section ul,
+  .terms-section ol {
+    font-size: 15px;
+    line-height: 1.85;
+  }
+
+  .terms-section p {
+    margin-bottom: 14px;
+    text-align: justify;
+  }
+
+  .terms-section ul,
+  .terms-section ol {
+    padding-left: 1.2em;
+    margin-bottom: 14px;
+  }
+
+  .terms-section li {
+    margin-bottom: 6px;
+  }
+}
+
+/* Extra-narrow phones (320–374px) */
+@media (max-width: 374px) {
+  .terms-content,
+  .terms-page > .container.terms-content {
+    padding: 18px 14px;
+  }
+
+  .terms-section p,
+  .terms-section ul,
+  .terms-section ol {
+    font-size: 14.5px;
+    line-height: 1.85;
+  }
+
+  .terms-section h2 {
+    font-size: 1.15rem;
   }
 }

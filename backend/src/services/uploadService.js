@@ -63,7 +63,7 @@ export const persistBase64Upload = async (base64Str) => {
   }
 };
 
-/** Persist Food Corner category icons (SVG / ICO / transparent PNG only). */
+/** Persist Food Corner category icons (SVG / ICO / PNG / WEBP). */
 export const persistFoodCornerCategoryIconUpload = async (base64Str) => {
   if (!base64Str) return null;
   if (!base64Str.startsWith('data:')) {
@@ -80,7 +80,7 @@ export const persistFoodCornerCategoryIconUpload = async (base64Str) => {
   }
 
   const ext = getFoodCornerCategoryIconExtFromDataUrl(base64Str);
-  if (!ext || !['svg', 'ico', 'png'].includes(ext)) {
+  if (!ext || !['svg', 'ico', 'png', 'webp'].includes(ext)) {
     const error = new Error(FOOD_CORNER_CATEGORY_ICON_TYPE_MESSAGE);
     error.statusCode = 400;
     throw error;

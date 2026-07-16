@@ -199,15 +199,15 @@ const ImageField = ({
 
     const validation = validateAboutImageFile(file);
     if (!validation.valid) {
+      setLocalError(validation.error);
       if (validation.error === ABOUT_IMAGE_TYPE_ERROR) {
         setShowInvalidModal(true);
-      } else {
-        setLocalError(validation.error);
       }
       return;
     }
 
     setLocalError('');
+    setShowInvalidModal(false);
     const reader = new FileReader();
     reader.onload = () => onChange(reader.result);
     reader.readAsDataURL(file);

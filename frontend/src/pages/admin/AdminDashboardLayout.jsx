@@ -211,57 +211,57 @@ export const AdminDashboardLayout = () => {
   const renderManagerSidebar = () => (
     <>
       <div className="menu-section-title">Catalog</div>
+      <NavLink to={dashboardPath('/categories')} className={() => sidebarClass('/categories')} onClick={closeMobileMenu}>
+        <FaTags className="sidebar-link-icon" />
+        <span>Product Categories</span>
+      </NavLink>
       <NavLink to={dashboardPath('/products')} className={() => sidebarClass('/products')} onClick={closeMobileMenu}>
         <FaBoxOpen className="sidebar-link-icon" />
         <span>Products</span>
       </NavLink>
 
       <div className="menu-section-title">Food Corner</div>
+      <NavLink to={dashboardPath('/food-corner-categories')} className={() => sidebarClass('/food-corner-categories')} onClick={closeMobileMenu}>
+        <FaUtensils className="sidebar-link-icon" />
+        <span>Food Corner Categories</span>
+      </NavLink>
       <NavLink to={dashboardPath('/food-corner')} className={() => sidebarClass('/food-corner')} onClick={closeMobileMenu}>
         <FaUtensils className="sidebar-link-icon" />
         <span>Food Corner Items</span>
       </NavLink>
 
-      <div className="menu-section-title">Offers</div>
+      <div className="menu-section-title">Offers &amp; Promotions</div>
       <NavLink to={dashboardPath('/offers')} className={() => sidebarClass('/offers')} onClick={closeMobileMenu}>
         <FaBullhorn className="sidebar-link-icon" />
         <span>Offers Management</span>
       </NavLink>
       <NavLink to={dashboardPath('/announcements')} className={() => sidebarClass('/announcements')} onClick={closeMobileMenu}>
         <FaBullhorn className="sidebar-link-icon" />
-        <span>Announcements</span>
+        <span>Store Announcements</span>
       </NavLink>
 
-      <div className="menu-section-title">Messages</div>
-      <NavLink to={dashboardPath('/messages')} className={() => sidebarClass('/messages')} onClick={closeMobileMenu}>
-        <FaEnvelopeOpenText className="sidebar-link-icon" />
-        <span>Customer Enquiries</span>
-      </NavLink>
-      <NavLink to={dashboardPath('/vacancies')} className={() => sidebarClass('/vacancies')} onClick={closeMobileMenu}>
-        <FaBriefcase className="sidebar-link-icon" />
-        <span>Vacancy Management</span>
-      </NavLink>
-      <NavLink to={dashboardPath('/job-applications')} className={() => sidebarClass('/job-applications')} onClick={closeMobileMenu}>
-        <FaBriefcase className="sidebar-link-icon" />
-        <span>Job Applications</span>
-      </NavLink>
-
-      <div className="menu-section-title">Content Management</div>
+      <div className="menu-section-title">Content</div>
       <NavLink to={dashboardPath('/banners')} className={() => sidebarClass('/banners')} onClick={closeMobileMenu}>
         <FaImages className="sidebar-link-icon" />
-        <span>Banner Management</span>
-      </NavLink>
-      <NavLink to={dashboardPath('/homepage-about')} className={() => sidebarClass('/homepage-about')} onClick={closeMobileMenu}>
-        <FaHome className="sidebar-link-icon" />
-        <span>Homepage About Section</span>
-      </NavLink>
-      <NavLink to={dashboardPath('/faqs')} className={() => sidebarClass('/faqs')} onClick={closeMobileMenu}>
-        <FaQuestionCircle className="sidebar-link-icon" />
-        <span>FAQ</span>
+        <span>Hero Banners</span>
       </NavLink>
       <NavLink to={dashboardPath('/testimonials')} className={() => sidebarClass('/testimonials')} onClick={closeMobileMenu}>
         <FaCommentDots className="sidebar-link-icon" />
         <span>Testimonials</span>
+      </NavLink>
+
+      <div className="menu-section-title">Messages &amp; Careers</div>
+      <NavLink to={dashboardPath('/messages')} className={() => sidebarClass('/messages')} onClick={closeMobileMenu}>
+        <FaEnvelopeOpenText className="sidebar-link-icon" />
+        <span>Contact Messages</span>
+      </NavLink>
+      <NavLink to={dashboardPath('/vacancies')} className={() => sidebarClass('/vacancies')} onClick={closeMobileMenu}>
+        <FaBriefcase className="sidebar-link-icon" />
+        <span>Vacancies</span>
+      </NavLink>
+      <NavLink to={dashboardPath('/job-applications')} className={() => sidebarClass('/job-applications')} onClick={closeMobileMenu}>
+        <FaBriefcase className="sidebar-link-icon" />
+        <span>Job Applications</span>
       </NavLink>
     </>
   );

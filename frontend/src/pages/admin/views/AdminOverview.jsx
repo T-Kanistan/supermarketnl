@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   FaBoxOpen, FaTags, FaCommentDots, FaQuestionCircle,
   FaEnvelopeOpenText, FaImages, FaPlus, FaGlobe, FaBullhorn, FaUserCog, FaUtensils,
+  FaBriefcase,
 } from 'react-icons/fa';
 import dashboardService from '../../../services/dashboardService';
 import { subscribeDashboardStatsInvalidation } from '../../../utils/dashboardStatsRefresh';
@@ -115,7 +116,7 @@ export const AdminOverview = () => {
         <div className="dashboard-panel" style={{ marginTop: 24 }}>
           <h3 className="panel-title">Quick Actions</h3>
           <div className="quick-actions-grid">
-            <div className="quick-action-card" onClick={() => navigate('/admin/dashboard/products')}>
+            <div className="quick-action-card" onClick={() => navigate(`${getDashboardBase(location.pathname)}/products`)}>
               <FaPlus className="quick-action-card-icon" />
               <span>Add Product</span>
             </div>
@@ -123,13 +124,21 @@ export const AdminOverview = () => {
               <FaPlus className="quick-action-card-icon" />
               <span>Add Food Corner Item</span>
             </div>
-            <div className="quick-action-card" onClick={() => navigate('/admin/dashboard/messages')}>
+            <div className="quick-action-card" onClick={() => navigate(`${getDashboardBase(location.pathname)}/messages`)}>
               <FaEnvelopeOpenText className="quick-action-card-icon" />
               <span>View Enquiries</span>
             </div>
-            <div className="quick-action-card" onClick={() => navigate('/admin/dashboard/announcements')}>
+            <div className="quick-action-card" onClick={() => navigate(`${getDashboardBase(location.pathname)}/offers`)}>
               <FaBullhorn className="quick-action-card-icon" />
               <span>Manage Offers</span>
+            </div>
+            <div className="quick-action-card" onClick={() => navigate(`${getDashboardBase(location.pathname)}/vacancies`)}>
+              <FaBriefcase className="quick-action-card-icon" />
+              <span>Manage Vacancies</span>
+            </div>
+            <div className="quick-action-card" onClick={() => navigate(`${getDashboardBase(location.pathname)}/job-applications`)}>
+              <FaBriefcase className="quick-action-card-icon" />
+              <span>View Applications</span>
             </div>
           </div>
         </div>

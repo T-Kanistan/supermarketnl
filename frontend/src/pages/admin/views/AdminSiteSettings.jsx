@@ -899,10 +899,14 @@ export const AdminSiteSettings = () => {
   const handleLogoUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (rejectInvalidCmsImageFile(file, (msg) => addToast(msg, 'error'), e.target)) return;
-
-    if (file.size > 2 * 1024 * 1024) {
-      addToast('File too large. Max size is 2MB.', 'error');
+    if (
+      rejectInvalidCmsImageFile(
+        file,
+        (msg) => addToast(msg, 'error'),
+        e.target,
+        { maxBytes: 2 * 1024 * 1024 }
+      )
+    ) {
       return;
     }
     const reader = new FileReader();
@@ -916,10 +920,14 @@ export const AdminSiteSettings = () => {
   const handleFooterLogoUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (rejectInvalidCmsImageFile(file, (msg) => addToast(msg, 'error'), e.target)) return;
-
-    if (file.size > 2 * 1024 * 1024) {
-      addToast('File too large. Max size is 2MB.', 'error');
+    if (
+      rejectInvalidCmsImageFile(
+        file,
+        (msg) => addToast(msg, 'error'),
+        e.target,
+        { maxBytes: 2 * 1024 * 1024 }
+      )
+    ) {
       return;
     }
     const reader = new FileReader();
@@ -1307,7 +1315,7 @@ export const AdminSiteSettings = () => {
                     />
                     <label htmlFor="logo-file" style={{ cursor: 'pointer', margin: 0 }}>
                       <FaUpload className="upload-icon" style={{ fontSize: '1.5rem', marginBottom: '4px' }} />
-                      <p style={{ fontSize: '0.8rem', color: '#64748b' }}>Select store logo image (Max 2MB)</p>
+                      <p style={{ fontSize: '0.8rem', color: '#64748b' }}>JPG, JPEG, PNG, WEBP · Max 2 MB</p>
                     </label>
                   </div>
                 </div>
@@ -1682,7 +1690,7 @@ export const AdminSiteSettings = () => {
                       <input type="file" accept={CMS_IMAGE_ACCEPT} id="footer-logo-file" onChange={handleFooterLogoUpload} style={{ display: 'none' }} />
                       <label htmlFor="footer-logo-file" style={{ cursor: 'pointer', margin: 0 }}>
                         <FaUpload className="upload-icon" style={{ fontSize: '1.5rem', marginBottom: '4px' }} />
-                        <p style={{ fontSize: '0.8rem', color: '#64748b' }}>Upload footer logo (Max 2MB)</p>
+                        <p style={{ fontSize: '0.8rem', color: '#64748b' }}>JPG, JPEG, PNG, WEBP · Max 2 MB</p>
                       </label>
                     </div>
                   </div>

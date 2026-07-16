@@ -2,6 +2,10 @@
 
 export const pad2 = (n) => String(n).padStart(2, '0');
 
+/**
+ * Server/application "today" as YYYY-MM-DD.
+ * Uses the process local timezone (not the browser).
+ */
 export const getServerTodayYmd = (now = new Date()) => {
   const y = now.getFullYear();
   const m = pad2(now.getMonth() + 1);
@@ -51,21 +55,25 @@ export const normalizeOfferEndDate = (value) => {
  * Schedule window from calendar days (server today).
  * - Scheduled: today < start
  * - Expired: today > end
- * - Active window: start <= today <= end
+ * - Active window: both dates present AND start <= today <= end
+ *
+ * Missing start/end dates are never treated as Active.
  */
 export const getOfferScheduleState = (offer, now = new Date()) => {
   const today = getServerTodayYmd(now);
   const startYmd = toOfferYmd(offer?.startDate);
   const endYmd = toOfferYmd(offer?.endDate);
+  const hasCompleteSchedule = Boolean(startYmd && endYmd);
 
   const isScheduled = Boolean(startYmd && compareYmd(today, startYmd) < 0);
   const isExpired = Boolean(endYmd && compareYmd(today, endYmd) > 0);
-  const isInWindow = !isScheduled && !isExpired;
+  const isInWindow = hasCompleteSchedule && !isScheduled && !isExpired;
 
   return {
     today,
     startYmd,
     endYmd,
+    hasCompleteSchedule,
     isScheduled,
     isExpired,
     isInWindow,
@@ -78,7 +86,8 @@ export const isManualOfferStatus = (status) =>
 
 /**
  * Resolve display / persisted schedule status.
- * Manual inactive/draft take priority; otherwise date window decides.
+ * Manual inactive/draft/deleted take priority; otherwise the date window decides.
+ * Stored "active" never overrides dates (requirement: dates always win).
  */
 export const resolveOfferLifecycleStatus = (offer, now = new Date()) => {
   const status = offer?.status || 'active';
@@ -86,44 +95,60 @@ export const resolveOfferLifecycleStatus = (offer, now = new Date()) => {
   if (status === 'draft') return 'draft';
   if (status === 'inactive') return 'inactive';
 
-  const { isScheduled, isExpired } = getOfferScheduleState(offer, now);
+  const { isScheduled, isExpired, isInWindow, hasCompleteSchedule } = getOfferScheduleState(
+    offer,
+    now
+  );
+
   if (isScheduled) return 'scheduled';
   if (isExpired) return 'expired';
+  if (isInWindow) return 'active';
+
+  // Incomplete schedule (missing start and/or end) cannot be Active on the storefront.
+  if (!hasCompleteSchedule) return 'expired';
+
   return 'active';
 };
 
+/** Public storefront visibility — only true Active offers in their date window. */
 export const isOfferPubliclyVisible = (offer, now = new Date()) =>
   resolveOfferLifecycleStatus(offer, now) === 'active';
 
-/** Mongo filter: publicly Active offers for the current server calendar day. */
+/**
+ * Mongo filter for publicly Active offers on the current server calendar day.
+ * Requires both startDate and endDate (null / missing dates are excluded).
+ *
+ * Equivalent to:
+ *   startDate <= CURRENT_DATE AND endDate >= CURRENT_DATE
+ * plus excluding manual inactive/draft/deleted (applied by callers).
+ */
 export const buildPublicOfferScheduleFilter = (now = new Date()) => {
   const todayYmd = getServerTodayYmd(now);
   const todayStart = normalizeOfferStartDate(todayYmd);
   const todayEnd = normalizeOfferEndDate(todayYmd);
 
   return {
-    $and: [
-      {
-        $or: [
-          { startDate: null },
-          { startDate: { $exists: false } },
-          { startDate: { $lte: todayEnd } },
-        ],
-      },
-      {
-        $or: [
-          { endDate: null },
-          { endDate: { $exists: false } },
-          { endDate: { $gte: todayStart } },
-        ],
-      },
-    ],
+    startDate: { $ne: null, $lte: todayEnd },
+    endDate: { $ne: null, $gte: todayStart },
   };
 };
 
+/** Statuses that must never appear on public storefront APIs (manual / soft-delete). */
+export const PUBLIC_OFFER_EXCLUDED_STATUSES = ['inactive', 'draft', 'deleted'];
+
+/**
+ * Base Mongo filter for public offer reads.
+ * Date window is the source of truth; status exclusion only drops manual hides.
+ * Callers should still post-filter with isOfferPubliclyVisible after sync.
+ */
+export const buildPublicOfferFilter = (now = new Date()) => ({
+  status: { $nin: PUBLIC_OFFER_EXCLUDED_STATUSES },
+  ...buildPublicOfferScheduleFilter(now),
+});
+
 export const mergeScheduleFilter = (filter, now = new Date()) => {
   const schedule = buildPublicOfferScheduleFilter(now);
-  filter.$and = [...(filter.$and || []), ...schedule.$and];
+  Object.assign(filter, schedule);
   return filter;
 };
 

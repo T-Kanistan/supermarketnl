@@ -5,7 +5,7 @@ import {
   markEnquiryReplied,
   removeJobEnquiry,
 } from '../controllers/jobEnquiryController.js';
-import { protect, restrictTo, adminOnly } from '../middlewares/authMiddleware.js';
+import { protect, restrictTo } from '../middlewares/authMiddleware.js';
 import { validateRequest } from '../middlewares/validationMiddleware.js';
 import { jobEnquiryIdRules, jobEnquiryListQueryRules } from '../validators/jobEnquiryValidator.js';
 
@@ -15,6 +15,6 @@ const auth = [protect, restrictTo('admin', 'manager')];
 router.get('/', ...auth, jobEnquiryListQueryRules, validateRequest, getJobEnquiries);
 router.get('/:id', ...auth, jobEnquiryIdRules, validateRequest, getJobEnquiry);
 router.patch('/:id/replied', ...auth, jobEnquiryIdRules, validateRequest, markEnquiryReplied);
-router.delete('/:id', protect, adminOnly, jobEnquiryIdRules, validateRequest, removeJobEnquiry);
+router.delete('/:id', ...auth, jobEnquiryIdRules, validateRequest, removeJobEnquiry);
 
 export default router;

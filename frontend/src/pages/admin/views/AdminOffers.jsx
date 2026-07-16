@@ -6,7 +6,6 @@ import offerService from '../../../services/offerService';
 import { getImageUrl } from '../../../services/api';
 import { validateOfferDates } from '../../../utils/offerDateValidation';
 import { useToast } from '../../../context/ToastContext';
-import { useAuth } from '../../../context/AuthContext';
 import { CMS_IMAGE_ACCEPT, rejectInvalidCmsImageFile } from '../../../utils/imageUploadValidation';
 import useAdminSearch from '../../../hooks/useAdminSearch';
 import { matchesAdminSearch, statusSearchLabel, ADMIN_NO_MATCH_MESSAGE } from '../../../utils/adminSearch';
@@ -112,7 +111,6 @@ const formatDateLabel = (value) => {
 };
 
 export const AdminOffers = () => {
-  const { isAdmin } = useAuth();
   const { addToast } = useToast();
 
   const [offers, setOffers] = useState([]);
@@ -122,6 +120,8 @@ export const AdminOffers = () => {
   const [editingOffer, setEditingOffer] = useState(null);
   const [formData, setFormData] = useState(emptyForm);
   const [fieldErrors, setFieldErrors] = useState(emptyOfferFieldErrors);
+  const [offerImageError, setOfferImageError] = useState('');
+  const [heroImageError, setHeroImageError] = useState('');
   const [offerDateTouched, setOfferDateTouched] = useState(false);
 
   const [previewOffer, setPreviewOffer] = useState(null);
@@ -190,6 +190,7 @@ export const AdminOffers = () => {
     setEditingOffer(null);
     setOfferDateTouched(false);
     setFieldErrors(emptyOfferFieldErrors());
+    setOfferImageError('');
   };
 
   const offerDateValidation = useMemo(
@@ -200,13 +201,10 @@ export const AdminOffers = () => {
   const showOfferDateErrors = offerDateTouched || Boolean(formData.startDate || formData.endDate);
 
   const openAddModal = () => {
-    if (!isAdmin) {
-      addToast('Only administrators can add offers', 'error');
-      return;
-    }
     setEditingOffer(null);
     setOfferDateTouched(false);
     setFieldErrors(emptyOfferFieldErrors());
+    setOfferImageError('');
     setFormData({ ...emptyForm, sortOrder: offers.length });
     setIsModalOpen(true);
   };
@@ -215,6 +213,7 @@ export const AdminOffers = () => {
     setEditingOffer(offer);
     setOfferDateTouched(false);
     setFieldErrors(emptyOfferFieldErrors());
+    setOfferImageError('');
     setFormData({
       title: offer.title || '',
       subtitle: offer.subtitle || '',
@@ -274,8 +273,20 @@ export const AdminOffers = () => {
   const handleImageUpload = async (field) => async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (rejectInvalidCmsImageFile(file, (msg) => addToast(msg, 'error'), e.target)) return;
+    if (
+      rejectInvalidCmsImageFile(
+        file,
+        (msg) => {
+          setOfferImageError(msg);
+          addToast(msg, 'error');
+        },
+        e.target
+      )
+    ) {
+      return;
+    }
 
+    setOfferImageError('');
     const previewUrl = URL.createObjectURL(file);
     setFormData((prev) => ({ ...prev, [field]: previewUrl }));
     try {
@@ -284,17 +295,15 @@ export const AdminOffers = () => {
       addToast('Image uploaded successfully', 'success');
     } catch (err) {
       console.error('Image upload failed', err);
-      addToast(err.response?.data?.message || err.message || 'Failed to upload image', 'error');
+      const message = err.response?.data?.message || err.message || 'Failed to upload image';
+      setOfferImageError(message);
+      addToast(message, 'error');
       setFormData((prev) => ({ ...prev, [field]: '' }));
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!editingOffer && !isAdmin) {
-      addToast('Only administrators can add offers', 'error');
-      return;
-    }
     if (!validateOfferForm()) return;
 
     setOfferDateTouched(true);
@@ -328,10 +337,6 @@ export const AdminOffers = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!isAdmin) {
-      addToast('Only administrators can delete offers', 'error');
-      return;
-    }
     if (!window.confirm('Delete this offer permanently?')) return;
     try {
       await offerService.deleteOffer(id);
@@ -414,8 +419,20 @@ export const AdminOffers = () => {
   const handleBannerImageUpload = (field) => async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (rejectInvalidCmsImageFile(file, (msg) => addToast(msg, 'error'), e.target)) return;
+    if (
+      rejectInvalidCmsImageFile(
+        file,
+        (msg) => {
+          setHeroImageError(msg);
+          addToast(msg, 'error');
+        },
+        e.target
+      )
+    ) {
+      return;
+    }
 
+    setHeroImageError('');
     const previewUrl = URL.createObjectURL(file);
     setBannerData((prev) => ({ ...prev, [field]: previewUrl }));
     try {
@@ -424,7 +441,9 @@ export const AdminOffers = () => {
       addToast('Banner image uploaded', 'success');
     } catch (err) {
       console.error('Banner image upload failed', err);
-      addToast(err.message || 'Failed to upload banner image', 'error');
+      const message = err.response?.data?.message || err.message || 'Failed to upload banner image';
+      setHeroImageError(message);
+      addToast(message, 'error');
       setBannerData((prev) => ({ ...prev, [field]: '' }));
     }
   };
@@ -497,15 +516,13 @@ export const AdminOffers = () => {
           <h2>Offers Management</h2>
           <p>Create, schedule, and manage promotional offers, featured deals, and the offers page banners.</p>
         </div>
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+        <div className="view-header-actions">
           <button className="action-btn-secondary" onClick={openBannerModal}>
             <FaImage /> Manage Hero Banner
           </button>
-          {isAdmin && (
-            <button className="action-btn-primary" onClick={openAddModal}>
-              <FaPlus /> Add Offer
-            </button>
-          )}
+          <button className="action-btn-primary" onClick={openAddModal}>
+            <FaPlus /> Add Offer
+          </button>
         </div>
       </div>
 
@@ -675,11 +692,9 @@ export const AdminOffers = () => {
                       <button className="btn-action-cell edit" onClick={() => openEditModal(offer)} title="Edit Offer">
                         <FaEdit />
                       </button>
-                      {isAdmin && (
-                        <button className="btn-action-cell delete" onClick={() => handleDelete(offer.id)} title="Delete Offer">
-                          <FaTrash />
-                        </button>
-                      )}
+                      <button className="btn-action-cell delete" onClick={() => handleDelete(offer.id)} title="Delete Offer">
+                        <FaTrash />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -846,13 +861,17 @@ export const AdminOffers = () => {
                   <AdminFieldLabel htmlFor="offer-image" required>Offer Image</AdminFieldLabel>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '12px', alignItems: 'center' }}>
                     <input id="offer-image" type="text" name="image" value={formData.image} onChange={handleChange} placeholder="/uploads/offers/..." required />
-                    <div className="image-upload-zone" style={{ padding: '8px' }}>
+                    <div className={`image-upload-zone${offerImageError ? ' admin-input-invalid' : ''}`} style={{ padding: '8px' }}>
                       <input type="file" accept={CMS_IMAGE_ACCEPT} id="offer-img" onChange={handleImageUpload('image')} style={{ display: 'none' }} />
                       <label htmlFor="offer-img" style={{ cursor: 'pointer', margin: 0 }}>
                         <p style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--admin-sidebar-active)' }}>Browse</p>
                       </label>
                     </div>
                   </div>
+                  <p style={{ margin: '6px 0 0', fontSize: '0.75rem', color: '#64748b' }}>
+                    JPG, JPEG, PNG, WEBP · Max 5 MB
+                  </p>
+                  {offerImageError ? <p className="admin-field-error" role="alert">{offerImageError}</p> : null}
                   {formData.image && (
                     <div className="upload-preview-container">
                       <img
@@ -907,13 +926,17 @@ export const AdminOffers = () => {
                   <AdminFieldLabel htmlFor="offer-hero-image" optional>Hero Background Image</AdminFieldLabel>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '12px', alignItems: 'center' }}>
                     <input id="offer-hero-image" type="text" name="heroImage" value={bannerData.heroImage} onChange={handleBannerChange} placeholder="/uploads/offers/..." />
-                    <div className="image-upload-zone" style={{ padding: '8px' }}>
+                    <div className={`image-upload-zone${heroImageError ? ' admin-input-invalid' : ''}`} style={{ padding: '8px' }}>
                       <input type="file" accept={CMS_IMAGE_ACCEPT} id="hero-img" onChange={handleBannerImageUpload('heroImage')} style={{ display: 'none' }} />
                       <label htmlFor="hero-img" style={{ cursor: 'pointer', margin: 0 }}>
                         <p style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--admin-sidebar-active)' }}>Browse</p>
                       </label>
                     </div>
                   </div>
+                  <p style={{ margin: '6px 0 0', fontSize: '0.75rem', color: '#64748b' }}>
+                    JPG, JPEG, PNG, WEBP · Max 5 MB
+                  </p>
+                  {heroImageError ? <p className="admin-field-error" role="alert">{heroImageError}</p> : null}
                   {bannerData.heroImage && (
                     <div className="upload-preview-container">
                       <img

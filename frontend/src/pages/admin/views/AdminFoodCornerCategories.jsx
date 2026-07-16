@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { FaPlus, FaEdit, FaTrash, FaUtensils, FaSearch } from 'react-icons/fa';
 import foodCornerCategoryService from '../../../services/foodCornerCategoryService';
 import { useToast } from '../../../context/ToastContext';
-import { useAuth } from '../../../context/AuthContext';
 import { formatCategoryName } from '../../../utils/formatCategoryName';
 import useAdminSearch from '../../../hooks/useAdminSearch';
 import { ADMIN_NO_MATCH_MESSAGE } from '../../../utils/adminSearch';
@@ -10,16 +9,15 @@ import FoodCornerCategoryIcon from '../../../components/FoodCornerCategoryIcon';
 import AdminFieldLabel from '../../../components/admin/AdminFieldLabel';
 import {
   FOOD_CORNER_CATEGORY_ICON_ACCEPT,
+  FOOD_CORNER_CATEGORY_NAME_MAX,
+  FOOD_CORNER_CATEGORY_SLUG_MAX,
+  slugifyFoodCornerCategory,
   validateFoodCornerCategoryIcon,
   validateFoodCornerCategoryIconFile,
+  validateFoodCornerCategoryName,
+  validateFoodCornerCategorySlug,
 } from '../../../utils/foodCornerCategoryIconValidation';
-
-const slugify = (value) =>
-  String(value || '')
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+import { formatCharCounter } from '../../../utils/adminTextValidation';
 
 const CategoryIconPreview = ({ category }) => (
   <span className="fc-admin-icon-preview" aria-hidden="true">
@@ -43,7 +41,6 @@ export const AdminFoodCornerCategories = () => {
   const { searchInput, searchQuery, onSearchChange, hasActiveSearch } = useAdminSearch();
 
   const { addToast } = useToast();
-  const { isAdmin } = useAuth();
 
   const [formData, setFormData] = useState({
     categoryName: '',
@@ -148,13 +145,30 @@ export const AdminFoodCornerCategories = () => {
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
 
-    if (name === 'categoryName' && !editingCategory) {
+    if (name === 'categoryName') {
+      const nextName = String(value || '').slice(0, FOOD_CORNER_CATEGORY_NAME_MAX);
       setFormData((prev) => ({
         ...prev,
-        categoryName: value,
-        slug: slugify(value),
+        categoryName: nextName,
+        ...(editingCategory
+          ? {}
+          : { slug: slugifyFoodCornerCategory(nextName) }),
       }));
-      setFieldErrors((prev) => ({ ...prev, categoryName: '', slug: '' }));
+      setFieldErrors((prev) => ({
+        ...prev,
+        categoryName: '',
+        ...(editingCategory ? {} : { slug: '' }),
+      }));
+      return;
+    }
+
+    if (name === 'slug') {
+      const nextSlug = String(value || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9-]/g, '')
+        .slice(0, FOOD_CORNER_CATEGORY_SLUG_MAX);
+      setFormData((prev) => ({ ...prev, slug: nextSlug }));
+      setFieldErrors((prev) => ({ ...prev, slug: '' }));
       return;
     }
 
@@ -164,9 +178,6 @@ export const AdminFoodCornerCategories = () => {
     }
 
     setFormData((prev) => ({ ...prev, [name]: value }));
-    if (name === 'categoryName' || name === 'slug') {
-      setFieldErrors((prev) => ({ ...prev, [name]: '' }));
-    }
   };
 
   const handleIconUpload = async (e) => {
@@ -199,13 +210,11 @@ export const AdminFoodCornerCategories = () => {
   const validateForm = () => {
     const errors = {};
 
-    if (!formData.categoryName.trim()) {
-      errors.categoryName = 'Please enter a category name.';
-    }
+    const nameError = validateFoodCornerCategoryName(formData.categoryName);
+    if (nameError) errors.categoryName = nameError;
 
-    if (!formData.slug.trim()) {
-      errors.slug = 'Please enter a category slug.';
-    }
+    const slugError = validateFoodCornerCategorySlug(formData.slug);
+    if (slugError) errors.slug = slugError;
 
     const iconError = validateFoodCornerCategoryIcon(formData.icon, {
       isEdit: Boolean(editingCategory),
@@ -235,10 +244,6 @@ export const AdminFoodCornerCategories = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!isAdmin) {
-      addToast('Only administrators can permanently delete categories', 'error');
-      return;
-    }
     if (!window.confirm('Delete this Food Corner category?')) return;
     try {
       await foodCornerCategoryService.deleteCategory(id);
@@ -262,7 +267,7 @@ export const AdminFoodCornerCategories = () => {
 
     const payload = {
       categoryName: formData.categoryName.trim(),
-      slug: slugify(formData.slug || formData.categoryName),
+      slug: slugifyFoodCornerCategory(formData.slug || formData.categoryName),
       icon: formData.icon,
       description: formData.description.trim(),
       status: Boolean(formData.status),
@@ -363,16 +368,14 @@ export const AdminFoodCornerCategories = () => {
                       >
                         <FaEdit />
                       </button>
-                      {isAdmin && (
-                        <button
-                          type="button"
-                          className="btn-action-cell delete"
-                          onClick={() => handleDelete(cat.id || cat.slug)}
-                          title="Delete Category"
-                        >
-                          <FaTrash />
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        className="btn-action-cell delete"
+                        onClick={() => handleDelete(cat.id || cat.slug)}
+                        title="Delete Category"
+                      >
+                        <FaTrash />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -444,9 +447,13 @@ export const AdminFoodCornerCategories = () => {
                     value={formData.categoryName}
                     onChange={handleChange}
                     placeholder="e.g. Main Meals"
+                    maxLength={FOOD_CORNER_CATEGORY_NAME_MAX}
                     className={fieldErrors.categoryName ? 'admin-input-invalid' : ''}
                     aria-invalid={fieldErrors.categoryName ? 'true' : undefined}
                   />
+                  <span className="admin-char-counter">
+                    {formatCharCounter(formData.categoryName, FOOD_CORNER_CATEGORY_NAME_MAX)}
+                  </span>
                   {fieldErrors.categoryName ? (
                     <p className="admin-field-error" role="alert">{fieldErrors.categoryName}</p>
                   ) : null}
@@ -463,9 +470,13 @@ export const AdminFoodCornerCategories = () => {
                     value={formData.slug}
                     onChange={handleChange}
                     placeholder="e.g. main-meals"
+                    maxLength={FOOD_CORNER_CATEGORY_SLUG_MAX}
                     className={fieldErrors.slug ? 'admin-input-invalid' : ''}
                     aria-invalid={fieldErrors.slug ? 'true' : undefined}
                   />
+                  <span className="admin-char-counter">
+                    {formatCharCounter(formData.slug, FOOD_CORNER_CATEGORY_SLUG_MAX)}
+                  </span>
                   {fieldErrors.slug ? (
                     <p className="admin-field-error" role="alert">{fieldErrors.slug}</p>
                   ) : null}
@@ -514,7 +525,7 @@ export const AdminFoodCornerCategories = () => {
                         Browse Files
                       </p>
                       <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '4px 0 0' }}>
-                        SVG, ICO, PNG (Transparent Icon Only)
+                        SVG, ICO, PNG, WEBP
                       </p>
                       <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '2px 0 0' }}>
                         Max Size: 512 KB

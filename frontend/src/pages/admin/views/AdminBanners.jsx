@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { FaPlus, FaEdit, FaTrash, FaEye, FaSearch, FaImage } from 'react-icons/fa';
 import bannerService from '../../../services/bannerService';
 import { useToast } from '../../../context/ToastContext';
-import { useAuth } from '../../../context/AuthContext';
 import { getImageUrl } from '../../../services/api';
 import { BANNER_PAGE_OPTIONS, getPageBannerLabel } from '../../../constants/pageBannerDefaults';
 import { getBannerOverlayStyle } from '../../../utils/bannerOverlay';
@@ -40,7 +39,7 @@ const shouldShowEmptyAddButton = ({ hasActiveSearch, statusFilter, pageFilter })
 const BANNER_TEXT_FIELDS = ['badgeText', 'title', 'highlightedTitle', 'description'];
 
 const emptyFieldErrors = () =>
-  Object.fromEntries(BANNER_TEXT_FIELDS.map((field) => [field, '']));
+  Object.fromEntries([...BANNER_TEXT_FIELDS, 'backgroundImage'].map((field) => [field, '']));
 
 const validateBannerField = (name, value) => {
   const { bannerBadge, bannerTitle, bannerHighlightedTitle, bannerDescription } = ADMIN_TEXT_LIMITS;
@@ -117,7 +116,6 @@ export const AdminBanners = () => {
   const { searchInput, searchQuery, onSearchChange, applySearchNow, hasActiveSearch } = useAdminSearch();
 
   const { addToast } = useToast();
-  const { isAdmin } = useAuth();
 
   const fetchBanners = useCallback(async () => {
     setLoading(true);
@@ -220,16 +218,23 @@ export const AdminBanners = () => {
   const handleImageUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (rejectInvalidCmsImageFile(file, (msg) => addToast(msg, 'error'), e.target)) return;
-
-    if (file.size > 5 * 1024 * 1024) {
-      addToast('Banner image must be 5MB or smaller', 'error');
+    if (
+      rejectInvalidCmsImageFile(
+        file,
+        (msg) => {
+          setFieldErrors((prev) => ({ ...prev, backgroundImage: msg }));
+          addToast(msg, 'error');
+        },
+        e.target
+      )
+    ) {
       return;
     }
 
     const previewUrl = URL.createObjectURL(file);
     setImageFile(file);
     setFormData((prev) => ({ ...prev, backgroundImage: previewUrl }));
+    setFieldErrors((prev) => ({ ...prev, backgroundImage: '' }));
     setIsUploading(true);
 
     try {
@@ -238,7 +243,9 @@ export const AdminBanners = () => {
       addToast('Banner image uploaded successfully', 'success');
     } catch (err) {
       console.error('Banner upload failed', err);
-      addToast(err.response?.data?.message || 'Failed to upload banner image', 'error');
+      const message = err.response?.data?.message || 'Failed to upload banner image';
+      setFieldErrors((prev) => ({ ...prev, backgroundImage: message }));
+      addToast(message, 'error');
     } finally {
       setIsUploading(false);
     }
@@ -303,7 +310,6 @@ export const AdminBanners = () => {
   };
 
   const handleDelete = async (banner) => {
-    if (!isAdmin) return;
     const bannerId = getBannerId(banner);
     if (!bannerId) {
       addToast('Unable to delete banner: missing ID', 'error');
@@ -559,16 +565,14 @@ export const AdminBanners = () => {
                       >
                         <FaEdit />
                       </button>
-                      {isAdmin ? (
-                        <button
-                          type="button"
-                          className="btn-action-cell delete"
-                          title="Delete"
-                          onClick={() => handleDelete(banner)}
-                        >
-                          <FaTrash />
-                        </button>
-                      ) : null}
+                      <button
+                        type="button"
+                        className="btn-action-cell delete"
+                        title="Delete"
+                        onClick={() => handleDelete(banner)}
+                      >
+                        <FaTrash />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -641,7 +645,7 @@ export const AdminBanners = () => {
 
                   <div className="admin-form-group">
                     <AdminFieldLabel htmlFor="banner-image-file" required>Banner Image Upload</AdminFieldLabel>
-                    <div className="image-upload-zone" style={{ padding: '8px' }}>
+                    <div className={`image-upload-zone${fieldErrors.backgroundImage ? ' admin-input-invalid' : ''}`} style={{ padding: '8px' }}>
                       <input
                         type="file"
                         accept={CMS_IMAGE_ACCEPT}
@@ -652,10 +656,13 @@ export const AdminBanners = () => {
                       <label htmlFor="banner-image-file" style={{ cursor: 'pointer', margin: 0 }}>
                         <p style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--admin-sidebar-active)' }}>
                           <FaImage style={{ marginRight: '6px' }} />
-                          {isUploading ? 'Uploading...' : 'Browse JPG, PNG, WEBP (max 5MB)'}
+                          {isUploading ? 'Uploading...' : 'Browse JPG, JPEG, PNG, WEBP (max 5 MB)'}
                         </p>
                       </label>
                     </div>
+                    {fieldErrors.backgroundImage ? (
+                      <p className="admin-field-error" role="alert">{fieldErrors.backgroundImage}</p>
+                    ) : null}
                   </div>
 
                   <AdminValidatedField

@@ -7,6 +7,8 @@ const foodCornerCategorySchema = new mongoose.Schema(
       required: [true, 'Category name is required'],
       unique: true,
       trim: true,
+      minlength: [2, 'Category Name must be at least 2 characters.'],
+      maxlength: [30, 'Category Name cannot exceed 30 characters.'],
     },
     slug: {
       type: String,
@@ -14,6 +16,11 @@ const foodCornerCategorySchema = new mongoose.Schema(
       unique: true,
       trim: true,
       lowercase: true,
+      maxlength: [30, 'Slug cannot exceed 30 characters.'],
+      match: [
+        /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+        'Slug can contain only lowercase letters, numbers and hyphens.',
+      ],
     },
     icon: {
       type: String,
@@ -42,6 +49,7 @@ const foodCornerCategorySchema = new mongoose.Schema(
 );
 
 foodCornerCategorySchema.index({ status: 1, displayOrder: 1 });
+foodCornerCategorySchema.index({ createdAt: -1 });
 
 const FoodCornerCategory = mongoose.model('FoodCornerCategory', foodCornerCategorySchema);
 

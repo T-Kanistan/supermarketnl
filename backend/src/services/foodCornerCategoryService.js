@@ -4,18 +4,25 @@ import Product from '../models/Product.js';
 import { buildMultiFieldSearchFilter } from '../utils/adminSearchQuery.js';
 import { persistFoodCornerCategoryIconUpload } from './uploadService.js';
 import {
+  assertFoodCornerCategoryName,
+  assertFoodCornerCategorySlug,
+  FOOD_CORNER_CATEGORY_SLUG_MAX,
   isFoodCornerCategoryIconUrl,
   resolveFoodCornerCategoryIcon,
 } from '../utils/foodCornerCategoryIconValidation.js';
 
 const uploadCategoryIcon = async (value) => persistFoodCornerCategoryIconUpload(value);
 
+/** Newest categories first everywhere (admin list, public menu, dropdowns). */
+const CATEGORY_SORT = { createdAt: -1, _id: -1 };
+
 export const slugify = (value) =>
   String(value || '')
     .toLowerCase()
     .trim()
     .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+    .replace(/^-+|-+$/g, '')
+    .slice(0, FOOD_CORNER_CATEGORY_SLUG_MAX);
 
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -104,7 +111,7 @@ export const listCategories = async (query = {}) => {
 
   const [categories, total] = await Promise.all([
     FoodCornerCategory.find(filter)
-      .sort({ createdAt: -1 })
+      .sort(CATEGORY_SORT)
       .skip(skip)
       .limit(limit),
     FoodCornerCategory.countDocuments(filter),
@@ -123,8 +130,8 @@ export const listCategories = async (query = {}) => {
 
 export const getPublicCategories = async () => {
   const categories = await FoodCornerCategory.find({ status: true })
-    .sort({ displayOrder: 1, categoryName: 1 })
-    .select('categoryName slug icon');
+    .sort(CATEGORY_SORT)
+    .select('categoryName slug icon createdAt');
 
   return categories.map(mapPublicCategory);
 };
@@ -173,14 +180,8 @@ export const resolveCategoryReference = async (reference) => {
 };
 
 export const createCategory = async (payload) => {
-  const categoryName = String(payload.categoryName || payload.name || '').trim();
-  const slug = slugify(payload.slug || categoryName);
-
-  if (!categoryName) {
-    const error = new Error('Category name is required');
-    error.statusCode = 400;
-    throw error;
-  }
+  const categoryName = assertFoodCornerCategoryName(payload.categoryName || payload.name || '');
+  const slug = assertFoodCornerCategorySlug(payload.slug || slugify(categoryName));
 
   const existingName = await FoodCornerCategory.findOne({
     categoryName: { $regex: new RegExp(`^${escapeRegex(categoryName)}$`, 'i') },
@@ -223,7 +224,7 @@ export const updateCategory = async (id, payload) => {
   const previousName = category.categoryName;
 
   if (payload.categoryName !== undefined || payload.name !== undefined) {
-    const categoryName = String(payload.categoryName || payload.name).trim();
+    const categoryName = assertFoodCornerCategoryName(payload.categoryName || payload.name);
     const existingName = await FoodCornerCategory.findOne({
       _id: { $ne: category._id },
       categoryName: { $regex: new RegExp(`^${escapeRegex(categoryName)}$`, 'i') },
@@ -237,7 +238,7 @@ export const updateCategory = async (id, payload) => {
   }
 
   if (payload.slug !== undefined) {
-    const slug = slugify(payload.slug);
+    const slug = assertFoodCornerCategorySlug(payload.slug);
     const existingSlug = await FoodCornerCategory.findOne({
       _id: { $ne: category._id },
       slug,
@@ -249,7 +250,7 @@ export const updateCategory = async (id, payload) => {
     }
     category.slug = slug;
   } else if (payload.categoryName !== undefined || payload.name !== undefined) {
-    const slug = slugify(category.categoryName);
+    const slug = assertFoodCornerCategorySlug(slugify(category.categoryName));
     const existingSlug = await FoodCornerCategory.findOne({
       _id: { $ne: category._id },
       slug,
@@ -347,10 +348,7 @@ export const deleteCategory = async (id) => {
 };
 
 export const getActiveCategories = async () => {
-  return FoodCornerCategory.find({ status: true }).sort({
-    displayOrder: 1,
-    categoryName: 1,
-  });
+  return FoodCornerCategory.find({ status: true }).sort(CATEGORY_SORT);
 };
 
 export const buildCategoryLookupMap = (categories) => {

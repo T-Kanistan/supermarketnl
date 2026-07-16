@@ -3,7 +3,6 @@ import { FaTrash, FaBriefcase, FaDownload } from 'react-icons/fa';
 import jobApplicationService from '../../../services/jobApplicationService';
 import { getImageUrl } from '../../../services/api';
 import { useToast } from '../../../context/ToastContext';
-import { useAuth } from '../../../context/AuthContext';
 import useAdminSearch from '../../../hooks/useAdminSearch';
 import { ADMIN_NO_MATCH_MESSAGE } from '../../../utils/adminSearch';
 
@@ -28,7 +27,6 @@ export const AdminJobApplications = () => {
   const [selected, setSelected] = useState(null);
 
   const { addToast } = useToast();
-  const { isAdmin } = useAuth();
 
   const fetchApplications = useCallback(async () => {
     setLoading(true);
@@ -72,7 +70,6 @@ export const AdminJobApplications = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!isAdmin) return;
     if (!window.confirm('Delete this job application?')) return;
     try {
       await jobApplicationService.deleteApplication(id);
@@ -86,20 +83,20 @@ export const AdminJobApplications = () => {
   };
 
   return (
-    <div className="dashboard-panel" style={{ padding: 0 }}>
-      <div className="dashboard-panel-header" style={{ padding: '24px' }}>
-        <div>
-          <h2 style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <FaBriefcase /> Job Applications
+    <div className="dashboard-panel job-applications-panel" style={{ padding: 0 }}>
+      <div className="view-header dashboard-panel-header" style={{ padding: '24px', marginBottom: 0 }}>
+        <div className="view-title-wrap">
+          <h2 className="view-title-with-icon">
+            <FaBriefcase aria-hidden="true" /> Job Applications
           </h2>
-          <p style={{ color: '#64748b', marginTop: 6 }}>
+          <p>
             Manage vacancy applications submitted from the careers page.
             {pendingCount > 0 ? ` ${pendingCount} new application${pendingCount === 1 ? '' : 's'}.` : ''}
           </p>
         </div>
       </div>
 
-      <div style={{ padding: '0 24px 16px', display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+      <div className="view-toolbar job-applications-toolbar">
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
@@ -109,14 +106,15 @@ export const AdminJobApplications = () => {
             <option key={option.value} value={option.value}>{option.label}</option>
           ))}
         </select>
-        <input
-          type="search"
-          placeholder="Search applicant, job, email..."
-          value={searchInput}
-          onChange={onSearchChange}
-          className="admin-search-input"
-          style={{ minWidth: 260 }}
-        />
+        <div className="view-toolbar-search">
+          <input
+            type="search"
+            placeholder="Search applicant, job, email..."
+            value={searchInput}
+            onChange={onSearchChange}
+            className="admin-search-input"
+          />
+        </div>
       </div>
 
       {loading ? (
@@ -176,7 +174,7 @@ export const AdminJobApplications = () => {
                     )}
                   </td>
                   <td data-label="Actions">
-                    <div style={{ display: 'flex', gap: 8 }}>
+                    <div className="cell-actions">
                       <button
                         type="button"
                         className="btn-action-cell view"
@@ -185,16 +183,14 @@ export const AdminJobApplications = () => {
                       >
                         View
                       </button>
-                      {isAdmin && (
-                        <button
-                          type="button"
-                          className="btn-action-cell delete"
-                          onClick={() => handleDelete(app.id)}
-                          title="Delete application"
-                        >
-                          <FaTrash />
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        className="btn-action-cell delete"
+                        onClick={() => handleDelete(app.id)}
+                        title="Delete application"
+                      >
+                        <FaTrash />
+                      </button>
                     </div>
                   </td>
                 </tr>

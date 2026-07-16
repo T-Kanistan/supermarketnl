@@ -258,21 +258,19 @@ export const AdminManagers = () => {
                       </div>
                     )}
                   </td>
-                  <td data-label="Manager Name" style={{ fontWeight: 600 }}>{mgr.fullName}</td>
-                  <td data-label="Email">{mgr.email || '—'}</td>
+                  <td data-label="Manager Name">
+                    <span className="admin-table-ellipsis" style={{ fontWeight: 600 }} title={mgr.fullName || ''}>
+                      {mgr.fullName}
+                    </span>
+                  </td>
+                  <td data-label="Email">
+                    <span className="admin-table-ellipsis" title={mgr.email || ''}>
+                      {mgr.email || '—'}
+                    </span>
+                  </td>
                   <td data-label="Phone Number">{mgr.phoneNumber || '—'}</td>
                   <td data-label="Status">
-                    <span
-                      style={{
-                        fontSize: '0.8rem',
-                        background: mgr.status ? '#dcfce7' : '#fee2e2',
-                        color: mgr.status ? '#166534' : '#991b1b',
-                        padding: '4px 10px',
-                        borderRadius: '12px',
-                        fontWeight: 600,
-                        textTransform: 'capitalize',
-                      }}
-                    >
+                    <span className={`status-badge-admin ${mgr.status ? 'active' : 'inactive'}`}>
                       {mgr.status ? 'Active' : 'Inactive'}
                     </span>
                   </td>

@@ -2,9 +2,10 @@ export const ABOUT_IMAGE_ACCEPT =
   '.jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp';
 
 export const ABOUT_IMAGE_TYPE_ERROR =
-  'Only JPG, JPEG, PNG, and WEBP images are allowed.';
+  'Unsupported file format. Please upload JPG, JPEG, PNG, or WEBP image files only.';
 
-export const ABOUT_IMAGE_SIZE_ERROR = 'Image size must not exceed 2 MB.';
+export const ABOUT_IMAGE_SIZE_ERROR =
+  'File size exceeds the maximum limit of 2 MB. Please upload a smaller image.';
 
 export const ABOUT_MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 

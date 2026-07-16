@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { FaPlus, FaEdit, FaTrash, FaBullhorn, FaEye, FaSearch } from 'react-icons/fa';
 import announcementService from '../../../services/announcementService';
 import { useToast } from '../../../context/ToastContext';
-import { useAuth } from '../../../context/AuthContext';
 import { getImageUrl } from '../../../services/api';
 import { CMS_IMAGE_ACCEPT, rejectInvalidCmsImageFile } from '../../../utils/imageUploadValidation';
 import useAdminSearch from '../../../hooks/useAdminSearch';
@@ -53,13 +52,13 @@ export const AdminAnnouncements = () => {
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [imageError, setImageError] = useState('');
   const [editingAnn, setEditingAnn] = useState(null);
   const [viewingAnn, setViewingAnn] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all');
   const { searchInput, searchQuery, onSearchChange, applySearchNow, hasActiveSearch } = useAdminSearch();
 
   const { addToast } = useToast();
-  const { isAdmin } = useAuth();
   const [formData, setFormData] = useState(emptyForm());
 
   const fetchAnnouncements = useCallback(async () => {
@@ -85,6 +84,7 @@ export const AdminAnnouncements = () => {
   const openAddModal = () => {
     setEditingAnn(null);
     setFormData(emptyForm());
+    setImageError('');
     setIsModalOpen(true);
   };
 
@@ -106,6 +106,7 @@ export const AdminAnnouncements = () => {
       endDate: announcement.endDate || '',
       status: storedStatus === 'scheduled' ? 'draft' : storedStatus || 'draft',
     });
+    setImageError('');
     setIsModalOpen(true);
   };
 
@@ -125,15 +126,22 @@ export const AdminAnnouncements = () => {
   const handleImageUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (rejectInvalidCmsImageFile(file, (msg) => addToast(msg, 'error'), e.target)) return;
-
-    if (file.size > 5 * 1024 * 1024) {
-      addToast('Banner image must be 5MB or smaller', 'error');
+    if (
+      rejectInvalidCmsImageFile(
+        file,
+        (msg) => {
+          setImageError(msg);
+          addToast(msg, 'error');
+        },
+        e.target
+      )
+    ) {
       return;
     }
 
     const previewUrl = URL.createObjectURL(file);
     setFormData((prev) => ({ ...prev, bannerImage: previewUrl }));
+    setImageError('');
     setIsUploading(true);
 
     try {
@@ -142,7 +150,9 @@ export const AdminAnnouncements = () => {
       addToast('Banner uploaded successfully', 'success');
     } catch (err) {
       console.error('Banner upload failed', err);
-      addToast(err.response?.data?.message || 'Failed to upload banner', 'error');
+      const message = err.response?.data?.message || 'Failed to upload banner';
+      setImageError(message);
+      addToast(message, 'error');
     } finally {
       setIsUploading(false);
     }
@@ -189,10 +199,6 @@ export const AdminAnnouncements = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!isAdmin) {
-      addToast('Only administrators can delete announcements', 'error');
-      return;
-    }
     if (!window.confirm('Delete this announcement / campaign?')) return;
     try {
       await announcementService.deleteAnnouncement(id);
@@ -242,20 +248,19 @@ export const AdminAnnouncements = () => {
         </button>
       </div>
 
-      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '16px', alignItems: 'center' }}>
-        <form onSubmit={applySearchNow} style={{ display: 'flex', gap: '8px', flex: 1, minWidth: '260px', maxWidth: '420px' }}>
+      <div className="view-toolbar">
+        <form onSubmit={applySearchNow} className="view-toolbar-search">
           <input
             type="text"
             value={searchInput}
             onChange={onSearchChange}
             placeholder="Search by title or description..."
-            style={{ flex: 1 }}
           />
           <button type="submit" className="action-btn-secondary">
             <FaSearch /> Search
           </button>
         </form>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <div className="view-toolbar-filters">
           {FILTER_OPTIONS.map((option) => (
             <button
               key={option.value}
@@ -338,15 +343,13 @@ export const AdminAnnouncements = () => {
                         >
                           <FaEdit />
                         </button>
-                        {isAdmin && (
-                          <button
-                            className="btn-action-cell delete"
-                            onClick={() => handleDelete(announcement.id)}
-                            title="Delete Announcement"
-                          >
-                            <FaTrash />
-                          </button>
-                        )}
+                        <button
+                          className="btn-action-cell delete"
+                          onClick={() => handleDelete(announcement.id)}
+                          title="Delete Announcement"
+                        >
+                          <FaTrash />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -388,6 +391,10 @@ export const AdminAnnouncements = () => {
                     maxLength={150}
                     required
                   />
+                  <div className="admin-field-meta">
+                    <span />
+                    <span className="admin-char-counter">{formData.title.length}/150</span>
+                  </div>
                 </div>
 
                 <div className="admin-form-group">
@@ -539,7 +546,7 @@ export const AdminAnnouncements = () => {
 
                 <div className="admin-form-group">
                   <AdminFieldLabel htmlFor="ann-file" optional>Banner Image</AdminFieldLabel>
-                  <div className="image-upload-zone" style={{ padding: '12px' }}>
+                  <div className={`image-upload-zone${imageError ? ' admin-input-invalid' : ''}`} style={{ padding: '12px' }}>
                     <input
                       type="file"
                       accept={CMS_IMAGE_ACCEPT}
@@ -549,10 +556,11 @@ export const AdminAnnouncements = () => {
                     />
                     <label htmlFor="ann-file" style={{ cursor: 'pointer', margin: 0 }}>
                       <p style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--admin-sidebar-active)' }}>
-                        {isUploading ? 'Uploading...' : 'Browse Files — jpg, jpeg, png, webp (max 5MB)'}
+                        {isUploading ? 'Uploading...' : 'Browse JPG, JPEG, PNG, WEBP (max 5 MB)'}
                       </p>
                     </label>
                   </div>
+                  {imageError ? <p className="admin-field-error" role="alert">{imageError}</p> : null}
                   {formData.bannerImage && (
                     <div className="upload-preview-container" style={{ marginTop: '12px' }}>
                       <img

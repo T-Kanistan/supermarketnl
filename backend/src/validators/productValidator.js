@@ -87,7 +87,9 @@ const imageUrlRule = (required = false) =>
       return true;
     }
     if (!isValidImageUrl(value)) {
-      throw new Error('Only JPG, JPEG, PNG, and WEBP images are allowed.');
+      throw new Error(
+        'Unsupported file format. Please upload JPG, JPEG, PNG, or WEBP image files only.'
+      );
     }
     return true;
   });

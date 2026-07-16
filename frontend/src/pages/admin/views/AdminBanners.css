@@ -233,9 +233,26 @@
   }
 
   .admin-banners-search input,
-  .admin-banners-search select {
+  .admin-banners-search select,
+  .admin-banners-page-select {
     width: 100%;
     min-height: 44px;
+  }
+
+  .admin-banners-filters {
+    width: 100%;
+  }
+
+  .admin-banners-filters .action-btn-primary,
+  .admin-banners-filters .action-btn-secondary {
+    flex: 1 1 calc(50% - 4px);
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  .admin-banner-thumb {
+    width: 96px;
+    height: 54px;
   }
 
   .admin-banner-status-cell,

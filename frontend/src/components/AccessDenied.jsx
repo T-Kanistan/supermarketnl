@@ -8,7 +8,7 @@ const isDashboardRole = (user) => {
   return role === 'admin' || role === 'manager';
 };
 
-export const AccessDenied = ({ message, title = 'Access Denied' }) => {
+export const AccessDenied = ({ message, title = '403 - Access Denied' }) => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 

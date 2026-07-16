@@ -9,7 +9,7 @@ import {
   searchTestimonials,
   getPublicTestimonials,
 } from '../controllers/testimonialController.js';
-import { protect, restrictTo, adminOnly } from '../middlewares/authMiddleware.js';
+import { protect, restrictTo } from '../middlewares/authMiddleware.js';
 import { validateRequest } from '../middlewares/validationMiddleware.js';
 import { testimonialAvatarUpload } from '../middlewares/testimonialUploadMiddleware.js';
 import {
@@ -47,6 +47,6 @@ router.put(
   updateTestimonial
 );
 
-router.delete('/:id', protect, adminOnly, testimonialIdRules, validateRequest, deleteTestimonial);
+router.delete('/:id', ...auth, testimonialIdRules, validateRequest, deleteTestimonial);
 
 export default router;

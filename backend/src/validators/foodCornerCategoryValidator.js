@@ -1,22 +1,42 @@
 import { body, param } from 'express-validator';
 import {
   assertFoodCornerCategoryIcon,
+  FOOD_CORNER_CATEGORY_NAME_MAX,
+  FOOD_CORNER_CATEGORY_NAME_MIN,
+  FOOD_CORNER_CATEGORY_NAME_MAX_ERROR,
+  FOOD_CORNER_CATEGORY_NAME_MIN_ERROR,
+  FOOD_CORNER_CATEGORY_SLUG_MAX,
+  FOOD_CORNER_CATEGORY_SLUG_PATTERN,
+  FOOD_CORNER_CATEGORY_SLUG_PATTERN_ERROR,
+  FOOD_CORNER_CATEGORY_SLUG_MAX_ERROR,
 } from '../utils/foodCornerCategoryIconValidation.js';
 
 const categoryNameRule = (optional = false) => {
-  const rule = body('categoryName').trim();
+  let rule = body('categoryName').trim();
   if (optional) {
-    return rule.optional().notEmpty().withMessage('Please enter a category name.');
+    rule = rule.optional();
   }
-  return rule.notEmpty().withMessage('Please enter a category name.');
+  return rule
+    .notEmpty()
+    .withMessage('Please enter a category name.')
+    .isLength({ min: FOOD_CORNER_CATEGORY_NAME_MIN })
+    .withMessage(FOOD_CORNER_CATEGORY_NAME_MIN_ERROR)
+    .isLength({ max: FOOD_CORNER_CATEGORY_NAME_MAX })
+    .withMessage(FOOD_CORNER_CATEGORY_NAME_MAX_ERROR);
 };
 
 const slugRule = (optional = false) => {
-  const rule = body('slug').trim();
+  let rule = body('slug').trim();
   if (optional) {
-    return rule.optional().notEmpty().withMessage('Please enter a category slug.');
+    rule = rule.optional();
   }
-  return rule.notEmpty().withMessage('Please enter a category slug.');
+  return rule
+    .notEmpty()
+    .withMessage('Please enter a category slug.')
+    .isLength({ max: FOOD_CORNER_CATEGORY_SLUG_MAX })
+    .withMessage(FOOD_CORNER_CATEGORY_SLUG_MAX_ERROR)
+    .matches(FOOD_CORNER_CATEGORY_SLUG_PATTERN)
+    .withMessage(FOOD_CORNER_CATEGORY_SLUG_PATTERN_ERROR);
 };
 
 const iconRule = (required = false) =>
@@ -35,7 +55,11 @@ export const createFoodCornerCategoryRules = [
     .optional()
     .trim()
     .notEmpty()
-    .withMessage('Please enter a category name.'),
+    .withMessage('Please enter a category name.')
+    .isLength({ min: FOOD_CORNER_CATEGORY_NAME_MIN })
+    .withMessage(FOOD_CORNER_CATEGORY_NAME_MIN_ERROR)
+    .isLength({ max: FOOD_CORNER_CATEGORY_NAME_MAX })
+    .withMessage(FOOD_CORNER_CATEGORY_NAME_MAX_ERROR),
   slugRule(),
   iconRule(true),
   body('description')
@@ -54,7 +78,11 @@ export const updateFoodCornerCategoryRules = [
     .optional()
     .trim()
     .notEmpty()
-    .withMessage('Please enter a category name.'),
+    .withMessage('Please enter a category name.')
+    .isLength({ min: FOOD_CORNER_CATEGORY_NAME_MIN })
+    .withMessage(FOOD_CORNER_CATEGORY_NAME_MIN_ERROR)
+    .isLength({ max: FOOD_CORNER_CATEGORY_NAME_MAX })
+    .withMessage(FOOD_CORNER_CATEGORY_NAME_MAX_ERROR),
   slugRule(true),
   body('icon').custom((value) => {
     if (value === undefined) return true;

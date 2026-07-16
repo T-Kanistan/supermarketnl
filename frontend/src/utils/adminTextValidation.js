@@ -126,10 +126,18 @@ export const isValidCategoryImageFile = (file) => {
 export const validateCategoryImageFile = (file) => {
   if (!file) return { valid: false, error: 'Please upload a category image.' };
   if (!isValidCategoryImageFile(file)) {
-    return { valid: false, error: 'Only JPG, JPEG, PNG, and WEBP images are allowed.' };
+    return {
+      valid: false,
+      error:
+        'Unsupported file format. Please upload JPG, JPEG, PNG, or WEBP image files only.',
+    };
   }
   if (file.size > CATEGORY_IMAGE_MAX_BYTES) {
-    return { valid: false, error: 'Category image must be 2 MB or smaller.' };
+    return {
+      valid: false,
+      error:
+        'File size exceeds the maximum limit of 2 MB. Please upload a smaller image.',
+    };
   }
   return { valid: true, error: '' };
 };

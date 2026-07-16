@@ -21,6 +21,10 @@ export const toYmd = (value) => {
   if (match) return `${match[1]}-${match[2]}-${match[3]}`;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '';
+  // Prefer UTC day for API Date strings (stored as UTC calendar bounds).
+  if (typeof value === 'string' && /T|Z|\+/.test(value)) {
+    return `${date.getUTCFullYear()}-${pad2(date.getUTCMonth() + 1)}-${pad2(date.getUTCDate())}`;
+  }
   return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
 };
 
@@ -33,6 +37,47 @@ export const compareYmd = (a, b) => {
 };
 
 export const maxYmd = (a, b) => (compareYmd(a, b) >= 0 ? a : b);
+
+/**
+ * Prefer serverToday from the API so storefront filtering matches backend timezone.
+ */
+export const resolveOfferTodayYmd = (offersOrOffer, fallback = getTodayYmd()) => {
+  if (Array.isArray(offersOrOffer)) {
+    const fromList = offersOrOffer.find((o) => o?.serverToday)?.serverToday;
+    return fromList || fallback;
+  }
+  return offersOrOffer?.serverToday || fallback;
+};
+
+/**
+ * Defensive storefront check — mirrors backend date-window rules.
+ * Prefer lifecycleStatus / isLive from the API when present.
+ */
+export const isOfferActiveForStorefront = (offer, todayYmd = getTodayYmd()) => {
+  if (!offer) return false;
+
+  const status = String(offer.lifecycleStatus || offer.status || '').toLowerCase();
+  if (['inactive', 'draft', 'deleted', 'scheduled', 'expired'].includes(status)) {
+    return false;
+  }
+
+  if (typeof offer.isLive === 'boolean') return offer.isLive;
+  if (typeof offer.active === 'boolean' && status === 'active') return offer.active;
+
+  const start = toYmd(offer.startDate);
+  const end = toYmd(offer.endDate);
+  if (!start || !end) return false;
+  if (compareYmd(todayYmd, start) < 0) return false;
+  if (compareYmd(todayYmd, end) > 0) return false;
+  return true;
+};
+
+export const filterActiveStorefrontOffers = (offers = []) => {
+  const today = resolveOfferTodayYmd(offers);
+  return (Array.isArray(offers) ? offers : []).filter((offer) =>
+    isOfferActiveForStorefront(offer, today)
+  );
+};
 
 /**
  * @param {string} startDate

@@ -1,3 +1,14 @@
+import {
+  CMS_IMAGE_TYPE_ERROR,
+  CMS_IMAGE_SIZE_ERROR,
+  formatCmsImageSizeError,
+  CMS_IMAGE_MAX_BYTES,
+} from '../constants/cmsImageUpload.js';
+import {
+  ABOUT_IMAGE_UPLOAD_TYPE_ERROR,
+  ABOUT_IMAGE_UPLOAD_SIZE_ERROR,
+} from '../constants/aboutImageUpload.js';
+
 export const errorHandler = (err, req, res, next) => {
   let statusCode = err.statusCode || (res.statusCode === 200 ? 500 : res.statusCode);
   let message = err.message;
@@ -54,30 +65,42 @@ export const errorHandler = (err, req, res, next) => {
   if (err.name === 'MulterError') {
     statusCode = 400;
     if (err.code === 'LIMIT_FILE_SIZE') {
-      if (req.originalUrl?.includes('/about')) {
-        message = 'Image size must not exceed 2 MB.';
-      } else if (
-        req.originalUrl?.includes('home-banner') ||
-        req.originalUrl?.includes('/banner') ||
-        req.originalUrl?.includes('announcement')
-      ) {
-        message = 'Banner image file size must not exceed 5MB';
+      const url = req.originalUrl || '';
+      if (url.includes('/about')) {
+        message = ABOUT_IMAGE_UPLOAD_SIZE_ERROR;
+      } else if (url.includes('/products') || url.includes('product')) {
+        message = formatCmsImageSizeError(2 * 1024 * 1024);
+      } else if (url.includes('categor')) {
+        message = formatCmsImageSizeError(2 * 1024 * 1024);
       } else {
-        message = 'Image file size must not exceed 3MB';
+        const limit = Number(err.limit) || CMS_IMAGE_MAX_BYTES;
+        message =
+          limit === CMS_IMAGE_MAX_BYTES || limit === 5 * 1024 * 1024
+            ? CMS_IMAGE_SIZE_ERROR
+            : formatCmsImageSizeError(limit);
       }
     } else {
       message = err.message;
     }
   }
 
-  if (err.message?.includes('Only JPG, JPEG, PNG, and WEBP images are allowed')) {
+  // Normalize image type errors to the shared user-facing message
+  const typeHints = [
+    'Only JPG, JPEG, PNG, and WEBP',
+    'Only image files (JPG, JPEG, PNG, WEBP',
+    'Unsupported file format',
+    ABOUT_IMAGE_UPLOAD_TYPE_ERROR,
+    CMS_IMAGE_TYPE_ERROR,
+  ];
+  if (typeHints.some((hint) => err.message?.includes(hint))) {
     statusCode = 400;
-    message = 'Only JPG, JPEG, PNG, and WEBP images are allowed.';
-  }
-
-  if (err.message?.includes('Only image files (JPG, JPEG, PNG, WEBP, GIF, SVG)')) {
-    statusCode = 400;
-    message = 'Only image files (JPG, JPEG, PNG, WEBP, GIF, SVG) are allowed.';
+    if (req.originalUrl?.includes('/about') && err.message === ABOUT_IMAGE_UPLOAD_TYPE_ERROR) {
+      message = CMS_IMAGE_TYPE_ERROR;
+    } else if (err.message?.includes('SVG') && err.message?.includes('ICO')) {
+      message = err.message;
+    } else {
+      message = CMS_IMAGE_TYPE_ERROR;
+    }
   }
 
   if (err.errors && Array.isArray(err.errors)) {

@@ -317,7 +317,7 @@ export const AdminCategories = () => {
                     <AdminFieldLabel htmlFor="cat-file" required>
                       Or Upload Image File
                     </AdminFieldLabel>
-                    <div className="image-upload-zone" style={{ padding: '8px' }}>
+                    <div className={`image-upload-zone${fieldErrors.image ? ' admin-input-invalid' : ''}`} style={{ padding: '8px' }}>
                       <input 
                         type="file" 
                         accept={CATEGORY_IMAGE_ACCEPT}
@@ -327,7 +327,7 @@ export const AdminCategories = () => {
                       />
                       <label htmlFor="cat-file" style={{ cursor: 'pointer', margin: 0 }}>
                         <p style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--admin-sidebar-active)' }}>
-                          Browse JPG, PNG, WEBP (max 2MB)
+                          Browse JPG, JPEG, PNG, WEBP (max 2 MB)
                         </p>
                       </label>
                     </div>

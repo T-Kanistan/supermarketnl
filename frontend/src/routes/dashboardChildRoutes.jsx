@@ -32,18 +32,11 @@ export const dashboardChildRoutes = (
     <Route index element={<AdminOverview />} />
     <Route path="site-settings" element={<ProtectedRoute adminOnly><AdminSiteSettings /></ProtectedRoute>} />
     <Route path="about-us" element={<ProtectedRoute adminOnly><AdminAboutUs /></ProtectedRoute>} />
-    <Route path="homepage-about" element={<AdminHomepageAbout />} />
+    <Route path="homepage-about" element={<ProtectedRoute adminOnly><AdminHomepageAbout /></ProtectedRoute>} />
     <Route path="legal-pages" element={<ProtectedRoute adminOnly><AdminLegalPages /></ProtectedRoute>} />
     <Route path="banners" element={<AdminBanners />} />
-    <Route path="categories" element={<ProtectedRoute adminOnly><AdminCategories /></ProtectedRoute>} />
-    <Route
-      path="food-corner-categories"
-      element={
-        <ProtectedRoute adminOnly>
-          <AdminFoodCornerCategories />
-        </ProtectedRoute>
-      }
-    />
+    <Route path="categories" element={<AdminCategories />} />
+    <Route path="food-corner-categories" element={<AdminFoodCornerCategories />} />
     <Route
       path="food-corner-items"
       element={<DashboardRedirect suffix="/food-corner" />}
@@ -52,7 +45,7 @@ export const dashboardChildRoutes = (
     <Route path="products" element={<AdminProducts />} />
     <Route path="offers" element={<AdminOffersManager />} />
     <Route path="offers-manager" element={<DashboardRedirect suffix="/offers" />} />
-    <Route path="faqs" element={<AdminFaqs />} />
+    <Route path="faqs" element={<ProtectedRoute adminOnly><AdminFaqs /></ProtectedRoute>} />
     <Route path="testimonials" element={<AdminTestimonials />} />
     <Route path="announcements" element={<AdminAnnouncements />} />
     <Route path="messages" element={<AdminMessages />} />

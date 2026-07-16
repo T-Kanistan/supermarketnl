@@ -9,7 +9,7 @@ import {
   extendAdminVacancy,
   deleteAdminVacancy,
 } from '../controllers/adminVacancyController.js';
-import { protect, restrictTo, adminOnly } from '../middlewares/authMiddleware.js';
+import { protect, restrictTo } from '../middlewares/authMiddleware.js';
 import { validateRequest } from '../middlewares/validationMiddleware.js';
 import {
   adminVacancyListQueryRules,
@@ -29,6 +29,6 @@ router.post('/', ...auth, vacancyBodyRules, validateRequest, createAdminVacancy)
 router.put('/:id', ...auth, [...vacancyIdRules, ...vacancyBodyRules], validateRequest, updateAdminVacancy);
 router.patch('/:id/status', ...auth, vacancyStatusRules, validateRequest, updateAdminVacancyStatus);
 router.patch('/:id/extend', ...auth, vacancyExtendRules, validateRequest, extendAdminVacancy);
-router.delete('/:id', protect, adminOnly, vacancyIdRules, validateRequest, deleteAdminVacancy);
+router.delete('/:id', ...auth, vacancyIdRules, validateRequest, deleteAdminVacancy);
 
 export default router;

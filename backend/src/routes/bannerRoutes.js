@@ -9,7 +9,7 @@ import {
   updateBannerStatus,
   getBanners,
 } from '../controllers/bannerController.js';
-import { protect, restrictTo, adminOnly } from '../middlewares/authMiddleware.js';
+import { protect, restrictTo } from '../middlewares/authMiddleware.js';
 import { bannerUpload } from '../middlewares/bannerUploadMiddleware.js';
 import { validateRequest } from '../middlewares/validationMiddleware.js';
 import {
@@ -58,6 +58,6 @@ router.patch(
   updateBannerStatus
 );
 
-router.delete('/:id', protect, adminOnly, bannerIdRules, validateRequest, deleteBanner);
+router.delete('/:id', ...auth, bannerIdRules, validateRequest, deleteBanner);
 
 export default router;

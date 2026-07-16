@@ -20,7 +20,18 @@ const defaultForm = {
   resolvedContent: null,
 };
 
-const ImageUploadField = ({ label, value, inputId, onUpload, disabled, isUploading, hint, required = false, optional = false }) => {
+const ImageUploadField = ({
+  label,
+  value,
+  inputId,
+  onUpload,
+  disabled,
+  isUploading,
+  hint,
+  error = '',
+  required = false,
+  optional = false,
+}) => {
   const fileInputRef = useRef(null);
 
   const openFilePicker = () => {
@@ -48,7 +59,7 @@ const ImageUploadField = ({ label, value, inputId, onUpload, disabled, isUploadi
           />
         )}
         <div
-          className={`image-upload-zone ${disabled ? 'image-upload-zone--disabled' : ''}`}
+          className={`image-upload-zone ${disabled ? 'image-upload-zone--disabled' : ''}${error ? ' admin-input-invalid' : ''}`}
           style={{ flex: 1, minWidth: '200px', padding: '16px' }}
           role="button"
           tabIndex={disabled ? -1 : 0}
@@ -76,10 +87,11 @@ const ImageUploadField = ({ label, value, inputId, onUpload, disabled, isUploadi
               ? 'Fields are synced from About Us CMS'
               : isUploading
                 ? 'Uploading...'
-                : 'Click to upload — JPG, JPEG, PNG, WEBP, GIF, SVG (max 3MB)'}
+                : 'Click to upload — JPG, JPEG, PNG, WEBP (max 3 MB)'}
           </p>
         </div>
       </div>
+      {error ? <p className="admin-field-error" role="alert">{error}</p> : null}
     </div>
   );
 };
@@ -89,6 +101,7 @@ const AdminHomepageAbout = () => {
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [imageError, setImageError] = useState('');
   const { addToast } = useToast();
   const { isAdmin, isManager } = useAuth();
 
@@ -119,13 +132,21 @@ const AdminHomepageAbout = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = '';
-    if (rejectInvalidCmsImageFile(file, (msg) => addToast(msg, 'error'))) return;
-
-    if (file.size > 3 * 1024 * 1024) {
-      addToast('Image must be 3MB or smaller', 'error');
+    if (
+      rejectInvalidCmsImageFile(
+        file,
+        (msg) => {
+          setImageError(msg);
+          addToast(msg, 'error');
+        },
+        null,
+        { maxBytes: 3 * 1024 * 1024 }
+      )
+    ) {
       return;
     }
 
+    setImageError('');
     setIsUploading(true);
     try {
       const imageUrl = await homepageAboutService.uploadImage(file);
@@ -142,7 +163,9 @@ const AdminHomepageAbout = () => {
       addToast('Image uploaded successfully', 'success');
     } catch (err) {
       console.error('Image upload failed', err);
-      addToast(err.response?.data?.message || 'Failed to upload image', 'error');
+      const message = err.response?.data?.message || 'Failed to upload image';
+      setImageError(message);
+      addToast(message, 'error');
     } finally {
       setIsUploading(false);
     }
@@ -339,6 +362,7 @@ const AdminHomepageAbout = () => {
             onUpload={handleImageUpload}
             disabled={fieldsDisabled}
             isUploading={isUploading}
+            error={imageError}
           />
         </div>
 

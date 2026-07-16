@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../context/ToastContext';
 import accountService from '../../../services/accountService';
@@ -27,6 +28,11 @@ export const AdminProfile = () => {
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
+  });
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    next: false,
+    confirm: false,
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -165,6 +171,11 @@ export const AdminProfile = () => {
 
   const clearPasswordForm = () => {
     setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    setShowPasswords({ current: false, next: false, confirm: false });
+  };
+
+  const togglePasswordVisibility = (field) => {
+    setShowPasswords((prev) => ({ ...prev, [field]: !prev[field] }));
   };
 
   const handlePasswordSubmit = async (e) => {
@@ -307,45 +318,78 @@ export const AdminProfile = () => {
         <form onSubmit={handlePasswordSubmit}>
           <div className="admin-form-group">
             <AdminFieldLabel htmlFor="current-password" required>Current Password</AdminFieldLabel>
-            <input
-              id="current-password"
-              type="password"
-              name="currentPassword"
-              value={passwordForm.currentPassword}
-              onChange={handlePasswordChange}
-              placeholder="Enter current password"
-              required
-            />
+            <div className="admin-password-field">
+              <input
+                id="current-password"
+                type={showPasswords.current ? 'text' : 'password'}
+                name="currentPassword"
+                value={passwordForm.currentPassword}
+                onChange={handlePasswordChange}
+                placeholder="Enter current password"
+                autoComplete="current-password"
+                required
+              />
+              <button
+                type="button"
+                className="admin-password-toggle"
+                onClick={() => togglePasswordVisibility('current')}
+                aria-label={showPasswords.current ? 'Hide current password' : 'Show current password'}
+              >
+                {showPasswords.current ? <FaEyeSlash aria-hidden="true" /> : <FaEye aria-hidden="true" />}
+              </button>
+            </div>
           </div>
 
           <div className="admin-form-group">
             <AdminFieldLabel htmlFor="new-password" required>New Password</AdminFieldLabel>
-            <input
-              id="new-password"
-              type="password"
-              name="newPassword"
-              value={passwordForm.newPassword}
-              onChange={handlePasswordChange}
-              placeholder="6–50 characters"
-              minLength={6}
-              maxLength={50}
-              required
-            />
+            <div className="admin-password-field">
+              <input
+                id="new-password"
+                type={showPasswords.next ? 'text' : 'password'}
+                name="newPassword"
+                value={passwordForm.newPassword}
+                onChange={handlePasswordChange}
+                placeholder="6–50 characters"
+                minLength={6}
+                maxLength={50}
+                autoComplete="new-password"
+                required
+              />
+              <button
+                type="button"
+                className="admin-password-toggle"
+                onClick={() => togglePasswordVisibility('next')}
+                aria-label={showPasswords.next ? 'Hide new password' : 'Show new password'}
+              >
+                {showPasswords.next ? <FaEyeSlash aria-hidden="true" /> : <FaEye aria-hidden="true" />}
+              </button>
+            </div>
           </div>
 
           <div className="admin-form-group">
             <AdminFieldLabel htmlFor="confirm-new-password" required>Confirm New Password</AdminFieldLabel>
-            <input
-              id="confirm-new-password"
-              type="password"
-              name="confirmPassword"
-              value={passwordForm.confirmPassword}
-              onChange={handlePasswordChange}
-              placeholder="Re-enter new password"
-              minLength={6}
-              maxLength={50}
-              required
-            />
+            <div className="admin-password-field">
+              <input
+                id="confirm-new-password"
+                type={showPasswords.confirm ? 'text' : 'password'}
+                name="confirmPassword"
+                value={passwordForm.confirmPassword}
+                onChange={handlePasswordChange}
+                placeholder="Re-enter new password"
+                minLength={6}
+                maxLength={50}
+                autoComplete="new-password"
+                required
+              />
+              <button
+                type="button"
+                className="admin-password-toggle"
+                onClick={() => togglePasswordVisibility('confirm')}
+                aria-label={showPasswords.confirm ? 'Hide confirm password' : 'Show confirm password'}
+              >
+                {showPasswords.confirm ? <FaEyeSlash aria-hidden="true" /> : <FaEye aria-hidden="true" />}
+              </button>
+            </div>
           </div>
 
           <div className="admin-form-actions-row" style={{ marginTop: '24px' }}>

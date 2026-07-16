@@ -30,7 +30,11 @@ const fileFilter = (_req, file, cb) => {
   const mime = String(file?.mimetype || '').toLowerCase();
 
   if (!ALLOWED_PRODUCT_IMAGE_EXT.has(ext) || !ALLOWED_PRODUCT_IMAGE_MIME.has(mime)) {
-    cb(new Error('Only JPG, JPEG, PNG, and WEBP images are allowed.'));
+    cb(
+      new Error(
+        'Unsupported file format. Please upload JPG, JPEG, PNG, or WEBP image files only.'
+      )
+    );
     return;
   }
   cb(null, true);

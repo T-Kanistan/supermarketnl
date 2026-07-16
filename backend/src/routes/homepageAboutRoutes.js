@@ -10,7 +10,7 @@ import {
   getAdminHomepageAbout,
   updateHomepageAboutLegacy,
 } from '../controllers/homepageAboutController.js';
-import { protect, restrictTo, adminOnly } from '../middlewares/authMiddleware.js';
+import { protect, adminOnly } from '../middlewares/authMiddleware.js';
 import { validateRequest } from '../middlewares/validationMiddleware.js';
 import { homepageAboutUpload } from '../middlewares/homepageAboutUploadMiddleware.js';
 import {
@@ -21,18 +21,17 @@ import {
 } from '../validators/homepageAboutValidator.js';
 
 const router = express.Router();
-const auth = [protect, restrictTo('admin', 'manager')];
+const adminAuth = [protect, adminOnly];
 
 router.get('/active', getActiveHomepageAbout);
-router.get('/admin', ...auth, getAdminHomepageAbout);
-router.get('/preview/:id', ...auth, homepageAboutIdRules, validateRequest, getHomepageAboutPreview);
-router.get('/', ...auth, getHomepageAboutSections);
-router.get('/:id', ...auth, homepageAboutIdRules, validateRequest, getHomepageAboutById);
+router.get('/admin', ...adminAuth, getAdminHomepageAbout);
+router.get('/preview/:id', ...adminAuth, homepageAboutIdRules, validateRequest, getHomepageAboutPreview);
+router.get('/', ...adminAuth, getHomepageAboutSections);
+router.get('/:id', ...adminAuth, homepageAboutIdRules, validateRequest, getHomepageAboutById);
 
 router.post(
   '/',
-  protect,
-  adminOnly,
+  ...adminAuth,
   homepageAboutUpload.single('image'),
   createHomepageAboutRules,
   validateRequest,
@@ -41,7 +40,7 @@ router.post(
 
 router.put(
   '/',
-  ...auth,
+  ...adminAuth,
   homepageAboutUpload.single('image'),
   updateHomepageAboutLegacyRules,
   validateRequest,
@@ -50,13 +49,13 @@ router.put(
 
 router.put(
   '/:id',
-  ...auth,
+  ...adminAuth,
   homepageAboutUpload.single('image'),
   updateHomepageAboutRules,
   validateRequest,
   updateHomepageAbout
 );
 
-router.delete('/:id', protect, adminOnly, homepageAboutIdRules, validateRequest, deleteHomepageAbout);
+router.delete('/:id', ...adminAuth, homepageAboutIdRules, validateRequest, deleteHomepageAbout);
 
 export default router;

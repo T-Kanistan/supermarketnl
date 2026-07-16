@@ -9,6 +9,7 @@ import { getImageUrl } from '../services/api';
 import { useEnquiry } from '../context/EnquiryContext';
 import OfferSeoHead from '../components/OfferSeoHead';
 import { shareOffer } from '../utils/offerShareMeta';
+import { filterActiveStorefrontOffers } from '../utils/offerDateValidation';
 import './OffersPage.css';
 
 const FALLBACK_IMAGE =
@@ -381,7 +382,7 @@ const OffersPage = () => {
       if (search) params.search = search;
 
       const data = await offerService.getOffers(params);
-      setOffers(Array.isArray(data) ? data : []);
+      setOffers(filterActiveStorefrontOffers(Array.isArray(data) ? data : []));
     } catch (err) {
       console.error('Failed to load offers', err);
       setError('We could not load offers right now. Please try again in a moment.');
@@ -415,7 +416,10 @@ const OffersPage = () => {
     (async () => {
       try {
         const data = await offerService.getOfferById(routeOfferId);
-        if (active) setRouteOffer(data || null);
+        if (active) {
+          const visible = filterActiveStorefrontOffers(data ? [data] : []);
+          setRouteOffer(visible[0] || null);
+        }
       } catch (err) {
         console.error('Failed to load offer for share preview', err);
         if (active) setRouteOffer(null);

@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { FaTrash, FaEnvelopeOpenText, FaEye, FaWhatsapp } from 'react-icons/fa';
 import enquiryService from '../../../services/enquiryService';
 import { useToast } from '../../../context/ToastContext';
-import { useAuth } from '../../../context/AuthContext';
 import { ENQUIRY_STATUSES, getStatusClassName, getStatusBadgeLabel } from '../../../constants/enquiryMessages';
 import { invalidateDashboardStats } from '../../../utils/dashboardStatsRefresh';
 import useAdminSearch from '../../../hooks/useAdminSearch';
@@ -63,7 +62,6 @@ export const AdminMessages = () => {
   const [statusSaving, setStatusSaving] = useState(false);
 
   const { addToast } = useToast();
-  const { isAdmin } = useAuth();
 
   const fetchStats = useCallback(async () => {
     try {
@@ -176,10 +174,6 @@ export const AdminMessages = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!isAdmin) {
-      addToast('Only administrators can delete enquiries', 'error');
-      return;
-    }
     if (!window.confirm('Delete this enquiry?')) return;
     try {
       await enquiryService.deleteEnquiry(id);
@@ -204,14 +198,13 @@ export const AdminMessages = () => {
           <h2>Customer Enquiries</h2>
           <p>Manage contact, product, and food corner enquiries from the storefront.</p>
         </div>
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+        <div className="view-header-filters">
           <input
             type="search"
             className="admin-filter-select"
             placeholder="Search enquiries..."
             value={searchInput}
             onChange={onSearchChange}
-            style={{ minWidth: '180px' }}
           />
           <select
             className="admin-filter-select"
@@ -262,7 +255,7 @@ export const AdminMessages = () => {
         </div>
       ) : enquiries.length > 0 ? (
         <div className="table-responsive-wrapper">
-          <table className="admin-table">
+          <table className="admin-table admin-messages-table">
             <thead>
               <tr>
                 <th>Sender Name</th>
@@ -285,8 +278,8 @@ export const AdminMessages = () => {
                   <tr key={enquiry.id} className={isUnread ? 'message-row-unread' : ''}>
                     <td data-label="Sender Name" style={{ fontWeight: 600 }}>{enquiry.senderName || enquiry.name}</td>
                     <td data-label="Contact Info">
-                      <div>{enquiry.email}</div>
-                      {enquiry.phone && <div>{enquiry.phone}</div>}
+                      <div className="admin-table-ellipsis" title={enquiry.email || ''}>{enquiry.email}</div>
+                      {enquiry.phone && <div className="admin-table-ellipsis" title={enquiry.phone}>{enquiry.phone}</div>}
                     </td>
                     <td data-label="Type">
                       <span className="status-badge-admin scheduled">
@@ -310,8 +303,8 @@ export const AdminMessages = () => {
                         {getStatusBadgeLabel(currentStatus)}
                       </span>
                     </td>
-                    <td data-label="Date">
-                      <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                    <td data-label="Date" className="admin-table-date-cell">
+                      <span className="admin-table-date">
                         {new Date(enquiry.createdAt || enquiry.date).toLocaleDateString()}
                       </span>
                     </td>
@@ -335,16 +328,14 @@ export const AdminMessages = () => {
                             <FaWhatsapp />
                           </button>
                         )}
-                        {isAdmin && (
-                          <button
-                            type="button"
-                            className="btn-action-cell delete"
-                            onClick={() => handleDelete(enquiry.id)}
-                            title="Delete enquiry"
-                          >
-                            <FaTrash />
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          className="btn-action-cell delete"
+                          onClick={() => handleDelete(enquiry.id)}
+                          title="Delete enquiry"
+                        >
+                          <FaTrash />
+                        </button>
                       </div>
                     </td>
                   </tr>

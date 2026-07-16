@@ -48,6 +48,11 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 20px;
+  align-items: stretch;
+}
+
+.vacancy-stats-row .stat-card-admin {
+  height: 100%;
 }
 
 .vacancy-filter-bar {
@@ -55,10 +60,16 @@
   flex-wrap: wrap;
   gap: 12px;
   align-items: center;
+  margin-bottom: 20px;
   padding: 16px 20px;
   background: #ffffff;
   border: 1px solid var(--admin-border);
   border-radius: 14px;
+}
+
+.vacancy-filter-bar .view-toolbar-search {
+  flex: 1 1 240px;
+  max-width: none;
 }
 
 .vacancy-filter-bar .admin-filter-select,
@@ -218,19 +229,36 @@
 .status-badge-vacancy {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   padding: 4px 12px;
   border-radius: 999px;
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: capitalize;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: keep-all;
 }
 
-.status-badge-vacancy.active { background: #dcfce7; color: #15803d; }
-.status-badge-vacancy.inactive { background: #f1f5f9; color: #64748b; }
+.status-badge-vacancy.active { background: #dcfce7; color: #15803d; min-width: 70px; }
+.status-badge-vacancy.inactive { background: #f1f5f9; color: #64748b; min-width: 80px; }
 .status-badge-vacancy.extended { background: #ede9fe; color: #6d28d9; }
 .status-badge-vacancy.closed { background: #fee2e2; color: #b91c1c; }
 .status-badge-vacancy.expired { background: #ffedd5; color: #c2410c; }
 .status-badge-vacancy.hired { background: #dbeafe; color: #1d4ed8; }
+
+.status-badge-app {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: keep-all;
+}
 
 .status-badge-app.new { background: #dbeafe; color: #1d4ed8; }
 .status-badge-app.review { background: #ffedd5; color: #c2410c; }
@@ -335,13 +363,31 @@
 }
 
 @media (max-width: 1100px) {
-  .vacancy-stats-row,
   .vacancy-bottom-grid {
     grid-template-columns: 1fr;
   }
 }
 
+@media (min-width: 768px) and (max-width: 1023px) {
+  .vacancy-stats-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 768px) {
+  .vacancy-filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .vacancy-filter-bar .admin-filter-select,
+  .vacancy-filter-bar .admin-search-input,
+  .vacancy-filter-bar .view-toolbar-search {
+    width: 100%;
+    min-width: 0;
+    flex: 1 1 100%;
+  }
+
   .vacancy-stats-row {
     grid-template-columns: 1fr 1fr;
   }

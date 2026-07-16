@@ -1,13 +1,25 @@
 export const PHONE_REQUIRED = 'Phone number is required.';
-export const PHONE_CHARS_INVALID = "Only numbers, '+', spaces, and '/' are allowed.";
+export const PHONE_INVALID =
+  "Please enter a valid international phone number. Each number must start with '+' followed by 8–15 digits. Multiple numbers can be separated using '/'.";
+
+/** @deprecated Prefer PHONE_INVALID — kept for any older callers. */
+export const PHONE_CHARS_INVALID = PHONE_INVALID;
 
 export const EMAIL_REQUIRED = 'Email address is required.';
 export const EMAIL_INVALID = 'Please enter a valid email address.';
 
 const PHONE_ALLOWED_CHARS = /^[+\d\s/]+$/;
+const PHONE_SEGMENT = /^\+\d{8,15}$/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 const trim = (value) => String(value ?? '').trim();
+
+export const splitContactPhoneSegments = (value) =>
+  String(value ?? '')
+    .split('/')
+    .map((segment) => segment.replace(/\s+/g, '').trim());
+
+export const isValidContactPhoneSegment = (segment) => PHONE_SEGMENT.test(segment);
 
 export const validateContactPhone = (value) => {
   const trimmed = trim(value);
@@ -17,7 +29,16 @@ export const validateContactPhone = (value) => {
   }
 
   if (!PHONE_ALLOWED_CHARS.test(trimmed)) {
-    return { field: 'phoneNumber', message: PHONE_CHARS_INVALID };
+    return { field: 'phoneNumber', message: PHONE_INVALID };
+  }
+
+  const segments = splitContactPhoneSegments(trimmed);
+  if (!segments.length || segments.some((segment) => !segment)) {
+    return { field: 'phoneNumber', message: PHONE_INVALID };
+  }
+
+  if (!segments.every(isValidContactPhoneSegment)) {
+    return { field: 'phoneNumber', message: PHONE_INVALID };
   }
 
   return null;

@@ -8,7 +8,7 @@ import {
   toggleFoodCornerCategoryStatus,
   deleteFoodCornerCategory,
 } from '../controllers/foodCornerCategoryController.js';
-import { protect, adminOnly, restrictTo } from '../middlewares/authMiddleware.js';
+import { protect, restrictTo } from '../middlewares/authMiddleware.js';
 import { validateRequest } from '../middlewares/validationMiddleware.js';
 import {
   createFoodCornerCategoryRules,
@@ -18,24 +18,17 @@ import {
 } from '../validators/foodCornerCategoryValidator.js';
 
 const router = express.Router();
+const catalogAuth = [protect, restrictTo('admin', 'manager')];
 
 router.get('/public/categories', getPublicFoodCornerCategories);
 
-router.get(
-  '/categories',
-  protect,
-  restrictTo('admin', 'manager'),
-  getFoodCornerCategories
-);
-
-const catalogAuth = [protect, restrictTo('admin', 'manager')];
+router.get('/categories', ...catalogAuth, getFoodCornerCategories);
 
 router.get('/categories/:id', ...catalogAuth, foodCornerCategoryIdRules, validateRequest, getFoodCornerCategoryById);
 
 router.post(
   '/categories',
-  protect,
-  adminOnly,
+  ...catalogAuth,
   createFoodCornerCategoryRules,
   validateRequest,
   createFoodCornerCategory
@@ -43,8 +36,7 @@ router.post(
 
 router.put(
   '/categories/:id',
-  protect,
-  adminOnly,
+  ...catalogAuth,
   foodCornerCategoryIdRules,
   updateFoodCornerCategoryRules,
   validateRequest,
@@ -53,8 +45,7 @@ router.put(
 
 router.patch(
   '/categories/:id/status',
-  protect,
-  adminOnly,
+  ...catalogAuth,
   foodCornerCategoryIdRules,
   toggleFoodCornerCategoryStatusRules,
   validateRequest,
@@ -63,8 +54,7 @@ router.patch(
 
 router.delete(
   '/categories/:id',
-  protect,
-  adminOnly,
+  ...catalogAuth,
   foodCornerCategoryIdRules,
   validateRequest,
   deleteFoodCornerCategory

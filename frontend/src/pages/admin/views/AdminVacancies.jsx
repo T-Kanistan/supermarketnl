@@ -20,7 +20,6 @@ import adminVacancyService from '../../../services/adminVacancyService';
 import jobApplicationService from '../../../services/jobApplicationService';
 import { getImageUrl } from '../../../services/api';
 import { useToast } from '../../../context/ToastContext';
-import { useAuth } from '../../../context/AuthContext';
 import useAdminSearch from '../../../hooks/useAdminSearch';
 import { ADMIN_NO_MATCH_MESSAGE } from '../../../utils/adminSearch';
 import {
@@ -196,7 +195,6 @@ export const AdminVacancies = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { addToast } = useToast();
-  const { isAdmin } = useAuth();
   const initialLoadDone = useRef(false);
 
   const scrollPageToTop = useCallback(() => {
@@ -418,10 +416,6 @@ export const AdminVacancies = () => {
   };
 
   const handleDelete = async (vacancy) => {
-    if (!isAdmin) {
-      addToast('Only administrators can delete vacancies', 'error');
-      return;
-    }
     if (!window.confirm(`Delete vacancy "${vacancy.title}"?`)) return;
     try {
       await adminVacancyService.deleteVacancy(vacancy.id);
@@ -525,14 +519,13 @@ export const AdminVacancies = () => {
             <option key={option.value} value={option.value}>{option.label}</option>
           ))}
         </select>
-        <form onSubmit={applySearchNow} style={{ display: 'flex', gap: 8, flex: 1, minWidth: 220 }}>
+        <form onSubmit={applySearchNow} className="view-toolbar-search">
           <input
             type="text"
             className="admin-search-input"
             placeholder="Search vacancy..."
             value={searchInput}
             onChange={onSearchChange}
-            style={{ flex: 1 }}
           />
           <button type="submit" className="vacancy-filter-btn">
             <FaFilter /> Filter

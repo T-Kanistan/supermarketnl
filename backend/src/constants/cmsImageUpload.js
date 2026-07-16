@@ -1,24 +1,23 @@
 import path from 'path';
 
-export const CMS_IMAGE_UPLOAD_ERROR =
-  'Only image files (JPG, JPEG, PNG, WEBP, GIF, SVG) are allowed.';
+export const CMS_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 
-export const CMS_IMAGE_EXTENSIONS = new Set([
-  '.jpg',
-  '.jpeg',
-  '.png',
-  '.webp',
-  '.gif',
-  '.svg',
-]);
+export const CMS_IMAGE_TYPE_ERROR =
+  'Unsupported file format. Please upload JPG, JPEG, PNG, or WEBP image files only.';
+
+export const CMS_IMAGE_SIZE_ERROR =
+  'File size exceeds the maximum limit of 5 MB. Please upload a smaller image.';
+
+/** @deprecated Use CMS_IMAGE_TYPE_ERROR */
+export const CMS_IMAGE_UPLOAD_ERROR = CMS_IMAGE_TYPE_ERROR;
+
+export const CMS_IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp']);
 
 export const CMS_IMAGE_MIME_TYPES = new Set([
   'image/jpeg',
   'image/jpg',
   'image/png',
   'image/webp',
-  'image/gif',
-  'image/svg+xml',
 ]);
 
 const EXTENSION_MIME_MAP = {
@@ -26,8 +25,17 @@ const EXTENSION_MIME_MAP = {
   '.jpeg': ['image/jpeg', 'image/jpg'],
   '.png': ['image/png'],
   '.webp': ['image/webp'],
-  '.gif': ['image/gif'],
-  '.svg': ['image/svg+xml'],
+};
+
+export const formatCmsImageSizeError = (maxBytes = CMS_IMAGE_MAX_BYTES) => {
+  if (maxBytes === CMS_IMAGE_MAX_BYTES) return CMS_IMAGE_SIZE_ERROR;
+  const mb = maxBytes / (1024 * 1024);
+  if (mb >= 1) {
+    const label = Number.isInteger(mb) ? String(mb) : mb.toFixed(1).replace(/\.0$/, '');
+    return `File size exceeds the maximum limit of ${label} MB. Please upload a smaller image.`;
+  }
+  const kb = Math.round(maxBytes / 1024);
+  return `File size exceeds the maximum limit of ${kb} KB. Please upload a smaller image.`;
 };
 
 export const isAllowedCmsImageFile = (file) => {
@@ -40,14 +48,14 @@ export const isAllowedCmsImageFile = (file) => {
   if (!mime) return true;
 
   const allowedMimes = EXTENSION_MIME_MAP[ext] || [];
-  return allowedMimes.includes(mime);
+  return allowedMimes.includes(mime) && CMS_IMAGE_MIME_TYPES.has(mime);
 };
 
 export const isAllowedCmsImageDataUrl = (value) =>
   typeof value === 'string' &&
-  /^data:image\/(jpeg|jpg|png|webp|gif|svg\+xml);base64,/i.test(value);
+  /^data:image\/(jpeg|jpg|png|webp);base64,/i.test(value);
 
 export const cmsImageMulterFilter = (_req, file, cb) => {
   if (isAllowedCmsImageFile(file)) return cb(null, true);
-  cb(new Error(CMS_IMAGE_UPLOAD_ERROR));
+  cb(new Error(CMS_IMAGE_TYPE_ERROR));
 };

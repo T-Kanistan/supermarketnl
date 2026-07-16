@@ -28,7 +28,7 @@ import {
 } from '../controllers/offerController.js';
 import { getOfferShareMeta } from '../controllers/offerShareController.js';
 
-import { protect, restrictTo, adminOnly } from '../middlewares/authMiddleware.js';
+import { protect, restrictTo } from '../middlewares/authMiddleware.js';
 import { validateRequest } from '../middlewares/validationMiddleware.js';
 
 import {
@@ -58,10 +58,10 @@ router.get('/hero-banners', getOffersHeroBanners);
 // Offer category management (admin/manager) — declared before `/category/:category`
 // and `/:id` so the static segments are not shadowed by the param routes.
 router.get('/categories/manage', ...auth, getOfferCategoriesManage);
-router.post('/categories', protect, adminOnly, createOfferCategory);
+router.post('/categories', ...auth, createOfferCategory);
 router.patch('/categories/:id/status', ...auth, updateOfferCategoryStatus);
 router.put('/categories/:id', ...auth, updateOfferCategory);
-router.delete('/categories/:id', protect, adminOnly, deleteOfferCategory);
+router.delete('/categories/:id', ...auth, deleteOfferCategory);
 
 router.get('/category/:category', getOffersByCategory);
 
@@ -72,7 +72,7 @@ router.post('/hero-banners', ...auth, createOffersHeroBannerRules, validateReque
 router.get('/hero-banners/:id', ...auth, offersHeroBannerIdRules, validateRequest, getOffersHeroBanner);
 router.put('/hero-banners/:id', ...auth, updateOffersHeroBannerRules, validateRequest, updateOffersHeroBanner);
 router.patch('/hero-banners/:id/status', ...auth, updateOffersHeroBannerStatusRules, validateRequest, updateOffersHeroBannerStatus);
-router.delete('/hero-banners/:id', protect, adminOnly, offersHeroBannerIdRules, validateRequest, deleteOffersHeroBanner);
+router.delete('/hero-banners/:id', ...auth, offersHeroBannerIdRules, validateRequest, deleteOffersHeroBanner);
 router.put('/banner', ...auth, updateOfferBannerRules, validateRequest, updateOfferBanner);
 
 // Public single (kept after static GET routes so they are not shadowed)
@@ -80,9 +80,9 @@ router.get('/:id/share-meta', offerIdRules, validateRequest, getOfferShareMeta);
 router.get('/:id', offerIdRules, validateRequest, getOffer);
 
 // Writes
-router.post('/', protect, adminOnly, createOfferRules, validateRequest, createOffer);
+router.post('/', ...auth, createOfferRules, validateRequest, createOffer);
 router.patch('/:id/status', ...auth, updateOfferStatusRules, validateRequest, updateOfferStatus);
 router.put('/:id', ...auth, updateOfferRules, validateRequest, updateOffer);
-router.delete('/:id', protect, adminOnly, offerIdRules, validateRequest, deleteOffer);
+router.delete('/:id', ...auth, offerIdRules, validateRequest, deleteOffer);
 
 export default router;

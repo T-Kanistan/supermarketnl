@@ -382,7 +382,7 @@ export const normalizeProductPayload = async (body, { isUpdate = false } = {}) =
     throw error;
   }
   if (imageInput && !isAllowedProductImageReference(imageInput)) {
-    const error = new Error('Only JPG, JPEG, PNG, and WEBP images are allowed.');
+    const error = new Error('Unsupported file format. Please upload JPG, JPEG, PNG, or WEBP image files only.');
     error.statusCode = 400;
     throw error;
   }
@@ -574,7 +574,7 @@ export const buildPartialProductUpdate = async (body, existing) => {
   if (hasField(body, 'imageUrl', 'image')) {
     const imageInput = body.imageUrl ?? body.image;
     if (imageInput && !isAllowedProductImageReference(imageInput)) {
-      const error = new Error('Only JPG, JPEG, PNG, and WEBP images are allowed.');
+      const error = new Error('Unsupported file format. Please upload JPG, JPEG, PNG, or WEBP image files only.');
       error.statusCode = 400;
       throw error;
     }
@@ -623,13 +623,6 @@ export const getProductById = async (id, options = {}) => {
 };
 
 export const createProduct = async (body, user) => {
-  const role = user?.role || user?.accountType;
-  if (role === 'manager') {
-    const error = new Error('Managers cannot create products');
-    error.statusCode = 403;
-    throw error;
-  }
-
   const payload = await normalizeProductPayload(body);
   await assertUniqueProductNameInCatalogCategory({
     productName: payload.productName,
@@ -772,8 +765,8 @@ export const getCategoriesForProductType = async (productTypeValue) => {
 
   if (productType === 'food-corner') {
     const categories = await FoodCornerCategory.find({ status: true }).sort({
-      displayOrder: 1,
-      categoryName: 1,
+      createdAt: -1,
+      _id: -1,
     });
     return categories.map((cat) => ({
       id: cat._id.toString(),

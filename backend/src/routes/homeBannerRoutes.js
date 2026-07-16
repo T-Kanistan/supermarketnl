@@ -8,7 +8,7 @@ import {
   updateHomeBanner,
   deleteHomeBanner,
 } from '../controllers/homeBannerController.js';
-import { protect, restrictTo, adminOnly } from '../middlewares/authMiddleware.js';
+import { protect, restrictTo } from '../middlewares/authMiddleware.js';
 import { validateRequest } from '../middlewares/validationMiddleware.js';
 import { homeBannerUpload } from '../middlewares/homeBannerUploadMiddleware.js';
 import {
@@ -43,6 +43,6 @@ router.put(
   updateHomeBanner
 );
 
-router.delete('/:id', protect, adminOnly, homeBannerIdRules, validateRequest, deleteHomeBanner);
+router.delete('/:id', ...auth, homeBannerIdRules, validateRequest, deleteHomeBanner);
 
 export default router;

@@ -5,12 +5,11 @@ import OfferCategory from '../models/OfferCategory.js';
 import { handleBase64Upload } from '../middlewares/uploadMiddleware.js';
 import { logManagerActivity } from './activityLogService.js';
 import {
-  buildPublicOfferScheduleFilter,
+  buildPublicOfferFilter,
   getOfferScheduleState,
   getServerTodayYmd,
   isManualOfferStatus,
   isOfferPubliclyVisible,
-  mergeScheduleFilter,
   normalizeOfferEndDate,
   normalizeOfferStartDate,
   OFFER_END_DATE_RANGE_ERROR,
@@ -164,8 +163,7 @@ export const buildOfferFilter = (query = {}, { publicOnly = false } = {}) => {
   const filter = {};
 
   if (publicOnly) {
-    filter.status = 'active';
-    mergeScheduleFilter(filter);
+    Object.assign(filter, buildPublicOfferFilter());
   } else if (query.status && query.status !== 'all') {
     filter.status = query.status;
   } else {
@@ -442,34 +440,34 @@ export const listOffers = async (query = {}, options = {}) => {
   await syncOfferScheduleStatuses();
   const filter = buildOfferFilter(query, options);
   const offers = await Offer.find(filter).sort({ sortOrder: 1, createdAt: -1 });
-  return offers.map(formatOffer);
+  const formatted = offers.map(formatOffer);
+  if (options.publicOnly) {
+    return formatted.filter((offer) => offer.lifecycleStatus === 'active');
+  }
+  return formatted;
 };
 
 export const getFeaturedOffers = async () => {
   await syncOfferScheduleStatuses();
-  const now = new Date();
   const filter = {
-    status: 'active',
     featured: true,
-    ...buildPublicOfferScheduleFilter(now),
+    ...buildPublicOfferFilter(),
   };
   const offers = await Offer.find(filter).sort({
     sortOrder: 1,
     createdAt: -1,
   });
-  return offers.map(formatOffer);
+  return offers.map(formatOffer).filter((offer) => offer.lifecycleStatus === 'active');
 };
 
 export const getOffersByCategory = async (category) => {
   await syncOfferScheduleStatuses();
-  const now = new Date();
   const filter = {
-    status: 'active',
     category: new RegExp(`^${escapeRegex(category)}$`, 'i'),
-    ...buildPublicOfferScheduleFilter(now),
+    ...buildPublicOfferFilter(),
   };
   const offers = await Offer.find(filter).sort({ sortOrder: 1, createdAt: -1 });
-  return offers.map(formatOffer);
+  return offers.map(formatOffer).filter((offer) => offer.lifecycleStatus === 'active');
 };
 
 export const getOfferCategories = async ({ publicOnly = false } = {}) => {
@@ -480,7 +478,7 @@ export const getOfferCategories = async ({ publicOnly = false } = {}) => {
   // Union with any categories already referenced by existing offers, so legacy
   // offers whose category was never added to the collection still appear.
   const offerMatch = publicOnly
-    ? { status: 'active', ...buildPublicOfferScheduleFilter() }
+    ? buildPublicOfferFilter()
     : { status: { $ne: 'deleted' } };
   const offerCategories = await Offer.distinct('category', offerMatch);
 
@@ -534,6 +532,11 @@ export const createOfferCategory = async (body, user) => {
     error.statusCode = 400;
     throw error;
   }
+  if (name.length > 50) {
+    const error = new Error('Category name cannot exceed 50 characters.');
+    error.statusCode = 400;
+    throw error;
+  }
 
   const existing = await OfferCategory.findOne({
     name: new RegExp(`^${escapeRegex(name)}$`, 'i'),
@@ -577,6 +580,11 @@ export const updateOfferCategory = async (id, body, user) => {
     const name = String(body.name || '').trim();
     if (!name) {
       const error = new Error('Category name cannot be empty');
+      error.statusCode = 400;
+      throw error;
+    }
+    if (name.length > 50) {
+      const error = new Error('Category name cannot exceed 50 characters.');
       error.statusCode = 400;
       throw error;
     }
@@ -671,7 +679,9 @@ export const getOfferById = async (id, options = {}) => {
   await syncOfferScheduleStatuses();
 
   const filter = { _id: id, status: { $ne: 'deleted' } };
-  if (options.publicOnly) filter.status = 'active';
+  if (options.publicOnly) {
+    Object.assign(filter, buildPublicOfferFilter());
+  }
 
   const offer = await Offer.findOne(filter);
   if (!offer) {

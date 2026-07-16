@@ -10,7 +10,7 @@ import {
   getEnquiryStats,
   updateEnquiryStatus,
 } from '../controllers/enquiryController.js';
-import { protect, restrictTo, adminOnly } from '../middlewares/authMiddleware.js';
+import { protect, restrictTo } from '../middlewares/authMiddleware.js';
 import { validateRequest } from '../middlewares/validationMiddleware.js';
 import {
   enquiryIdRules,
@@ -31,6 +31,6 @@ router.put('/:id/read', ...auth, enquiryIdRules, validateRequest, markEnquiryRea
 router.put('/:id/replied', ...auth, enquiryIdRules, validateRequest, markEnquiryReplied);
 router.put('/:id/close', ...auth, enquiryIdRules, validateRequest, closeEnquiry);
 router.post('/:id/reply', ...auth, enquiryReplyRules, validateRequest, replyToEnquiry);
-router.delete('/:id', protect, adminOnly, enquiryIdRules, validateRequest, deleteEnquiry);
+router.delete('/:id', ...auth, enquiryIdRules, validateRequest, deleteEnquiry);
 
 export default router;

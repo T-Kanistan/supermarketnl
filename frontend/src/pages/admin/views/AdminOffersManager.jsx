@@ -5,15 +5,95 @@ import {
   FaFire, FaTimes, FaImage, FaToggleOn, FaToggleOff,
 } from 'react-icons/fa';
 import { useToast } from '../../../context/ToastContext';
-import { useAuth } from '../../../context/AuthContext';
 import offerService from '../../../services/offerService';
 import { getImageUrl } from '../../../services/api';
 import { validateOfferDates, getOfferStartMinDate, getTodayYmd } from '../../../utils/offerDateValidation';
 import './AdminOffersManager.css';
-import { CMS_IMAGE_ACCEPT, rejectInvalidCmsImageFile } from '../../../utils/imageUploadValidation';
+import { CMS_IMAGE_ACCEPT, CMS_IMAGE_MAX_BYTES, validateCmsImageFile } from '../../../utils/imageUploadValidation';
 import useAdminSearch from '../../../hooks/useAdminSearch';
 import { matchesAdminSearch, statusSearchLabel, ADMIN_NO_MATCH_MESSAGE } from '../../../utils/adminSearch';
 import AdminFieldLabel from '../../../components/admin/AdminFieldLabel';
+import {
+  ADMIN_TEXT_LIMITS,
+  boundAdminText,
+  formatCharCounter,
+  sanitizeAdminText,
+  validateAdminText,
+} from '../../../utils/adminTextValidation';
+
+const OFFER_SUBTITLE_MAX = 200;
+const OFFER_BUTTON_TEXT_MAX = 50;
+const OFFER_CATEGORY_NAME_MAX = ADMIN_TEXT_LIMITS.categoryName.max;
+const HERO_FIELD_LIMITS = {
+  heroTitle: 150,
+  heroSubtitle: 200,
+  heroDescription: 600,
+  heroButtonText: 50,
+};
+
+const emptyOfferFieldErrors = {
+  title: '',
+  subtitle: '',
+  description: '',
+  badge: '',
+  buttonText: '',
+  category: '',
+};
+
+const validateOfferField = (name, value) => {
+  const { offerTitle, offerDescription, offerBadge } = ADMIN_TEXT_LIMITS;
+
+  switch (name) {
+    case 'title':
+      return validateAdminText(value, {
+        required: true,
+        max: offerTitle.max,
+        requiredMessage: 'Offer title is required',
+        maxMessage: `Offer title cannot exceed ${offerTitle.max} characters.`,
+      });
+    case 'subtitle':
+      return validateAdminText(value, {
+        max: OFFER_SUBTITLE_MAX,
+        maxMessage: `Subtitle cannot exceed ${OFFER_SUBTITLE_MAX} characters.`,
+      });
+    case 'description':
+      return validateAdminText(value, {
+        max: offerDescription.max,
+        maxMessage: `Description cannot exceed ${offerDescription.max} characters.`,
+      });
+    case 'badge':
+      return validateAdminText(value, {
+        max: offerBadge.max,
+        maxMessage: `Offer badge cannot exceed ${offerBadge.max} characters.`,
+      });
+    case 'buttonText':
+      return validateAdminText(value, {
+        max: OFFER_BUTTON_TEXT_MAX,
+        maxMessage: `Button text cannot exceed ${OFFER_BUTTON_TEXT_MAX} characters.`,
+      });
+    case 'category':
+      return String(value ?? '').trim() ? '' : 'Offer category is required';
+    default:
+      return '';
+  }
+};
+
+const validateOfferCategoryName = (value) =>
+  validateAdminText(value, {
+    required: true,
+    max: OFFER_CATEGORY_NAME_MAX,
+    requiredMessage: 'Category name is required',
+    maxMessage: `Category name cannot exceed ${OFFER_CATEGORY_NAME_MAX} characters.`,
+  });
+
+const validateHeroField = (name, value) => {
+  const max = HERO_FIELD_LIMITS[name];
+  if (!max) return '';
+  return validateAdminText(value, {
+    max,
+    maxMessage: `Cannot exceed ${max} characters.`,
+  });
+};
 
 /**
  * Offers Management studio — fully wired to the live backend:
@@ -113,7 +193,7 @@ const emptyHeroForm = {
   heroStatus: 'active',
 };
 
-const HERO_IMAGE_MAX_BYTES = 3 * 1024 * 1024;
+const HERO_IMAGE_MAX_BYTES = CMS_IMAGE_MAX_BYTES;
 
 const ITEMS_PER_PAGE = 5;
 
@@ -151,7 +231,6 @@ const discountLabel = (offer) => {
 
 export const AdminOffersManager = () => {
   const { addToast } = useToast();
-  const { isAdmin } = useAuth();
 
   const [activeTab, setActiveTab] = useState('offers');
 
@@ -172,6 +251,11 @@ export const AdminOffersManager = () => {
   const [isOfferModalOpen, setIsOfferModalOpen] = useState(false);
   const [editingOffer, setEditingOffer] = useState(null);
   const [offerForm, setOfferForm] = useState(emptyOfferForm);
+  const [offerFieldErrors, setOfferFieldErrors] = useState(emptyOfferFieldErrors);
+  const [categoryNameError, setCategoryNameError] = useState('');
+  const [heroFieldErrors, setHeroFieldErrors] = useState({});
+  const [offerImageError, setOfferImageError] = useState('');
+  const [heroImageError, setHeroImageError] = useState('');
   const [offerDateTouched, setOfferDateTouched] = useState(false);
 
   const [previewOffer, setPreviewOffer] = useState(null);
@@ -329,9 +413,10 @@ export const AdminOffersManager = () => {
 
   // --- Offer handlers (UI only) ---
   const openAddOffer = () => {
-    if (!isAdmin) { addToast('Only administrators can add offers', 'error'); return; }
     setEditingOffer(null);
     setOfferDateTouched(false);
+    setOfferImageError('');
+    setOfferFieldErrors(emptyOfferFieldErrors);
     setOfferForm({ ...emptyOfferForm, sortOrder: offers.length + 1 });
     setIsOfferModalOpen(true);
   };
@@ -339,6 +424,8 @@ export const AdminOffersManager = () => {
   const openEditOffer = (offer) => {
     setEditingOffer(offer);
     setOfferDateTouched(false);
+    setOfferImageError('');
+    setOfferFieldErrors(emptyOfferFieldErrors);
     const status = getLifecycleStatus(offer);
     setOfferForm({
       ...emptyOfferForm,
@@ -352,7 +439,13 @@ export const AdminOffersManager = () => {
     setIsOfferModalOpen(true);
   };
 
-  const closeOfferModal = () => { setIsOfferModalOpen(false); setEditingOffer(null); setOfferDateTouched(false); };
+  const closeOfferModal = () => {
+    setIsOfferModalOpen(false);
+    setEditingOffer(null);
+    setOfferDateTouched(false);
+    setOfferImageError('');
+    setOfferFieldErrors(emptyOfferFieldErrors);
+  };
 
   const serverToday = useMemo(
     () => offers.find((o) => o.serverToday)?.serverToday || getTodayYmd(),
@@ -384,21 +477,63 @@ export const AdminOffersManager = () => {
     if (name === 'startDate' || name === 'endDate') {
       setOfferDateTouched(true);
     }
+
+    const textLimits = {
+      title: ADMIN_TEXT_LIMITS.offerTitle.max,
+      subtitle: OFFER_SUBTITLE_MAX,
+      description: ADMIN_TEXT_LIMITS.offerDescription.max,
+      badge: ADMIN_TEXT_LIMITS.offerBadge.max,
+      buttonText: OFFER_BUTTON_TEXT_MAX,
+    };
+
+    let nextValue = type === 'checkbox' ? checked : value;
+    if (typeof nextValue === 'string' && textLimits[name]) {
+      nextValue = boundAdminText(nextValue, textLimits[name]);
+    }
+
     setOfferForm((prev) => {
-      const next = { ...prev, [name]: type === 'checkbox' ? checked : value };
+      const next = { ...prev, [name]: nextValue };
       // Keep end date from falling before start when start moves forward.
       if (name === 'startDate' && next.endDate && next.endDate < value) {
         next.endDate = value;
       }
       return next;
     });
+
+    if (Object.prototype.hasOwnProperty.call(emptyOfferFieldErrors, name) || name === 'category') {
+      setOfferFieldErrors((prev) => ({
+        ...prev,
+        [name]: validateOfferField(name, nextValue),
+      }));
+    }
+  };
+
+  const handleOfferBlur = (e) => {
+    const { name, value } = e.target;
+    if (!Object.prototype.hasOwnProperty.call(emptyOfferFieldErrors, name) && name !== 'category') {
+      return;
+    }
+    const cleaned = sanitizeAdminText(value, { collapse: name !== 'description' });
+    setOfferForm((prev) => ({ ...prev, [name]: cleaned }));
+    setOfferFieldErrors((prev) => ({
+      ...prev,
+      [name]: validateOfferField(name, cleaned),
+    }));
   };
 
   const handleOfferImage = (field) => async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (rejectInvalidCmsImageFile(file, (msg) => addToast(msg, 'error'), e.target)) return;
 
+    const { valid, error } = validateCmsImageFile(file, { maxBytes: CMS_IMAGE_MAX_BYTES });
+    if (!valid) {
+      setOfferImageError(error);
+      addToast(error, 'error');
+      e.target.value = '';
+      return;
+    }
+
+    setOfferImageError('');
     setOfferForm((prev) => ({ ...prev, [field]: URL.createObjectURL(file) }));
     try {
       const uploadedUrl = await offerService.uploadOfferImage(file);
@@ -406,8 +541,13 @@ export const AdminOffersManager = () => {
       addToast('Image uploaded', 'success');
     } catch (err) {
       console.error('Offer image upload failed', err);
-      addToast(err.message || 'Failed to upload image', 'error');
+      const message =
+        err.response?.data?.message || err.message || 'Failed to upload image';
+      setOfferImageError(message);
+      addToast(message, 'error');
       setOfferForm((prev) => ({ ...prev, [field]: '' }));
+    } finally {
+      e.target.value = '';
     }
   };
 
@@ -434,9 +574,25 @@ export const AdminOffersManager = () => {
 
   const handleSaveOffer = async (e) => {
     e.preventDefault();
-    if (!offerForm.title.trim()) { addToast('Offer title is required', 'error'); return; }
-    if (!offerForm.category.trim()) { addToast('Offer category is required', 'error'); return; }
+
+    const nextErrors = {
+      title: validateOfferField('title', offerForm.title),
+      subtitle: validateOfferField('subtitle', offerForm.subtitle),
+      description: validateOfferField('description', offerForm.description),
+      badge: validateOfferField('badge', offerForm.badge),
+      buttonText: validateOfferField('buttonText', offerForm.buttonText),
+      category: validateOfferField('category', offerForm.category),
+    };
+    setOfferFieldErrors(nextErrors);
+
+    const firstError = Object.values(nextErrors).find(Boolean);
+    if (firstError) {
+      addToast(firstError, 'error');
+      return;
+    }
+
     if (!offerForm.image || offerForm.image.startsWith('blob:')) {
+      setOfferImageError('Please upload an offer image (and wait for it to finish)');
       addToast('Please upload an offer image (and wait for it to finish)', 'error');
       return;
     }
@@ -495,7 +651,6 @@ export const AdminOffersManager = () => {
   };
 
   const duplicateOffer = async (offer) => {
-    if (!isAdmin) { addToast('Only administrators can duplicate offers', 'error'); return; }
     try {
       await offerService.createOffer({
         title: `${offer.title} (Copy)`,
@@ -540,20 +695,26 @@ export const AdminOffersManager = () => {
 
   // --- Category handlers (wired to backend) ---
   const openAddCategory = () => {
-    if (!isAdmin) { addToast('Only administrators can add categories', 'error'); return; }
     setEditingCategory(null);
+    setCategoryNameError('');
     setCategoryForm({ name: '', active: true });
     setIsCategoryModalOpen(true);
   };
   const openEditCategory = (cat) => {
     setEditingCategory(cat);
+    setCategoryNameError('');
     setCategoryForm({ name: cat.name, active: cat.active });
     setIsCategoryModalOpen(true);
   };
   const handleSaveCategory = async (e) => {
     e.preventDefault();
-    const name = categoryForm.name.trim();
-    if (!name) { addToast('Category name is required', 'error'); return; }
+    const name = sanitizeAdminText(categoryForm.name);
+    const nameError = validateOfferCategoryName(name);
+    setCategoryNameError(nameError);
+    if (nameError) {
+      addToast(nameError, 'error');
+      return;
+    }
     setCategorySaving(true);
     try {
       if (editingCategory) {
@@ -604,19 +765,30 @@ export const AdminOffersManager = () => {
 
   const handleHeroChange = (e) => {
     const { name, value } = e.target;
-    setHeroForm((prev) => ({ ...prev, [name]: value }));
+    const max = HERO_FIELD_LIMITS[name];
+    const nextValue = max ? boundAdminText(value, max) : value;
+    setHeroForm((prev) => ({ ...prev, [name]: nextValue }));
+    if (max) {
+      setHeroFieldErrors((prev) => ({
+        ...prev,
+        [name]: validateHeroField(name, nextValue),
+      }));
+    }
   };
 
   const handleHeroImage = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (rejectInvalidCmsImageFile(file, (msg) => addToast(msg, 'error'), e.target)) return;
-    if (file.size > HERO_IMAGE_MAX_BYTES) {
-      addToast('Banner image must be 3MB or smaller', 'error');
+
+    const { valid, error } = validateCmsImageFile(file, { maxBytes: HERO_IMAGE_MAX_BYTES });
+    if (!valid) {
+      setHeroImageError(error);
+      addToast(error, 'error');
       e.target.value = '';
       return;
     }
 
+    setHeroImageError('');
     const preview = URL.createObjectURL(file);
     setHeroForm((prev) => ({ ...prev, heroImage: preview }));
     setHeroImageUploading(true);
@@ -626,7 +798,10 @@ export const AdminOffersManager = () => {
       addToast('Banner image uploaded', 'success');
     } catch (err) {
       console.error('Hero banner image upload failed', err);
-      addToast(err.message || 'Failed to upload banner image', 'error');
+      const message =
+        err.response?.data?.message || err.message || 'Failed to upload banner image';
+      setHeroImageError(message);
+      addToast(message, 'error');
       setHeroForm((prev) => ({ ...prev, heroImage: '' }));
     } finally {
       setHeroImageUploading(false);
@@ -636,16 +811,25 @@ export const AdminOffersManager = () => {
 
   const handleHeroSubmit = async (e) => {
     e.preventDefault();
-    if (!isAdmin) {
-      addToast('Only administrators can update banners', 'error');
-      return;
-    }
     if (!heroForm.heroImage) {
       addToast('Banner image is required', 'error');
       return;
     }
     if (heroForm.heroImage.startsWith('blob:')) {
       addToast('Please wait for the image to finish uploading', 'error');
+      return;
+    }
+
+    const nextHeroErrors = {
+      heroTitle: validateHeroField('heroTitle', heroForm.heroTitle),
+      heroSubtitle: validateHeroField('heroSubtitle', heroForm.heroSubtitle),
+      heroDescription: validateHeroField('heroDescription', heroForm.heroDescription),
+      heroButtonText: validateHeroField('heroButtonText', heroForm.heroButtonText),
+    };
+    setHeroFieldErrors(nextHeroErrors);
+    const firstHeroError = Object.values(nextHeroErrors).find(Boolean);
+    if (firstHeroError) {
+      addToast(firstHeroError, 'error');
       return;
     }
 
@@ -794,7 +978,7 @@ export const AdminOffersManager = () => {
           {/* Offers table */}
           {paginatedOffers.length > 0 ? (
             <div className="table-responsive-wrapper offm-table-card">
-              <table className="admin-table">
+              <table className="admin-table admin-offers-table">
                 <thead>
                   <tr>
                     <th>Image</th>
@@ -842,9 +1026,7 @@ export const AdminOffersManager = () => {
                             {offer.active ? <FaToggleOn /> : <FaToggleOff />}
                           </button>
                           <button className="btn-action-cell" onClick={() => duplicateOffer(offer)} title="Duplicate" style={{ color: '#6366f1' }}><FaCopy /></button>
-                          {isAdmin && (
-                            <button className="btn-action-cell delete" onClick={() => setDeleteTarget(offer)} title="Delete"><FaTrash /></button>
-                          )}
+                          <button className="btn-action-cell delete" onClick={() => setDeleteTarget(offer)} title="Delete"><FaTrash /></button>
                         </div>
                       </td>
                     </tr>
@@ -929,7 +1111,7 @@ export const AdminOffersManager = () => {
 
             <div className="admin-form-group">
               <AdminFieldLabel htmlFor="hero-banner-upload" required>Banner Image</AdminFieldLabel>
-              <div className="image-upload-zone">
+              <div className={`image-upload-zone${heroImageError ? ' admin-input-invalid' : ''}`}>
                 <input
                   type="file"
                   accept={CMS_IMAGE_ACCEPT}
@@ -941,7 +1123,7 @@ export const AdminOffersManager = () => {
                   <FaImage /> {heroImageUploading ? 'Uploading…' : 'Upload Banner Image'}
                 </label>
                 <p style={{ margin: '8px 0 0', fontSize: '0.8rem', color: '#64748b' }}>
-                  PNG, JPG, JPEG, WEBP · Max 3MB
+                  JPG, JPEG, PNG, WEBP · Max 5 MB
                 </p>
                 {heroForm.heroImage ? (
                   <img
@@ -951,24 +1133,99 @@ export const AdminOffersManager = () => {
                   />
                 ) : null}
               </div>
+              {heroImageError ? (
+                <p className="admin-field-error" role="alert">{heroImageError}</p>
+              ) : null}
             </div>
 
             <div className="admin-form-group">
               <AdminFieldLabel htmlFor="offm-hero-title" optional>Title</AdminFieldLabel>
-              <input id="offm-hero-title" type="text" name="heroTitle" value={heroForm.heroTitle} onChange={handleHeroChange} />
+              <input
+                id="offm-hero-title"
+                type="text"
+                name="heroTitle"
+                value={heroForm.heroTitle}
+                onChange={handleHeroChange}
+                maxLength={HERO_FIELD_LIMITS.heroTitle}
+                className={heroFieldErrors.heroTitle ? 'admin-input-invalid' : ''}
+              />
+              <div className="admin-field-meta">
+                {heroFieldErrors.heroTitle ? (
+                  <p className="admin-field-error" role="alert">{heroFieldErrors.heroTitle}</p>
+                ) : (
+                  <span />
+                )}
+                <span className="admin-char-counter">
+                  {formatCharCounter(heroForm.heroTitle, HERO_FIELD_LIMITS.heroTitle)}
+                </span>
+              </div>
             </div>
             <div className="admin-form-group">
               <AdminFieldLabel htmlFor="offm-hero-subtitle" optional>Subtitle</AdminFieldLabel>
-              <input id="offm-hero-subtitle" type="text" name="heroSubtitle" value={heroForm.heroSubtitle} onChange={handleHeroChange} />
+              <input
+                id="offm-hero-subtitle"
+                type="text"
+                name="heroSubtitle"
+                value={heroForm.heroSubtitle}
+                onChange={handleHeroChange}
+                maxLength={HERO_FIELD_LIMITS.heroSubtitle}
+                className={heroFieldErrors.heroSubtitle ? 'admin-input-invalid' : ''}
+              />
+              <div className="admin-field-meta">
+                {heroFieldErrors.heroSubtitle ? (
+                  <p className="admin-field-error" role="alert">{heroFieldErrors.heroSubtitle}</p>
+                ) : (
+                  <span />
+                )}
+                <span className="admin-char-counter">
+                  {formatCharCounter(heroForm.heroSubtitle, HERO_FIELD_LIMITS.heroSubtitle)}
+                </span>
+              </div>
             </div>
             <div className="admin-form-group">
               <AdminFieldLabel htmlFor="offm-hero-description" optional>Description</AdminFieldLabel>
-              <textarea id="offm-hero-description" name="heroDescription" rows={2} value={heroForm.heroDescription} onChange={handleHeroChange} />
+              <textarea
+                id="offm-hero-description"
+                name="heroDescription"
+                rows={2}
+                value={heroForm.heroDescription}
+                onChange={handleHeroChange}
+                maxLength={HERO_FIELD_LIMITS.heroDescription}
+                className={heroFieldErrors.heroDescription ? 'admin-input-invalid' : ''}
+              />
+              <div className="admin-field-meta">
+                {heroFieldErrors.heroDescription ? (
+                  <p className="admin-field-error" role="alert">{heroFieldErrors.heroDescription}</p>
+                ) : (
+                  <span />
+                )}
+                <span className="admin-char-counter">
+                  {formatCharCounter(heroForm.heroDescription, HERO_FIELD_LIMITS.heroDescription)}
+                </span>
+              </div>
             </div>
             <div className="admin-form-group row-split" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <div>
                 <AdminFieldLabel htmlFor="offm-hero-button-text" optional>Button Text</AdminFieldLabel>
-                <input id="offm-hero-button-text" type="text" name="heroButtonText" value={heroForm.heroButtonText} onChange={handleHeroChange} />
+                <input
+                  id="offm-hero-button-text"
+                  type="text"
+                  name="heroButtonText"
+                  value={heroForm.heroButtonText}
+                  onChange={handleHeroChange}
+                  maxLength={HERO_FIELD_LIMITS.heroButtonText}
+                  className={heroFieldErrors.heroButtonText ? 'admin-input-invalid' : ''}
+                />
+                <div className="admin-field-meta">
+                  {heroFieldErrors.heroButtonText ? (
+                    <p className="admin-field-error" role="alert">{heroFieldErrors.heroButtonText}</p>
+                  ) : (
+                    <span />
+                  )}
+                  <span className="admin-char-counter">
+                    {formatCharCounter(heroForm.heroButtonText, HERO_FIELD_LIMITS.heroButtonText)}
+                  </span>
+                </div>
               </div>
               <div>
                 <AdminFieldLabel htmlFor="offm-hero-button-link" optional>Button URL</AdminFieldLabel>
@@ -1046,17 +1303,96 @@ export const AdminOffersManager = () => {
             </div>
             <form onSubmit={handleSaveOffer}>
               <div className="modal-body">
-                <div className="admin-form-group"><AdminFieldLabel htmlFor="offm-offer-title" required>Offer Title</AdminFieldLabel><input id="offm-offer-title" type="text" name="title" value={offerForm.title} onChange={handleOfferChange} placeholder="e.g. Mega Flash Sale" required /></div>
-                <div className="admin-form-group"><AdminFieldLabel htmlFor="offm-offer-subtitle" optional>Subtitle</AdminFieldLabel><input id="offm-offer-subtitle" type="text" name="subtitle" value={offerForm.subtitle} onChange={handleOfferChange} /></div>
-                <div className="admin-form-group"><AdminFieldLabel htmlFor="offm-offer-description" optional>Description</AdminFieldLabel><textarea id="offm-offer-description" name="description" rows={3} value={offerForm.description} onChange={handleOfferChange} /></div>
+                <div className="admin-form-group">
+                  <AdminFieldLabel htmlFor="offm-offer-title" required>Offer Title</AdminFieldLabel>
+                  <input
+                    id="offm-offer-title"
+                    type="text"
+                    name="title"
+                    value={offerForm.title}
+                    onChange={handleOfferChange}
+                    onBlur={handleOfferBlur}
+                    placeholder="e.g. Mega Flash Sale"
+                    maxLength={ADMIN_TEXT_LIMITS.offerTitle.max}
+                    required
+                    className={offerFieldErrors.title ? 'admin-input-invalid' : ''}
+                    aria-invalid={Boolean(offerFieldErrors.title)}
+                  />
+                  <div className="admin-field-meta">
+                    {offerFieldErrors.title ? (
+                      <p className="admin-field-error" role="alert">{offerFieldErrors.title}</p>
+                    ) : (
+                      <span />
+                    )}
+                    <span className="admin-char-counter">
+                      {formatCharCounter(offerForm.title, ADMIN_TEXT_LIMITS.offerTitle.max)}
+                    </span>
+                  </div>
+                </div>
+                <div className="admin-form-group">
+                  <AdminFieldLabel htmlFor="offm-offer-subtitle" optional>Subtitle</AdminFieldLabel>
+                  <input
+                    id="offm-offer-subtitle"
+                    type="text"
+                    name="subtitle"
+                    value={offerForm.subtitle}
+                    onChange={handleOfferChange}
+                    onBlur={handleOfferBlur}
+                    maxLength={OFFER_SUBTITLE_MAX}
+                    className={offerFieldErrors.subtitle ? 'admin-input-invalid' : ''}
+                  />
+                  <div className="admin-field-meta">
+                    {offerFieldErrors.subtitle ? (
+                      <p className="admin-field-error" role="alert">{offerFieldErrors.subtitle}</p>
+                    ) : (
+                      <span />
+                    )}
+                    <span className="admin-char-counter">
+                      {formatCharCounter(offerForm.subtitle, OFFER_SUBTITLE_MAX)}
+                    </span>
+                  </div>
+                </div>
+                <div className="admin-form-group">
+                  <AdminFieldLabel htmlFor="offm-offer-description" optional>Description</AdminFieldLabel>
+                  <textarea
+                    id="offm-offer-description"
+                    name="description"
+                    rows={3}
+                    value={offerForm.description}
+                    onChange={handleOfferChange}
+                    onBlur={handleOfferBlur}
+                    maxLength={ADMIN_TEXT_LIMITS.offerDescription.max}
+                    className={offerFieldErrors.description ? 'admin-input-invalid' : ''}
+                  />
+                  <div className="admin-field-meta">
+                    {offerFieldErrors.description ? (
+                      <p className="admin-field-error" role="alert">{offerFieldErrors.description}</p>
+                    ) : (
+                      <span />
+                    )}
+                    <span className="admin-char-counter">
+                      {formatCharCounter(offerForm.description, ADMIN_TEXT_LIMITS.offerDescription.max)}
+                    </span>
+                  </div>
+                </div>
 
                 <div className="admin-form-group row-split" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
                   <div>
                     <AdminFieldLabel htmlFor="offm-offer-category" required>Offer Category</AdminFieldLabel>
-                    <select id="offm-offer-category" name="category" value={offerForm.category} onChange={handleOfferChange}>
+                    <select
+                      id="offm-offer-category"
+                      name="category"
+                      value={offerForm.category}
+                      onChange={handleOfferChange}
+                      className={offerFieldErrors.category ? 'admin-input-invalid' : ''}
+                      required
+                    >
                       <option value="">{categoryNames.length ? 'Select a category' : 'No categories — add one in the Categories tab'}</option>
                       {categoryNames.map((c) => <option key={c} value={c}>{c}</option>)}
                     </select>
+                    {offerFieldErrors.category ? (
+                      <p className="admin-field-error" role="alert">{offerFieldErrors.category}</p>
+                    ) : null}
                   </div>
                   <div>
                     <AdminFieldLabel htmlFor="offm-offer-department" optional>Offer Type</AdminFieldLabel>
@@ -1078,10 +1414,58 @@ export const AdminOffersManager = () => {
                   <div><AdminFieldLabel htmlFor="offm-offer-price" optional>Offer Price (€)</AdminFieldLabel><input id="offm-offer-price" type="number" step="0.01" name="offerPrice" value={offerForm.offerPrice} onChange={handleOfferChange} /></div>
                 </div>
 
-                <div className="admin-form-group"><AdminFieldLabel htmlFor="offm-offer-badge" optional>Offer Badge</AdminFieldLabel><input id="offm-offer-badge" type="text" name="badge" value={offerForm.badge} onChange={handleOfferChange} placeholder="e.g. 20% OFF, BUY 1 GET 1, COMBO DEAL" /></div>
+                <div className="admin-form-group">
+                  <AdminFieldLabel htmlFor="offm-offer-badge" optional>Offer Badge</AdminFieldLabel>
+                  <input
+                    id="offm-offer-badge"
+                    type="text"
+                    name="badge"
+                    value={offerForm.badge}
+                    onChange={handleOfferChange}
+                    onBlur={handleOfferBlur}
+                    placeholder="e.g. 20% OFF, BUY 1 GET 1, COMBO DEAL"
+                    maxLength={ADMIN_TEXT_LIMITS.offerBadge.max}
+                    className={offerFieldErrors.badge ? 'admin-input-invalid' : ''}
+                  />
+                  <div className="admin-field-meta">
+                    {offerFieldErrors.badge ? (
+                      <p className="admin-field-error" role="alert">{offerFieldErrors.badge}</p>
+                    ) : (
+                      <span />
+                    )}
+                    <span className="admin-char-counter">
+                      {formatCharCounter(offerForm.badge, ADMIN_TEXT_LIMITS.offerBadge.max)}
+                    </span>
+                  </div>
+                </div>
                 <div className="admin-form-group row-split" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                  <div><AdminFieldLabel htmlFor="offm-offer-button-text" optional>Button Text</AdminFieldLabel><input id="offm-offer-button-text" type="text" name="buttonText" value={offerForm.buttonText} onChange={handleOfferChange} /></div>
-                  <div><AdminFieldLabel htmlFor="offm-offer-button-link" optional>Button URL</AdminFieldLabel><input id="offm-offer-button-link" type="text" name="buttonLink" value={offerForm.buttonLink} onChange={handleOfferChange} placeholder="#enquiry for WhatsApp enquiry" /></div>
+                  <div>
+                    <AdminFieldLabel htmlFor="offm-offer-button-text" optional>Button Text</AdminFieldLabel>
+                    <input
+                      id="offm-offer-button-text"
+                      type="text"
+                      name="buttonText"
+                      value={offerForm.buttonText}
+                      onChange={handleOfferChange}
+                      onBlur={handleOfferBlur}
+                      maxLength={OFFER_BUTTON_TEXT_MAX}
+                      className={offerFieldErrors.buttonText ? 'admin-input-invalid' : ''}
+                    />
+                    <div className="admin-field-meta">
+                      {offerFieldErrors.buttonText ? (
+                        <p className="admin-field-error" role="alert">{offerFieldErrors.buttonText}</p>
+                      ) : (
+                        <span />
+                      )}
+                      <span className="admin-char-counter">
+                        {formatCharCounter(offerForm.buttonText, OFFER_BUTTON_TEXT_MAX)}
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <AdminFieldLabel htmlFor="offm-offer-button-link" optional>Button URL</AdminFieldLabel>
+                    <input id="offm-offer-button-link" type="text" name="buttonLink" value={offerForm.buttonLink} onChange={handleOfferChange} placeholder="#enquiry for WhatsApp enquiry" />
+                  </div>
                 </div>
 
                 <div className="admin-form-group row-split" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
@@ -1119,12 +1503,18 @@ export const AdminOffersManager = () => {
 
                 <div className="admin-form-group">
                   <AdminFieldLabel htmlFor="offm-offer-image" required>Offer Image</AdminFieldLabel>
-                  <div className="image-upload-zone offm-upload-mini">
+                  <div className={`image-upload-zone offm-upload-mini${offerImageError ? ' admin-input-invalid' : ''}`}>
                     <input type="file" accept={CMS_IMAGE_ACCEPT} id="up-image" onChange={handleOfferImage('image')} style={{ display: 'none' }} />
                     <label htmlFor="up-image" style={{ cursor: 'pointer', margin: 0, color: 'var(--admin-sidebar-active)', fontWeight: 600, fontSize: '0.82rem' }}>
                       <FaImage /> Upload
                     </label>
                   </div>
+                  <p style={{ margin: '6px 0 0', fontSize: '0.75rem', color: '#64748b' }}>
+                    JPG, JPEG, PNG, WEBP · Max 5 MB
+                  </p>
+                  {offerImageError ? (
+                    <p className="admin-field-error" role="alert">{offerImageError}</p>
+                  ) : null}
                   {offerForm.image && <img src={getImageUrl(offerForm.image)} alt="Offer" className="offm-upload-preview" />}
                 </div>
 
@@ -1171,7 +1561,33 @@ export const AdminOffersManager = () => {
             </div>
             <form onSubmit={handleSaveCategory}>
               <div className="modal-body">
-                <div className="admin-form-group"><AdminFieldLabel htmlFor="offm-category-name" required>Category Name</AdminFieldLabel><input id="offm-category-name" type="text" value={categoryForm.name} onChange={(e) => setCategoryForm((p) => ({ ...p, name: e.target.value }))} placeholder="e.g. Flash Sale" required /></div>
+                <div className="admin-form-group">
+                  <AdminFieldLabel htmlFor="offm-category-name" required>Category Name</AdminFieldLabel>
+                  <input
+                    id="offm-category-name"
+                    type="text"
+                    value={categoryForm.name}
+                    onChange={(e) => {
+                      const next = boundAdminText(e.target.value, OFFER_CATEGORY_NAME_MAX);
+                      setCategoryForm((p) => ({ ...p, name: next }));
+                      setCategoryNameError(validateOfferCategoryName(next));
+                    }}
+                    placeholder="e.g. Flash Sale"
+                    maxLength={OFFER_CATEGORY_NAME_MAX}
+                    required
+                    className={categoryNameError ? 'admin-input-invalid' : ''}
+                  />
+                  <div className="admin-field-meta">
+                    {categoryNameError ? (
+                      <p className="admin-field-error" role="alert">{categoryNameError}</p>
+                    ) : (
+                      <span />
+                    )}
+                    <span className="admin-char-counter">
+                      {formatCharCounter(categoryForm.name, OFFER_CATEGORY_NAME_MAX)}
+                    </span>
+                  </div>
+                </div>
                 <label className="offm-switch-row"><span>Active</span>
                   <span className="toggle-switch-admin"><input type="checkbox" checked={categoryForm.active} onChange={(e) => setCategoryForm((p) => ({ ...p, active: e.target.checked }))} /><span className="toggle-slider-admin" /></span>
                 </label>

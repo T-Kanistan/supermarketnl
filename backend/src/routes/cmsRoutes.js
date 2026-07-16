@@ -47,7 +47,7 @@ router.put(
   validateRequest,
   markMessageRead
 );
-router.delete('/messages/:id', protect, adminOnly, deleteMessage);
+router.delete('/messages/:id', protect, restrictTo('admin', 'manager'), deleteMessage);
 
 router.use('/announcements', announcementRoutes);
 

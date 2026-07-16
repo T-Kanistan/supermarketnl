@@ -22,7 +22,7 @@ import AdminFieldLabel from '../../../components/admin/AdminFieldLabel';
 
 export const AdminProducts = () => {
   const { productName, weightUnit, productDescription, menuTiming } = ADMIN_TEXT_LIMITS;
-  const { isAdmin, isManager } = useAuth();
+  const { isAdmin } = useAuth();
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const isFoodCornerRoute = location.pathname.endsWith('/food-corner');
@@ -214,10 +214,6 @@ export const AdminProducts = () => {
   };
 
   const openAddModal = async () => {
-    if (!isAdmin) {
-      addToast('Only administrators can add products', 'error');
-      return;
-    }
     setEditingProduct(null);
     const selectedProductType = isGroceryCatalog ? 'grocery' : 'food-corner';
     const cats = await loadModalCategories(selectedProductType);
@@ -509,7 +505,8 @@ export const AdminProducts = () => {
       if (needsImage && (!imageValue || imageValue.startsWith('blob:'))) {
         errors.imageUrl = 'Please upload a product image.';
       } else if (imageValue && !imageValue.startsWith('blob:') && !/\.(jpe?g|png|webp)(\?.*)?$/i.test(imageValue) && !/^data:image\/(jpeg|jpg|png|webp);/i.test(imageValue)) {
-        errors.imageUrl = 'Only JPG, JPEG, PNG, and WEBP images are allowed.';
+        errors.imageUrl =
+          'Unsupported file format. Please upload JPG, JPEG, PNG, or WEBP image files only.';
       }
     }
 
@@ -543,18 +540,19 @@ export const AdminProducts = () => {
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const allowedMime = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-    if (!allowedMime.includes(String(file.type || '').toLowerCase())) {
-      addToast('Only JPG, JPEG, PNG, and WEBP images are allowed.', 'error');
-      e.target.value = '';
+    if (
+      rejectInvalidCmsImageFile(
+        file,
+        (msg) => {
+          addToast(msg, 'error');
+          setFormErrors((prev) => ({ ...prev, imageUrl: msg }));
+        },
+        e.target,
+        { maxBytes: 2 * 1024 * 1024 }
+      )
+    ) {
       return;
     }
-    if (file.size > 2 * 1024 * 1024) {
-      addToast('Image size must not exceed 2 MB.', 'error');
-      e.target.value = '';
-      return;
-    }
-    if (rejectInvalidCmsImageFile(file, (msg) => addToast(msg, 'error'), e.target)) return;
 
     const previewUrl = URL.createObjectURL(file);
     setFormData((prev) => ({ ...prev, imageUrl: previewUrl }));
@@ -566,15 +564,14 @@ export const AdminProducts = () => {
       addToast('Image uploaded successfully', 'success');
     } catch (err) {
       console.error('Image upload failed', err);
-      addToast(err.response?.data?.message || 'Failed to upload image', 'error');
+      const message = err.response?.data?.message || 'Failed to upload image';
+      addToast(message, 'error');
+      setFormErrors((prev) => ({ ...prev, imageUrl: message }));
+      setFormData((prev) => ({ ...prev, imageUrl: '' }));
     }
   };
 
   const handleDelete = async (id) => {
-    if (!isAdmin) {
-      addToast('Only administrators can permanently delete products', 'error');
-      return;
-    }
     if (!window.confirm('Delete this product permanently?')) return;
     try {
       await productService.deleteProduct(id);
@@ -618,10 +615,6 @@ export const AdminProducts = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!editingProduct && !isAdmin) {
-      addToast('Only administrators can add products', 'error');
-      return;
-    }
     const cleanedForm = {
       ...formData,
       productType: isGroceryCatalog ? 'grocery' : 'food-corner',
@@ -740,23 +733,21 @@ export const AdminProducts = () => {
         <div className="view-title-wrap">
           <h2>{typeFilter === 'food-corner' ? 'Food Corner Items' : 'Catalog Products'}</h2>
           <p>
-            {isManager
-              ? typeFilter === 'food-corner'
-                ? 'View and edit food corner menu items, pricing, availability, and featured status.'
-                : 'View and edit grocery products, pricing, stock, and featured status.'
-              : 'Create, update, and manage inventory products and ready-to-eat restaurant items.'}
+            {typeFilter === 'food-corner'
+              ? 'Create, update, and manage food corner menu items, pricing, and availability.'
+              : 'Create, update, and manage grocery products, pricing, stock, and featured status.'}
           </p>
         </div>
-        {isAdmin && (
-          <div style={{ display: 'flex', gap: '12px' }}>
+        <div className="view-header-actions">
+          {isAdmin && (
             <button className="action-btn-secondary" onClick={openAdjustModal}>
               <FaSlidersH /> Adjust Prices
             </button>
-            <button className="action-btn-primary" onClick={openAddModal}>
-              <FaPlus /> Add Product
-            </button>
-          </div>
-        )}
+          )}
+          <button className="action-btn-primary" onClick={openAddModal}>
+            <FaPlus /> Add Product
+          </button>
+        </div>
       </div>
 
       {/* Search and Filters Controls */}
@@ -824,7 +815,7 @@ export const AdminProducts = () => {
         </div>
       ) : paginatedProducts.length > 0 ? (
         <div className="table-responsive-wrapper">
-          <table className="admin-table">
+          <table className="admin-table admin-products-table">
             <thead>
               <tr>
                 <th>Image</th>
@@ -850,17 +841,36 @@ export const AdminProducts = () => {
                     />
                   </td>
                   <td data-label="Product Name">
-                    <div style={{ fontWeight: 600 }}>{prod.productName || prod.name}</div>
+                    <div
+                      className="admin-table-ellipsis"
+                      style={{ fontWeight: 600 }}
+                      title={prod.productName || prod.name || ''}
+                    >
+                      {prod.productName || prod.name}
+                    </div>
                     {(prod.weightUnit || prod.weight) && (
                       <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{prod.weightUnit || prod.weight}</span>
                     )}
                   </td>
                   <td data-label="Type">
-                    <span style={{ fontSize: '0.8rem', background: mapProductType(prod.productType || prod.type) === 'food-corner' ? '#fef3c7' : '#dcfce7', color: mapProductType(prod.productType || prod.type) === 'food-corner' ? '#b45309' : '#15803d', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
+                    <span
+                      className={`admin-type-badge ${
+                        mapProductType(prod.productType || prod.type) === 'food-corner'
+                          ? 'admin-type-badge--food'
+                          : 'admin-type-badge--grocery'
+                      }`}
+                    >
                       {mapProductType(prod.productType || prod.type) === 'food-corner' ? 'Food Corner' : 'Grocery'}
                     </span>
                   </td>
-                  <td data-label="Category">{getCategoryName(prod.categoryId, prod.productType || prod.type)}</td>
+                  <td data-label="Category">
+                    <span
+                      className="admin-table-ellipsis"
+                      title={getCategoryName(prod.categoryId, prod.productType || prod.type) || ''}
+                    >
+                      {getCategoryName(prod.categoryId, prod.productType || prod.type)}
+                    </span>
+                  </td>
                   <td data-label="Price" style={{ fontWeight: 600 }}>
                     {prod.price != null && Number.isFinite(Number(prod.price))
                       ? `€${Number(prod.price).toFixed(2)}`
@@ -908,11 +918,9 @@ export const AdminProducts = () => {
                       >
                         <FaEdit />
                       </button>
-                      {isAdmin ? (
-                        <button className="btn-action-cell delete" onClick={() => handleDelete(prod.id)} title="Delete Product">
-                          <FaTrash />
-                        </button>
-                      ) : null}
+                      <button className="btn-action-cell delete" onClick={() => handleDelete(prod.id)} title="Delete Product">
+                        <FaTrash />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -1167,11 +1175,10 @@ export const AdminProducts = () => {
                         ref={(el) => { formFieldRefs.current.imageUrl = el; }}
                         className={formErrors.imageUrl ? 'admin-input-invalid' : ''}
                       />
-                      {formErrors.imageUrl ? <p className="admin-field-error" role="alert">{formErrors.imageUrl}</p> : null}
                     </div>
                     <div>
                       <label className="admin-field-hint" style={{ fontWeight: 600, color: '#334155' }}>Or Upload Product Image</label>
-                      <div className="image-upload-zone" style={{ padding: '8px' }}>
+                      <div className={`image-upload-zone${formErrors.imageUrl ? ' admin-input-invalid' : ''}`} style={{ padding: '8px' }}>
                         <input 
                           type="file" 
                           accept={CMS_IMAGE_ACCEPT} 
@@ -1181,12 +1188,13 @@ export const AdminProducts = () => {
                         />
                         <label htmlFor="prod-file" style={{ cursor: 'pointer', margin: 0 }}>
                           <p style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--admin-sidebar-active)' }}>
-                            Browse Files
+                            Browse JPG, JPEG, PNG, WEBP (max 2 MB)
                           </p>
                         </label>
                       </div>
                     </div>
                   </div>
+                  {formErrors.imageUrl ? <p className="admin-field-error" role="alert">{formErrors.imageUrl}</p> : null}
                 </div>
 
                 <div className="admin-form-group">

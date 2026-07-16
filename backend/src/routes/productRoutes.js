@@ -39,8 +39,7 @@ router.get('/:id', productIdRules, validateRequest, getProduct);
 
 router.post(
   '/',
-  protect,
-  adminOnly,
+  ...auth,
   normalizeProductRequestBody,
   createProductRules,
   validateRequest,
@@ -64,7 +63,7 @@ router.put(
   updateProduct
 );
 
-router.delete('/:id', protect, adminOnly, productIdRules, validateRequest, deleteProduct);
+router.delete('/:id', ...auth, productIdRules, validateRequest, deleteProduct);
 
 router.post(
   '/batch-adjust-prices',

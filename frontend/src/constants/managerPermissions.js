@@ -1,26 +1,41 @@
-export const MANAGER_PERMISSIONS = ['products', 'offers', 'enquiries', 'content'];
-
-export const ADMIN_ONLY_DASHBOARD_ROUTES = [
-  'site-settings',
+export const MANAGER_PERMISSIONS = [
+  'products',
+  'food-corner',
   'categories',
   'food-corner-categories',
-  'managers',
-  'legal-pages',
+  'offers',
+  'banners',
+  'announcements',
+  'vacancies',
+  'job-applications',
+  'enquiries',
+  'testimonials',
 ];
 
+/** Dashboard route segments only administrators may open. */
+export const ADMIN_ONLY_DASHBOARD_ROUTES = [
+  'site-settings',
+  'about-us',
+  'homepage-about',
+  'legal-pages',
+  'faqs',
+  'managers',
+];
+
+/** Dashboard route segments managers may open (full CRUD where applicable). */
 export const MANAGER_ALLOWED_DASHBOARD_ROUTES = [
   '',
   'products',
   'food-corner',
   'food-corner-items',
+  'categories',
+  'food-corner-categories',
   'offers',
   'announcements',
   'messages',
   'vacancies',
   'job-applications',
   'banners',
-  'homepage-about',
-  'faqs',
   'testimonials',
   'profile',
 ];

@@ -64,7 +64,7 @@ router.post(
 router.post(
   '/homepage-about',
   protect,
-  restrictTo('admin', 'manager'),
+  restrictTo('admin'),
   homepageAboutUpload.single('image'),
   uploadHomepageAboutImage
 );

@@ -1,4 +1,9 @@
 import { body } from 'express-validator';
+import {
+  PHONE_INVALID,
+  PHONE_REQUIRED,
+  validateContactPhone,
+} from '../utils/contactInfoValidation.js';
 
 export const updateCmsRules = [
   body('storeName')
@@ -14,8 +19,14 @@ export const updateCmsRules = [
   body('contactPhone')
     .optional()
     .trim()
-    .notEmpty()
-    .withMessage('Contact phone cannot be empty'),
+    .custom((value) => {
+      if (value === undefined || value === null) return true;
+      const trimmed = String(value).trim();
+      if (!trimmed) throw new Error(PHONE_REQUIRED);
+      const error = validateContactPhone(trimmed);
+      if (error) throw new Error(error.message || PHONE_INVALID);
+      return true;
+    }),
   body('address')
     .optional()
     .trim()
