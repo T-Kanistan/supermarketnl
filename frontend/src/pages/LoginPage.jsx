@@ -6,6 +6,7 @@ import { useToast } from '../context/ToastContext';
 import { useCMS } from '../context/CMSContext';
 import { getImageUrl } from '../services/api';
 import { normalizeRole } from '../constants/managerPermissions';
+import AppzDevelopedPopup from '../components/AppzDevelopedPopup';
 import './Auth.css';
 
 const DASHBOARD_ACCESS_DENIED =
@@ -214,6 +215,7 @@ export const LoginPage = () => {
                 Back to Home
               </Link>
             </p>
+            <AppzDevelopedPopup className="login-appz-credit" />
           </div>
         </div>
       </div>

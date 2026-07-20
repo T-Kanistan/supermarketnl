@@ -2511,7 +2511,8 @@ body.modal-open {
   .view-toolbar-search {
     max-width: none;
     width: 100%;
-    flex: 1 1 100%;
+    /* flex-basis would become height once the toolbar stacks vertically */
+    flex: none;
   }
   .view-toolbar-filters {
     width: 100%;

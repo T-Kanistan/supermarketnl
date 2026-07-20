@@ -385,7 +385,7 @@
   .vacancy-filter-bar .view-toolbar-search {
     width: 100%;
     min-width: 0;
-    flex: 1 1 100%;
+    flex: none;
   }
 
   .vacancy-stats-row {
@@ -408,7 +408,7 @@
   .vacancy-filter-bar .admin-filter-select,
   .vacancy-filter-bar .admin-search-input {
     min-width: 0;
-    flex: 1 1 100%;
+    flex: none;
   }
 
   .vacancy-modal-actions {

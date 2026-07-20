@@ -18,7 +18,7 @@ const FAQPage = () => {
   const [faqs, setFaqs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openId, setOpenId] = useState(null);
-  const { banner: pageBanner, loading: bannerLoading } = usePageBanner('faq');
+  const { banner: pageBanner, loading: bannerLoading, hasBanner } = usePageBanner('faq');
 
   const sortedFaqs = useMemo(() => sortFaqsByOrder(faqs), [faqs]);
 
@@ -45,35 +45,41 @@ const FAQPage = () => {
 
   return (
     <div className="faq-page">
-      <section className={`faq-hero${bannerLoading ? ' faq-hero--loading' : ''}`}>
-        <div
-          className="faq-hero-bg"
-          style={{ backgroundImage: `url('${getImageUrl(pageBanner.backgroundImage || pageBanner.image)}')` }}
-          aria-hidden="true"
-        />
-        <div className="faq-hero-overlay" style={getBannerOverlayStyle(pageBanner)} />
-        <div className="container faq-hero-inner">
-          <div className="faq-hero-copy">
-            <span className="faq-hero-badge">{pageBanner.badgeText}</span>
-            <h1 className="faq-hero-heading">
-              {pageBanner.highlightedTitle || pageBanner.highlightText
-                ? `${pageBanner.title || pageBanner.mainHeading} ${pageBanner.highlightedTitle || pageBanner.highlightText}`.trim()
-                : pageBanner.title || pageBanner.mainHeading}
-            </h1>
-            <p className="faq-hero-subtitle">{pageBanner.description}</p>
-          </div>
-          <div className="faq-hero-art" aria-hidden="true">
-            <div className="faq-art-ring" />
-            <div className="faq-art-bubble faq-art-bubble-main">FAQ</div>
-            <div className="faq-art-bubble faq-art-bubble-chat">
-              <span /><span /><span />
+      {!bannerLoading && hasBanner ? (
+        <section className="faq-hero">
+          <div
+            className="faq-hero-bg"
+            style={{ backgroundImage: `url('${getImageUrl(pageBanner.backgroundImage || pageBanner.image)}')` }}
+            aria-hidden="true"
+          />
+          <div className="faq-hero-overlay" style={getBannerOverlayStyle(pageBanner)} />
+          <div className="container faq-hero-inner">
+            <div className="faq-hero-copy">
+              {pageBanner.badgeText ? (
+                <span className="faq-hero-badge">{pageBanner.badgeText}</span>
+              ) : null}
+              <h1 className="faq-hero-heading">
+                {pageBanner.highlightedTitle || pageBanner.highlightText
+                  ? `${pageBanner.title || pageBanner.mainHeading} ${pageBanner.highlightedTitle || pageBanner.highlightText}`.trim()
+                  : pageBanner.title || pageBanner.mainHeading}
+              </h1>
+              {pageBanner.description ? (
+                <p className="faq-hero-subtitle">{pageBanner.description}</p>
+              ) : null}
             </div>
-            <div className="faq-art-icon">
-              <FiHelpCircle />
+            <div className="faq-hero-art" aria-hidden="true">
+              <div className="faq-art-ring" />
+              <div className="faq-art-bubble faq-art-bubble-main">FAQ</div>
+              <div className="faq-art-bubble faq-art-bubble-chat">
+                <span /><span /><span />
+              </div>
+              <div className="faq-art-icon">
+                <FiHelpCircle />
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      ) : null}
 
       <div className="faq-list-section">
         <div className="faq-list-wrap">

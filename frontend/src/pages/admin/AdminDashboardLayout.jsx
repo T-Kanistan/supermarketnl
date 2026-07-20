@@ -8,6 +8,7 @@ import {
 } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
 import AccessDenied from '../../components/AccessDenied';
+import AppzDevelopedPopup from '../../components/AppzDevelopedPopup';
 import { canManagerAccessRoute, getDashboardBase, getDashboardRouteSegment } from '../../constants/managerPermissions';
 import { useCMS } from '../../context/CMSContext';
 import { useToast } from '../../context/ToastContext';
@@ -308,8 +309,12 @@ export const AdminDashboardLayout = () => {
             </div>
             <div className="user-info">
               <span className="user-name">{displayName || 'User Account'}</span>
+              <span className="user-role" style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+                {isManager ? 'Manager' : 'Administrator'}
+              </span>
             </div>
           </div>
+          <AppzDevelopedPopup className="sidebar-appz-credit" />
         </div>
       </aside>
 

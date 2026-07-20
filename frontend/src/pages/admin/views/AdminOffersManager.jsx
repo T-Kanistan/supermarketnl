@@ -7,7 +7,13 @@ import {
 import { useToast } from '../../../context/ToastContext';
 import offerService from '../../../services/offerService';
 import { getImageUrl } from '../../../services/api';
-import { validateOfferDates, getOfferStartMinDate, getTodayYmd } from '../../../utils/offerDateValidation';
+import {
+  validateOfferDates,
+  getOfferStartMinDate,
+  getTodayYmd,
+  toYmd,
+  compareYmd,
+} from '../../../utils/offerDateValidation';
 import './AdminOffersManager.css';
 import { CMS_IMAGE_ACCEPT, CMS_IMAGE_MAX_BYTES, validateCmsImageFile } from '../../../utils/imageUploadValidation';
 import useAdminSearch from '../../../hooks/useAdminSearch';
@@ -197,10 +203,26 @@ const HERO_IMAGE_MAX_BYTES = CMS_IMAGE_MAX_BYTES;
 
 const ITEMS_PER_PAGE = 5;
 
-const getLifecycleStatus = (offer) => {
-  if (offer?.lifecycleStatus) return offer.lifecycleStatus;
-  if (offer?.status && ['scheduled', 'active', 'expired', 'inactive', 'draft'].includes(offer.status)) {
-    return offer.status;
+const getLifecycleStatus = (offer, todayYmd) => {
+  if (!offer) return 'active';
+
+  const stored = String(offer.lifecycleStatus || offer.status || '').toLowerCase();
+  if (stored === 'deleted' || stored === 'draft') return stored;
+
+  const today = todayYmd || offer.serverToday || getTodayYmd();
+  const start = toYmd(offer.startDate);
+  const end = toYmd(offer.endDate);
+
+  if (start && end) {
+    if (compareYmd(today, start) < 0) return 'scheduled';
+    if (compareYmd(today, end) > 0) return 'expired';
+    // Inside window: respect manual pause
+    if (stored === 'inactive') return 'inactive';
+    return 'active';
+  }
+
+  if (stored && ['scheduled', 'active', 'expired', 'inactive'].includes(stored)) {
+    return stored;
   }
   if (offer?.isScheduled) return 'scheduled';
   if (offer?.isExpired) return 'expired';
@@ -208,8 +230,8 @@ const getLifecycleStatus = (offer) => {
   return 'active';
 };
 
-const isExpired = (offer) => getLifecycleStatus(offer) === 'expired';
-const isScheduled = (offer) => getLifecycleStatus(offer) === 'scheduled';
+const isExpired = (offer, todayYmd) => getLifecycleStatus(offer, todayYmd) === 'expired';
+const isScheduled = (offer, todayYmd) => getLifecycleStatus(offer, todayYmd) === 'scheduled';
 
 const formatDate = (value) => {
   if (!value) return '—';
@@ -346,14 +368,19 @@ export const AdminOffersManager = () => {
   }, [anyModalOpen]);
 
   // --- Derived data ---
+  const serverToday = useMemo(
+    () => offers.find((o) => o.serverToday)?.serverToday || getTodayYmd(),
+    [offers]
+  );
+
   const stats = useMemo(() => {
     const total = offers.length;
-    const expired = offers.filter((o) => getLifecycleStatus(o) === 'expired').length;
-    const active = offers.filter((o) => getLifecycleStatus(o) === 'active').length;
-    const scheduled = offers.filter((o) => getLifecycleStatus(o) === 'scheduled').length;
+    const expired = offers.filter((o) => getLifecycleStatus(o, serverToday) === 'expired').length;
+    const active = offers.filter((o) => getLifecycleStatus(o, serverToday) === 'active').length;
+    const scheduled = offers.filter((o) => getLifecycleStatus(o, serverToday) === 'scheduled').length;
     const featured = offers.filter((o) => o.featured).length;
     return { total, active, expired, scheduled, featured };
-  }, [offers]);
+  }, [offers, serverToday]);
 
   const categoryNames = useMemo(() => {
     const set = new Set(categories.map((c) => c.name));
@@ -371,7 +398,7 @@ export const AdminOffersManager = () => {
 
   const filteredOffers = useMemo(() => {
     let list = offers.filter((offer) => {
-      const status = getLifecycleStatus(offer);
+      const status = getLifecycleStatus(offer, serverToday);
       const matchesSearch = matchesAdminSearch(searchQuery, [
         offer.title,
         offer.subtitle,
@@ -403,7 +430,7 @@ export const AdminOffersManager = () => {
       }
     });
     return list;
-  }, [offers, searchQuery, categoryFilter, statusFilter, sortOption]);
+  }, [offers, searchQuery, categoryFilter, statusFilter, sortOption, serverToday]);
 
   const totalPages = Math.ceil(filteredOffers.length / ITEMS_PER_PAGE) || 1;
   const paginatedOffers = useMemo(() => {
@@ -426,7 +453,7 @@ export const AdminOffersManager = () => {
     setOfferDateTouched(false);
     setOfferImageError('');
     setOfferFieldErrors(emptyOfferFieldErrors);
-    const status = getLifecycleStatus(offer);
+    const status = getLifecycleStatus(offer, serverToday);
     setOfferForm({
       ...emptyOfferForm,
       ...offer,
@@ -446,11 +473,6 @@ export const AdminOffersManager = () => {
     setOfferImageError('');
     setOfferFieldErrors(emptyOfferFieldErrors);
   };
-
-  const serverToday = useMemo(
-    () => offers.find((o) => o.serverToday)?.serverToday || getTodayYmd(),
-    [offers]
-  );
 
   const offerDateValidation = useMemo(
     () =>
@@ -624,7 +646,7 @@ export const AdminOffersManager = () => {
   };
 
   const toggleActive = async (offer) => {
-    const status = getLifecycleStatus(offer);
+    const status = getLifecycleStatus(offer, serverToday);
     const currentlyEnabled = status !== 'inactive' && status !== 'draft';
     const nextStatus = currentlyEnabled ? 'inactive' : 'active';
     try {
@@ -856,7 +878,7 @@ export const AdminOffersManager = () => {
   };
 
   const renderStatusBadge = (offer) => {
-    const status = getLifecycleStatus(offer);
+    const status = getLifecycleStatus(offer, serverToday);
     if (status === 'scheduled') {
       return <span className="product-status-badge inactive" style={{ background: '#fef3c7', color: '#b45309' }}>🟡 Scheduled</span>;
     }

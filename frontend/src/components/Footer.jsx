@@ -8,6 +8,7 @@ import { getImageUrl } from '../services/api';
 import { buildStoreLogoAlt } from '../utils/seoImageAlt';
 import { mapProductCategoriesToFooterLinks } from '../utils/footerCategories';
 import BusinessHoursDisplay from './BusinessHoursDisplay';
+import AppzDevelopedPopupPanel from './AppzDevelopedPopupPanel';
 import './Footer.css';
 
 const isExternalLink = (value = '') => /^https?:\/\//i.test(String(value).trim());
@@ -218,24 +219,7 @@ const Footer = () => {
                   AppZ Makers
                 </a>
                 <span className="footer-appz-popover" id="appz-popover" role="tooltip">
-                  <a
-                    className="footer-appz-popover-link"
-                    href="https://appzmake.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <img
-                      src="/appz-makers-logo.png"
-                      alt="AppZ Makers logo"
-                      className="footer-appz-logo"
-                      width="150"
-                      loading="lazy"
-                      decoding="async"
-                    />
-                    <span className="footer-appz-title">Developed by the AppZ Trinity Team</span>
-                    <span className="footer-appz-url">https://appzmake.com</span>
-                    <span className="footer-appz-note">Click here to visit our official website.</span>
-                  </a>
+                  <AppzDevelopedPopupPanel />
                 </span>
               </span>
             </span>

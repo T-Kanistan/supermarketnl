@@ -1,7 +1,3 @@
-/** Premium careers recruitment hero — full-width background */
-export const VACANCY_HERO_BG =
-  'https://images.unsplash.com/photo-1556740758-90de374c12ad?auto=format&fit=crop&q=80&w=2000';
-
 export const DEPARTMENT_CARD_IMAGES = {
   supermarket: '/images/vacancies-dept-supermarket.jpg',
   foodCorner: '/images/vacancies-dept-foodcorner.jpg',

@@ -27,7 +27,6 @@ import { useToast } from '../context/ToastContext';
 import vacancyService from '../services/vacancyService';
 import { getImageUrl } from '../services/api';
 import {
-  VACANCY_HERO_BG,
   DEPARTMENT_CARD_IMAGES,
   DEPARTMENT_CARD_BG,
   WHY_JOIN_US,
@@ -93,7 +92,7 @@ const VacanciesPage = () => {
   const [loadingVacancies, setLoadingVacancies] = useState(true);
   const [selectedId, setSelectedId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const { banner: pageBanner, loading: bannerLoading } = usePageBanner('vacancies');
+  const { banner: pageBanner, loading: bannerLoading, hasBanner } = usePageBanner('vacancies');
 
   const filteredVacancies = vacancies;
 
@@ -248,40 +247,43 @@ const VacanciesPage = () => {
         vacancy={selectedVacancy}
         heroImageUrl={selectedVacancyImage || vacancyHeroImage}
       />
-      <section className={`careers-hero${bannerLoading ? ' careers-hero--loading' : ''}`}>
-        <div
-          className="careers-hero-bg"
-          style={{ backgroundImage: `url('${getImageUrl(pageBanner.backgroundImage || pageBanner.image) || VACANCY_HERO_BG}')` }}
-          aria-hidden="true"
-        />
-        <div className="careers-hero-overlay" style={getBannerOverlayStyle(pageBanner)} aria-hidden="true" />
-        <div className="container careers-hero-grid">
-          <div className="careers-hero-copy">
-            <span className="careers-hero-badge">
-              <span className="careers-hero-badge-icon" aria-hidden="true">💼</span>
-              {pageBanner.badgeText || 'JOIN OUR TEAM'}
-            </span>
-            <h1 className="careers-hero-title">
-              {pageBanner.title || pageBanner.mainHeading || 'Join Our Team'}
-              {pageBanner.highlightedTitle || pageBanner.highlightText ? (
-                <>
-                  <br />
-                  <span>{pageBanner.highlightedTitle || pageBanner.highlightText}</span>
-                </>
+      {!bannerLoading && hasBanner ? (
+        <section className="careers-hero">
+          <div
+            className="careers-hero-bg"
+            style={{ backgroundImage: `url('${getImageUrl(pageBanner.backgroundImage || pageBanner.image)}')` }}
+            aria-hidden="true"
+          />
+          <div className="careers-hero-overlay" style={getBannerOverlayStyle(pageBanner)} aria-hidden="true" />
+          <div className="container careers-hero-grid">
+            <div className="careers-hero-copy">
+              {pageBanner.badgeText ? (
+                <span className="careers-hero-badge">
+                  <span className="careers-hero-badge-icon" aria-hidden="true">💼</span>
+                  {pageBanner.badgeText}
+                </span>
               ) : null}
-            </h1>
-            <p className="careers-hero-desc">
-              {pageBanner.description ||
-                'Build your career with Ins Wereld Winkel.'}
-            </p>
-            <nav className="careers-hero-breadcrumb" aria-label="Breadcrumb">
-              <Link to="/">Home</Link>
-              <span className="careers-breadcrumb-sep" aria-hidden="true">&gt;</span>
-              <span>Careers</span>
-            </nav>
+              <h1 className="careers-hero-title">
+                {pageBanner.title || pageBanner.mainHeading}
+                {pageBanner.highlightedTitle || pageBanner.highlightText ? (
+                  <>
+                    <br />
+                    <span>{pageBanner.highlightedTitle || pageBanner.highlightText}</span>
+                  </>
+                ) : null}
+              </h1>
+              {pageBanner.description ? (
+                <p className="careers-hero-desc">{pageBanner.description}</p>
+              ) : null}
+              <nav className="careers-hero-breadcrumb" aria-label="Breadcrumb">
+                <Link to="/">Home</Link>
+                <span className="careers-breadcrumb-sep" aria-hidden="true">&gt;</span>
+                <span>Careers</span>
+              </nav>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      ) : null}
 
       <section className="careers-departments">
         <div className="container">

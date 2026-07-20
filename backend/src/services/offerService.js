@@ -50,24 +50,24 @@ const parseDate = (value) => {
 
 /**
  * Persist schedule-driven statuses from the current server calendar day.
- * Leaves inactive / draft / deleted alone (manual or soft-delete).
+ *
+ * - deleted / draft are left alone
+ * - inactive is kept only while the offer is still inside its date window (paused)
+ * - otherwise status is rewritten to scheduled | active | expired from dates
  */
 export const syncOfferScheduleStatuses = async (now = new Date()) => {
   const offers = await Offer.find({
-    status: { $nin: ['inactive', 'draft', 'deleted'] },
+    status: { $nin: ['deleted', 'draft'] },
     $or: [{ startDate: { $ne: null } }, { endDate: { $ne: null } }],
   }).select('_id status startDate endDate');
 
   let modified = 0;
   await Promise.all(
     offers.map(async (offer) => {
-      const next = resolveOfferLifecycleStatus(
-        { status: 'active', startDate: offer.startDate, endDate: offer.endDate },
+      const scheduleStatus = resolveOfferLifecycleStatus(
+        { status: offer.status, startDate: offer.startDate, endDate: offer.endDate },
         now
       );
-      // resolve above forces schedule math; map scheduled/active/expired
-      const scheduleStatus =
-        next === 'scheduled' || next === 'expired' || next === 'active' ? next : 'active';
       if (offer.status !== scheduleStatus) {
         offer.status = scheduleStatus;
         await offer.save();
@@ -133,6 +133,7 @@ export const formatOffer = (doc) => {
   const plain = doc.toObject ? doc.toObject() : { ...doc };
   const schedule = getOfferScheduleState(plain);
   const lifecycleStatus = resolveOfferLifecycleStatus(plain);
+  const publiclyVisible = isOfferPubliclyVisible(plain);
 
   return {
     ...plain,
@@ -146,12 +147,12 @@ export const formatOffer = (doc) => {
     offerPrice: plain.offerPrice ?? null,
     buttonText: plain.buttonText || 'Enquiry',
     status: lifecycleStatus,
-    active: lifecycleStatus === 'active',
+    active: publiclyVisible,
     featured: Boolean(plain.featured),
     sortOrder: Number.isFinite(plain.sortOrder) ? plain.sortOrder : 0,
     isExpired: schedule.isExpired || lifecycleStatus === 'expired',
     isScheduled: schedule.isScheduled || lifecycleStatus === 'scheduled',
-    isLive: lifecycleStatus === 'active',
+    isLive: publiclyVisible,
     lifecycleStatus,
     serverToday: schedule.today,
     // Aliases for consumers expecting imageUrl
@@ -438,12 +439,27 @@ export const buildPartialOfferUpdate = async (body, existing) => {
 
 export const listOffers = async (query = {}, options = {}) => {
   await syncOfferScheduleStatuses();
-  const filter = buildOfferFilter(query, options);
+
+  // For admin status filters, do not trust a possibly-stale DB status field.
+  // Fetch non-deleted offers, format (recomputes lifecycle), then filter in memory.
+  const statusFilter =
+    !options.publicOnly && query.status && query.status !== 'all'
+      ? String(query.status).trim().toLowerCase()
+      : null;
+
+  const filterQuery = statusFilter ? { ...query, status: 'all' } : query;
+  const filter = buildOfferFilter(filterQuery, options);
   const offers = await Offer.find(filter).sort({ sortOrder: 1, createdAt: -1 });
-  const formatted = offers.map(formatOffer);
+  let formatted = offers.map(formatOffer);
+
   if (options.publicOnly) {
     return formatted.filter((offer) => offer.lifecycleStatus === 'active');
   }
+
+  if (statusFilter) {
+    formatted = formatted.filter((offer) => offer.lifecycleStatus === statusFilter);
+  }
+
   return formatted;
 };
 

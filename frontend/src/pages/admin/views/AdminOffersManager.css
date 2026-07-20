@@ -449,10 +449,16 @@
 /* ---------- Banner management ---------- */
 .offm-banner-layout {
   display: grid;
-  grid-template-columns: 1.2fr 1fr;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
   gap: 24px;
   align-items: start;
   max-width: 1200px;
+}
+
+.offm-banner-form,
+.offm-banner-preview-wrap {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .offm-banner-form {
@@ -663,9 +669,10 @@
 }
 
 @media (max-width: 768px) {
-  .offm-toolbar { flex-direction: column; align-items: stretch; }
-  .offm-search { max-width: none; width: 100%; }
-  .offm-toolbar-filters { flex-direction: column; align-items: stretch; }
+  .offm-toolbar { flex-direction: column; align-items: stretch; gap: 12px; }
+  /* flex-basis becomes HEIGHT in column direction — must be none here */
+  .offm-search { flex: none; max-width: none; width: 100%; }
+  .offm-toolbar-filters { flex-direction: column; align-items: stretch; gap: 12px; }
   .offm-toolbar-filters .filter-select-admin,
   .offm-add-btn { width: 100%; min-height: 44px; }
   .offm-upload-grid { grid-template-columns: 1fr; }
@@ -682,6 +689,13 @@
   }
   .offm-table-card {
     margin-top: 0;
+  }
+  .offm-banner-form {
+    padding: 16px;
+  }
+  .offm-hero-preview {
+    padding: 20px 16px;
+    min-height: 240px;
   }
 }
 

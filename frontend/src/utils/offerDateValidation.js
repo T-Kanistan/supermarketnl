@@ -51,18 +51,20 @@ export const resolveOfferTodayYmd = (offersOrOffer, fallback = getTodayYmd()) =>
 
 /**
  * Defensive storefront check — mirrors backend date-window rules.
- * Prefer lifecycleStatus / isLive from the API when present.
+ * Prefer isLive / lifecycleStatus from the API when present.
+ * Only Active offers (in date window) are shown on the website.
  */
 export const isOfferActiveForStorefront = (offer, todayYmd = getTodayYmd()) => {
   if (!offer) return false;
+
+  if (typeof offer.isLive === 'boolean') return offer.isLive;
 
   const status = String(offer.lifecycleStatus || offer.status || '').toLowerCase();
   if (['inactive', 'draft', 'deleted', 'scheduled', 'expired'].includes(status)) {
     return false;
   }
 
-  if (typeof offer.isLive === 'boolean') return offer.isLive;
-  if (typeof offer.active === 'boolean' && status === 'active') return offer.active;
+  if (status === 'active') return true;
 
   const start = toYmd(offer.startDate);
   const end = toYmd(offer.endDate);

@@ -85,16 +85,12 @@ export const isManualOfferStatus = (status) =>
   status === 'inactive' || status === 'draft' || status === 'deleted';
 
 /**
- * Resolve display / persisted schedule status.
- * Manual inactive/draft/deleted take priority; otherwise the date window decides.
- * Stored "active" never overrides dates (requirement: dates always win).
+ * Pure date-window status (ignores stored status).
+ * - Scheduled: today < start
+ * - Active: start <= today <= end
+ * - Expired: today > end (or incomplete schedule)
  */
-export const resolveOfferLifecycleStatus = (offer, now = new Date()) => {
-  const status = offer?.status || 'active';
-  if (status === 'deleted') return 'deleted';
-  if (status === 'draft') return 'draft';
-  if (status === 'inactive') return 'inactive';
-
+export const resolveOfferScheduleStatus = (offer, now = new Date()) => {
   const { isScheduled, isExpired, isInWindow, hasCompleteSchedule } = getOfferScheduleState(
     offer,
     now
@@ -103,16 +99,43 @@ export const resolveOfferLifecycleStatus = (offer, now = new Date()) => {
   if (isScheduled) return 'scheduled';
   if (isExpired) return 'expired';
   if (isInWindow) return 'active';
-
-  // Incomplete schedule (missing start and/or end) cannot be Active on the storefront.
   if (!hasCompleteSchedule) return 'expired';
-
   return 'active';
 };
 
+/**
+ * Resolve display / persisted lifecycle status from the server calendar day.
+ *
+ * Rules:
+ * - deleted / draft stay as-is (not date-driven)
+ * - inactive only sticks while the offer is inside its date window (paused)
+ * - otherwise dates always win: Scheduled → Active → Expired
+ * - stored "active" never overrides dates
+ */
+export const resolveOfferLifecycleStatus = (offer, now = new Date()) => {
+  const status = offer?.status || 'active';
+  if (status === 'deleted') return 'deleted';
+  if (status === 'draft') return 'draft';
+
+  const scheduleStatus = resolveOfferScheduleStatus(offer, now);
+
+  // Manual pause only applies while the offer would otherwise be Active.
+  // Past/future windows must surface as Expired / Scheduled automatically.
+  if (status === 'inactive' && scheduleStatus === 'active') {
+    return 'inactive';
+  }
+
+  return scheduleStatus;
+};
+
 /** Public storefront visibility — only true Active offers in their date window. */
-export const isOfferPubliclyVisible = (offer, now = new Date()) =>
-  resolveOfferLifecycleStatus(offer, now) === 'active';
+export const isOfferPubliclyVisible = (offer, now = new Date()) => {
+  const status = offer?.status || 'active';
+  if (status === 'deleted' || status === 'draft' || status === 'inactive') {
+    return false;
+  }
+  return resolveOfferScheduleStatus(offer, now) === 'active';
+};
 
 /**
  * Mongo filter for publicly Active offers on the current server calendar day.

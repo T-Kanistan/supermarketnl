@@ -8,10 +8,14 @@
   ],
   "scripts": {
     "install:all": "npm install --workspaces",
+    "dev": "concurrently -n backend,frontend -c blue,green \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:backend": "npm run dev --workspace supermarket-backend",
     "dev:frontend": "npm run dev --workspace wins-wereld-winkel",
     "build": "npm run build --workspace wins-wereld-winkel",
     "lint": "npm run lint --workspace wins-wereld-winkel",
     "start": "npm run start --workspace supermarket-backend"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.3"
   }
 }

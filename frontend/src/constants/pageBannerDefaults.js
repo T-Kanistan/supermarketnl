@@ -59,30 +59,8 @@ const PAGE_BANNER_DEFAULTS = {
     overlayOpacity: 0.45,
     isActive: true,
   },
-  vacancies: {
-    pageType: 'vacancies',
-    badgeText: 'JOIN OUR TEAM',
-    title: 'Join Our Team',
-    highlightedTitle: '',
-    description: 'Build your career with Ins Wereld Winkel.',
-    backgroundImage:
-      'https://images.unsplash.com/photo-1556740758-90de374c12ad?auto=format&fit=crop&q=80&w=2000',
-    overlayColor: '#0f172a',
-    overlayOpacity: 0.55,
-    isActive: true,
-  },
-  faq: {
-    pageType: 'faq',
-    badgeText: 'HELP CENTER',
-    title: 'Frequently Asked Questions',
-    highlightedTitle: '',
-    description: 'Find answers about our products, services and store policies.',
-    backgroundImage:
-      'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&q=80&w=2000',
-    overlayColor: '#0f172a',
-    overlayOpacity: 0.85,
-    isActive: true,
-  },
+  // vacancies & faq intentionally have NO defaults — their heroes are 100%
+  // CMS-driven and must not render at all without an active banner.
   contact: {
     pageType: 'contact',
     badgeText: 'GET IN TOUCH',

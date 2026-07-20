@@ -102,6 +102,8 @@ const usePageBanner = (pageName) => {
     ready: !loading && imageReady,
     error,
     fromApi: Boolean(apiBanner),
+    /** True only when an active CMS banner exists for this page. */
+    hasBanner: Boolean(apiBanner) && apiBanner.isActive !== false,
   };
 };
 
