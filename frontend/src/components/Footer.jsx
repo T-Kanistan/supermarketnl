@@ -8,7 +8,7 @@ import { getImageUrl } from '../services/api';
 import { buildStoreLogoAlt } from '../utils/seoImageAlt';
 import { mapProductCategoriesToFooterLinks } from '../utils/footerCategories';
 import BusinessHoursDisplay from './BusinessHoursDisplay';
-import AppzDevelopedPopupPanel from './AppzDevelopedPopupPanel';
+import AppzDevelopedPopup from './AppzDevelopedPopup';
 import './Footer.css';
 
 const isExternalLink = (value = '') => /^https?:\/\//i.test(String(value).trim());
@@ -209,18 +209,10 @@ const Footer = () => {
               <span className="footer-developed-label">Developed By</span>
               {' '}
               <span className="footer-appz">
-                <a
-                  className="footer-developed-name"
-                  href="https://appzmake.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-describedby="appz-popover"
-                >
-                  AppZ Makers
-                </a>
-                <span className="footer-appz-popover" id="appz-popover" role="tooltip">
-                  <AppzDevelopedPopupPanel />
-                </span>
+                <AppzDevelopedPopup
+                  triggerClassName="footer-developed-name"
+                  triggerLabel="AppZ Makers"
+                />
               </span>
             </span>
           </p>
