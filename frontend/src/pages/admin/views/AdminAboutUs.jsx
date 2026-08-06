@@ -759,7 +759,7 @@ export const AdminAboutUs = () => {
                 type="tel"
                 value={aboutPage.owner?.phone || ''}
                 className={fieldErrors['owner.phone'] ? 'about-admin-input-invalid' : ''}
-                placeholder="+31659046526 or +31659046526 / +310644234955"
+                placeholder="0760866795 or 0760866795 / +310644234955"
                 onChange={(e) => updateField('owner.phone', e.target.value, { sanitize: sanitizeOwnerPhoneInput })}
                 onBlur={() => handleFieldBlur('owner.phone')}
               />

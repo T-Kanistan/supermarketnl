@@ -127,7 +127,7 @@ Required:
       "ownerPhoto": "/uploads/about/1710000000003-owner.jpg",
       "ownerName": "Raguparan Murugamoorthy",
       "designation": "Founder & Owner",
-      "phoneNumber": "+31659046526",
+      "phoneNumber": "0760866795",
       "location": "Leeuwenstraat 36, 1211ev, Hilversum",
       "badgeText": "Since 2022",
       "ownerQuote": "Our goal is to provide quality products..."

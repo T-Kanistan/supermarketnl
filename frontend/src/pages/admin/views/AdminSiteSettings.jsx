@@ -203,7 +203,7 @@ const ContactInfoFields = ({
       field="contactPhone"
       label="Phone Number"
       value={formData.contactPhone}
-      placeholder="+31659046526 / +310644234955"
+      placeholder="0760866795"
       hint={phoneHint}
       error={fieldErrors.contactPhone}
       touched={touchedFields.contactPhone}
@@ -1363,8 +1363,8 @@ export const AdminSiteSettings = () => {
                     label="Phone Number"
                     required
                     value={formData.contactPhone}
-                    placeholder="+31659046526 / +310644234955"
-                    hint="Separate multiple numbers with / for the help box (e.g. +31659046526 / +310644234955)."
+                    placeholder="0760866795"
+                    hint="Separate multiple numbers with / for the help box (e.g. 0760866795 / +310644234955)."
                     error={contactSettingsErrors.contactPhone}
                     touched={contactSettingsTouched.contactPhone}
                     onChange={handleContactSettingsChange}

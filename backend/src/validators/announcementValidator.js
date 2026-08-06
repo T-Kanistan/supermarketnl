@@ -42,20 +42,10 @@ export const createAnnouncementRules = [
     .optional()
     .isFloat({ min: 0, max: 100 })
     .withMessage('Discount percentage must be between 0 and 100'),
-  dateRule('startDate'),
-  dateRule('endDate'),
-  body('endDate').custom((endDate, { req }) => {
-    const start = new Date(req.body.startDate);
-    const end = new Date(endDate);
-    if (end <= start) {
-      throw new Error('End date must be greater than start date');
-    }
-    return true;
-  }),
   body('status')
     .notEmpty()
     .withMessage('Status is required')
-    .isIn(['active', 'inactive', 'draft', 'scheduled'])
+    .isIn(['active', 'inactive', 'draft'])
     .withMessage('Status must be active, inactive, or draft'),
   body('bannerImage').optional().isString(),
   body('image').optional().isString(),
@@ -88,23 +78,9 @@ export const updateAnnouncementRules = [
     .optional()
     .isFloat({ min: 0, max: 100 })
     .withMessage('Discount percentage must be between 0 and 100'),
-  body('startDate').optional({ checkFalsy: true }).isISO8601(),
-  body('endDate')
-    .optional({ checkFalsy: true })
-    .isISO8601()
-    .custom((endDate, { req }) => {
-      if (req.body.startDate && endDate) {
-        const start = new Date(req.body.startDate);
-        const end = new Date(endDate);
-        if (end <= start) {
-          throw new Error('End date must be greater than start date');
-        }
-      }
-      return true;
-    }),
   body('status')
     .optional()
-    .isIn(['active', 'inactive', 'draft', 'scheduled', 'expired'])
+    .isIn(['active', 'inactive', 'draft'])
     .withMessage('Invalid status value'),
   body('bannerImage').optional().isString(),
   body('image').optional().isString(),

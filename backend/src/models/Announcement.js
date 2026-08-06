@@ -69,19 +69,6 @@ const announcementSchema = new mongoose.Schema(
       default: 'draft',
       index: true,
     },
-    startDate: {
-      type: Date,
-      required: [true, 'Start date is required'],
-    },
-    endDate: {
-      type: Date,
-      required: [true, 'End date is required'],
-    },
-    isExpired: {
-      type: Boolean,
-      default: false,
-      index: true,
-    },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       default: null,
@@ -100,7 +87,7 @@ const announcementSchema = new mongoose.Schema(
   }
 );
 
-announcementSchema.index({ status: 1, startDate: 1, endDate: 1 });
+announcementSchema.index({ status: 1 });
 announcementSchema.index({ createdAt: -1 });
 announcementSchema.index({ title: 'text', description: 'text' });
 

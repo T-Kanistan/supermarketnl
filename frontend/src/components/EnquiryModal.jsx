@@ -250,25 +250,22 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
     }
   };
 
-  const handleGeneralWhatsApp = async () => {
+  const handleGeneralWhatsApp = () => {
     if (!validate({ requireEmail: false })) return;
 
-    setIsWhatsAppSubmitting(true);
     const payload = getGeneralPayload();
-    try {
-      await enquiryService.submitGeneralEnquiry({
-        ...payload,
-        source: 'whatsapp',
-      });
-    } catch (err) {
-      // Saving to the database is best-effort: if the API is unreachable we
-      // still open WhatsApp so the customer's enquiry is never blocked.
-      console.error('WhatsApp enquiry save failed (continuing to WhatsApp)', err);
-    } finally {
-      openCustomerEnquiryWhatsApp(payload);
-      completeSubmission();
-      setIsWhatsAppSubmitting(false);
-    }
+    
+    // Open WhatsApp synchronously to prevent browser popup blockers
+    openCustomerEnquiryWhatsApp(payload);
+    completeSubmission();
+
+    // Best-effort background save
+    enquiryService.submitGeneralEnquiry({
+      ...payload,
+      source: 'whatsapp',
+    }).catch((err) => {
+      console.error('WhatsApp enquiry save failed', err);
+    });
   };
 
   const handleWhatsApp = () => {
@@ -352,7 +349,7 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
                       }}
                       onFocus={() => setPhoneHelperVisible(true)}
                       onBlur={() => setPhoneHelperVisible(false)}
-                      placeholder="+31659046526 (optional)"
+                      placeholder="0760866795 (optional)"
                     />
                   </div>
                   {phoneHelperVisible && (

@@ -42,7 +42,7 @@ MONGODB_URI=mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/supermarket_db
 {
   "success": true,
   "data": {
-    "phoneNumber": "+31659046526",
+    "phoneNumber": "0760866795",
     "emailAddress": "info@winswereldwinkel.nl",
     "storeName": "Ins Wereld Winkel",
     "storeAddress": "Amsterdam, Netherlands",

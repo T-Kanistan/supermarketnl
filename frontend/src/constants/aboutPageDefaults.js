@@ -109,7 +109,7 @@ export const defaultAboutPage = {
     quote:
       'Our goal is to provide quality products, fresh groceries, and excellent customer service to every customer.',
     badge: 'Founder & Owner',
-    phone: '+31659046526',
+    phone: '0760866795',
     location: 'Leeuwenstraat 36, 1211 EV, Hilversum',
     photo: '/images/owner-raguparan.png',
     sinceYear: '2022',

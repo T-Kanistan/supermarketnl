@@ -19,7 +19,6 @@ const FILTER_OPTIONS = [
   { value: 'active', label: 'Active' },
   { value: 'inactive', label: 'Inactive' },
   { value: 'draft', label: 'Draft' },
-  { value: 'expired', label: 'Expired' },
 ];
 
 const emptyForm = () => ({
@@ -33,8 +32,6 @@ const emptyForm = () => ({
   overlayOpacity: 0.35,
   bannerImage: '',
   discountPercentage: 0,
-  startDate: new Date().toISOString().split('T')[0],
-  endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
   status: 'draft',
 });
 
@@ -102,9 +99,7 @@ export const AdminAnnouncements = () => {
       overlayOpacity: announcement.overlayOpacity ?? 0.35,
       bannerImage: announcement.bannerImage || announcement.image || '',
       discountPercentage: announcement.discountPercentage ?? announcement.offerPercentage ?? 0,
-      startDate: announcement.startDate || '',
-      endDate: announcement.endDate || '',
-      status: storedStatus === 'scheduled' ? 'draft' : storedStatus || 'draft',
+      status: storedStatus || 'draft',
     });
     setImageError('');
     setIsModalOpen(true);
@@ -174,14 +169,6 @@ export const AdminAnnouncements = () => {
       addToast('Description must not exceed 2000 characters', 'error');
       return false;
     }
-    if (!formData.startDate || !formData.endDate) {
-      addToast('Start and end dates are required', 'error');
-      return false;
-    }
-    if (new Date(formData.endDate) <= new Date(formData.startDate)) {
-      addToast('End date must be after start date', 'error');
-      return false;
-    }
     const discount = Number(formData.discountPercentage);
     if (discount < 0 || discount > 100) {
       addToast('Discount must be between 0 and 100', 'error');
@@ -243,7 +230,12 @@ export const AdminAnnouncements = () => {
           <h2>Store Announcements</h2>
           <p>Homepage promotional banners only. These do not appear on the Offers page.</p>
         </div>
-        <button className="action-btn-primary" onClick={openAddModal}>
+        <button
+          className="action-btn-primary"
+          onClick={openAddModal}
+          disabled={announcements.length >= 2}
+          title={announcements.length >= 2 ? "Maximum of 2 banners allowed" : ""}
+        >
           <FaPlus /> Add Announcement
         </button>
       </div>
@@ -289,8 +281,6 @@ export const AdminAnnouncements = () => {
                 <th>Description</th>
                 <th>Discount %</th>
                 <th>Status</th>
-                <th>Start Date</th>
-                <th>End Date</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -325,8 +315,6 @@ export const AdminAnnouncements = () => {
                         {statusClass}
                       </span>
                     </td>
-                    <td data-label="Start Date">{formatDate(announcement.startDate)}</td>
-                    <td data-label="End Date">{formatDate(announcement.endDate)}</td>
                     <td data-label="Actions">
                       <div className="cell-actions">
                         <button
@@ -519,31 +507,6 @@ export const AdminAnnouncements = () => {
                   <div />
                 </div>
 
-                <div className="admin-form-group row-split">
-                  <div>
-                    <AdminFieldLabel htmlFor="ann-start-date" required>Start Date</AdminFieldLabel>
-                    <input
-                      id="ann-start-date"
-                      type="date"
-                      name="startDate"
-                      value={formData.startDate}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <AdminFieldLabel htmlFor="ann-end-date" required>End Date</AdminFieldLabel>
-                    <input
-                      id="ann-end-date"
-                      type="date"
-                      name="endDate"
-                      value={formData.endDate}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
-                </div>
-
                 <div className="admin-form-group">
                   <AdminFieldLabel htmlFor="ann-file" optional>Banner Image</AdminFieldLabel>
                   <div className={`image-upload-zone${imageError ? ' admin-input-invalid' : ''}`} style={{ padding: '12px' }}>
@@ -604,7 +567,6 @@ export const AdminAnnouncements = () => {
               <p style={{ marginBottom: '12px' }}>{viewingAnn.description}</p>
               <p><strong>Discount:</strong> {viewingAnn.discountPercentage ?? viewingAnn.offerPercentage ?? 0}%</p>
               <p><strong>Status:</strong> {getStatusClass(viewingAnn)}</p>
-              <p><strong>Campaign:</strong> {formatDate(viewingAnn.startDate)} – {formatDate(viewingAnn.endDate)}</p>
               <p><strong>Created:</strong> {formatDate(viewingAnn.createdAt)}</p>
             </div>
             <div className="modal-footer">
