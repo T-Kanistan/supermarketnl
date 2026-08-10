@@ -349,7 +349,7 @@ const EnquiryModal = ({ isOpen, onClose, product }) => {
                       }}
                       onFocus={() => setPhoneHelperVisible(true)}
                       onBlur={() => setPhoneHelperVisible(false)}
-                      placeholder="0760866795 (optional)"
+                      placeholder="+31659046526 (optional)"
                     />
                   </div>
                   {phoneHelperVisible && (

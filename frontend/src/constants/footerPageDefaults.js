@@ -9,7 +9,7 @@ export const SOCIAL_PLATFORM_OPTIONS = [
 const defaultSocialLinks = [
   { id: 'sm-1', platform: 'facebook', url: 'https://facebook.com', enabled: true },
   { id: 'sm-2', platform: 'instagram', url: 'https://instagram.com', enabled: true },
-  { id: 'sm-3', platform: 'whatsapp', url: 'https://wa.me/94760866795', enabled: true },
+  { id: 'sm-3', platform: 'whatsapp', url: 'https://wa.me/31659046526', enabled: true },
   { id: 'sm-4', platform: 'tiktok', url: 'https://tiktok.com', enabled: true },
   { id: 'sm-5', platform: 'youtube', url: 'https://youtube.com', enabled: true },
 ];

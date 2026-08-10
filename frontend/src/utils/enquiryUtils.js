@@ -1,4 +1,4 @@
-export const ENQUIRY_WHATSAPP_NUMBER = '94760866795';
+export const ENQUIRY_WHATSAPP_NUMBER = '31659046526';
 export const ENQUIRY_WHATSAPP_URL = `https://wa.me/${ENQUIRY_WHATSAPP_NUMBER}`;
 
 export const GENERAL_ENQUIRY_TYPES = [
@@ -109,7 +109,7 @@ ${enquiryType}
 ${message}
 
 Send to:
-0760866795`;
++31659046526`;
 };
 
 export const openCustomerEnquiryWhatsApp = (payload) => {

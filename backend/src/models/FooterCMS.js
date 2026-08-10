@@ -26,7 +26,7 @@ const socialLinksSchema = new mongoose.Schema(
   {
     facebook: { type: String, default: 'https://facebook.com' },
     instagram: { type: String, default: 'https://instagram.com' },
-    whatsapp: { type: String, default: 'https://wa.me/94760866795' },
+    whatsapp: { type: String, default: 'https://wa.me/31659046526' },
     tiktok: { type: String, default: 'https://tiktok.com' },
     youtube: { type: String, default: 'https://youtube.com' },
   },
@@ -55,7 +55,7 @@ const businessHoursSchema = new mongoose.Schema(
 const contactSchema = new mongoose.Schema(
   {
     address: { type: String, default: 'Amsterdam, Netherlands', trim: true },
-    phone: { type: String, default: '0760866795', trim: true },
+    phone: { type: String, default: '+31659046526', trim: true },
     email: { type: String, default: 'info@winswereldwinkel.nl', trim: true },
   },
   { _id: false }
@@ -90,7 +90,7 @@ export const getDefaultFooterCMS = () => ({
   socialLinks: {
     facebook: 'https://facebook.com',
     instagram: 'https://instagram.com',
-    whatsapp: 'https://wa.me/94760866795',
+    whatsapp: 'https://wa.me/31659046526',
     tiktok: 'https://tiktok.com',
     youtube: 'https://youtube.com',
   },
@@ -101,7 +101,7 @@ export const getDefaultFooterCMS = () => ({
   },
   contact: {
     address: 'Amsterdam, Netherlands',
-    phone: '0760866795',
+    phone: '+31659046526',
     email: 'info@winswereldwinkel.nl',
   },
   quickLinksTitle: 'QUICK LINKS',

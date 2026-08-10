@@ -53,7 +53,7 @@ Footer category links are **not** stored in Footer CMS. The website footer loads
     "settings": {
       "footerLogo": "/logo.png",
       "footerDescription": "...",
-      "phoneNumber": "0760866795"
+      "phoneNumber": "+31659046526"
     },
     "quickLinks": [
       { "id": "665a...", "label": "Home", "url": "/", "displayOrder": 1, "isVisible": true }

@@ -54,7 +54,7 @@ const infoCardSchema = new mongoose.Schema(
 
 const contactCmsSchema = new mongoose.Schema(
   {
-    phoneNumber: { type: String, default: '0760866795', trim: true },
+    phoneNumber: { type: String, default: '+31659046526', trim: true },
     phoneSubtext: { type: String, default: '', trim: true },
     email: { type: String, default: 'info@winswereldwinkel.nl', trim: true },
     emailSubtext: { type: String, default: 'We reply within 24 hours', trim: true },
@@ -77,7 +77,7 @@ const contactCmsSchema = new mongoose.Schema(
 );
 
 export const getDefaultContactCMS = () => ({
-  phoneNumber: '0760866795',
+  phoneNumber: '+31659046526',
   phoneSubtext: '',
   email: 'info@winswereldwinkel.nl',
   emailSubtext: 'We reply within 24 hours',

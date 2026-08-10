@@ -15,7 +15,7 @@ export const BUSINESS = {
   addressLocality: 'Hilversum',
   addressCountry: 'NL',
   fullAddress: 'Leeuwenstraat 36, 1211 EV Hilversum',
-  phone: '0760866795',
+  phone: '+31659046526',
   email: 'info@winswereldwinkel.nl',
   geo: {
     latitude: 52.2292,

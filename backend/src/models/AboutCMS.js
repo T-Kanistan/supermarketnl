@@ -292,7 +292,7 @@ export const getDefaultAboutCMS = () => ({
     ownerPhoto: '/images/owner-raguparan.png',
     ownerName: 'Raguparan Murugamoorthy',
     designation: 'Founder & Owner',
-    phoneNumber: '0760866795',
+    phoneNumber: '+31659046526',
     location: 'Leeuwenstraat 36, 1211ev, Hilversum',
     badgeText: 'Founder & Owner',
     ownerQuote:
